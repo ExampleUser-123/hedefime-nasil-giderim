@@ -1,0 +1,2333 @@
+ï»¿
+<html>
+<head>
+    <style type="text/css">
+	.modal {
+    display:    none;
+    position:   fixed;
+    z-index:    1000;
+    top:        0;
+    left:       0;
+    height:     100%;
+    width:      100%;
+    
+	}
+
+	
+	/* When the body has the loading class, we turn
+	   the scrollbar off with overflow:hidden */
+	body.loading .modal {
+		overflow: hidden;   
+	}
+
+	/* Anytime the body has the loading class, our
+	   modal element will be visible */
+	body.loading .modal {
+		display: block;
+	}
+        html, body, #mapFrame {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: verdana;
+            font-size: 10px;
+			overflow:hidden;
+			
+        }
+
+        
+
+        .context-menu {
+            width: 200px;
+            height: auto;
+            position: absolute;
+            display: none;
+        }
+
+            .context-menu ul {
+                list-style: none;
+                padding: 5px 0px 5px 0px;
+            }
+
+                
+
+        .separator {
+            height: 1px;
+            background: #dedede;
+            margin: 2px 0px 2px 0px;
+        }
+		
+		@media all and (max-width:480px) {
+		   .custom-class { width: 100%; display:block; }
+		}
+		
+		.cntnr
+		{
+			position:relative;
+			width:300px;
+			height:300px;
+			margin:20px auto;
+			text-align:center;
+			float:center;
+		}
+		.cntnr .box
+		{
+			position:relative;
+			width: calc(100px - 10px);
+			height: calc(100px - 10px);
+			background: #000;
+			float:left;
+			margin: 5px;
+			box-sizing: border-box;
+			overflow:hidden;
+			border-radius:0.25rem;
+		}
+		.cntnr .box .icon
+		{
+			position:absolute;
+			top:0;
+			left:0;
+			width:100%;
+			height:100%;
+			background:#f00;
+			transition: 0.5s;
+			z-index:1;
+		}
+		.cntnr .box:hover .icon
+		{
+			top:10px;
+			left:calc(50% - 20px);
+			width: 40px;
+			height:40px;
+			border-radius:50%;
+		}
+		
+		.cntnr .box .icon .cni
+		{
+			position:absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%,-50%);
+			font-size:35px;
+			transition: 0.5s;
+			color:#fff
+		}
+		
+		.cntnr .box:hover .icon .cni
+		{
+			font-size:20px;
+		}
+		.cntnr .box .content
+		{
+			
+			height: calc(100% -100px); 
+			top: 100%;
+			text-align:center;
+			padding:60px 0px;
+			box-sizing:border-box;
+			transition:0.5s;
+			opacity:0;
+		}
+		.cntnr .box:hover .content
+		{
+			top:20px;
+			opacity:1;
+		}
+		.cntnr .box .content p
+		{
+			margin:0 0 2px;
+			padding:0;
+			color: #fff;
+			font-size:13px;
+			
+		}
+		.cntnr .box:nth-child(1) .icon
+		{
+			background: #0000C0;
+		}
+		.cntnr .box:nth-child(1)
+		{
+			background: #2828ff;
+		}
+		.cntnr .box:nth-child(2) .icon
+		{
+			background: #D32F2F;
+		}
+		.cntnr .box:nth-child(2)
+		{
+			background: #d74343;
+		}
+		.cntnr .box:nth-child(3) .icon
+		{
+			background: #1E88E5;
+		}
+		.cntnr .box:nth-child(3)
+		{
+			background: #187bd1;
+		}
+		.cntnr .box:nth-child(4) .icon
+		{
+			background: #6D4C41;
+		}
+		.cntnr .box:nth-child(4)
+		{
+			background: #5d4137;
+		}
+		.cntnr .box:nth-child(5) .icon
+		{
+			background: #388E3C;
+		}
+		.cntnr .box:nth-child(5)
+		{
+			background: #317c34;
+		}
+		.cntnr .box:nth-child(6) .icon
+		{
+			background: #F65F34;
+		}
+		.cntnr .box:nth-child(6)
+		{
+			background: #f66f48;
+		}
+		.cntnr .box:nth-child(7) .icon
+		{
+			background: #8E24AA;
+		}
+		.cntnr .box:nth-child(7)
+		{
+			background: #9939b2;
+		}
+		.cntnr .box:nth-child(8) .icon
+		{
+			background: #e3c22f;
+		}
+		.cntnr .box:nth-child(8)
+		{
+			background: #fddb49;
+		}
+		.cntnr .box:nth-child(9) .icon
+		{
+			background: #D32F2F;
+		}
+		.cntnr .box:nth-child(9)
+		{
+			background: #d74343;
+		}
+		
+		
+		.lnk{
+		color:#4875B4;
+		}
+		.ytb{
+			color:#FF3333;
+		}
+		.nst{
+			color:#4E433C;
+		}
+		.twt{
+			color:#00ACEE;
+		}
+		.fcb{
+			color:#3b5998;
+		}
+		.lnk, .ytb, .nst, .twt, .fcb {
+		  background-color: White; /* Blue background */
+		  border: none; /* Remove borders */	  
+		  padding: 12px 16px; /* Some padding */
+		  font-size: 16px; /* Set a font size */
+		  cursor: pointer; /* Mouse pointer on hover */
+		}
+
+		/* Darker background on mouse-over */
+		.lnk:hover {
+		  background-color:#4875B4;
+		  color:white;
+		}
+		.ytb:hover {
+		  background-color:#FF3333;
+		  color:white;
+		}
+		.nst:hover {
+		  background-color:#4E433C;
+		  color:white;
+		}
+		.twt:hover {
+		  background-color:#00ACEE;
+		  color:white;
+		}
+		.fcb:hover {
+		  background-color:#3b5998;
+		  color:white;
+		}
+			
+		.btnbb {
+		  box-sizing: border-box;
+		  -webkit-appearance: none;
+			 -moz-appearance: none;
+				  appearance: none;
+		  background-color: transparent;
+		  border: 2px solid #e74c3c;
+		  border-radius: 0.6em;
+		  color: #e74c3c;
+		  cursor: pointer;
+		  display: flex;
+		  align-self: center;
+		  font-size: 0.9rem;
+		  font-weight: 12;
+		  line-height: 1;
+		  margin: 1px;
+		  padding: 0.6em 1.4em;
+		  text-decoration: none;
+		  text-align: center;		  
+		  font-family: 'Montserrat', sans-serif;
+		  font-weight: 20;
+		}
+		.btnbb:hover, .btnbb:focus {
+		  color: #EC202A;
+		  outline: 0;
+		}
+
+
+
+		.third {
+		  border-color: #EC202A;
+		  color: #fff;
+		  box-shadow: 0 0 20px 20px #EC202A inset, 0 0 0 0 #EC202A;
+		  transition: all 150ms ease-in-out;
+		}
+		.third:hover {
+		  box-shadow: 0 0 10px 0 #EC202A inset, 0 0 10px 4px #EC202A;
+		}
+		
+		.shield {
+			
+			border-radius: 15px 15px 2px;
+			height:10px;
+			font-weight:bold;
+			color: #fff;											
+			position: relative;
+			border: 3px solid #908d90;
+			display: inline-block;	
+			background-color: #71656e;
+			padding:6px 8px 17px;
+			margin-bottom:2px;
+			right:-2px;
+			margin-right:4px;
+		}
+		.shld {
+			
+			border-radius: 15px 2px 15px 15px;
+			height:10px;
+			font-weight:bold;
+			color: #fff;								
+			position: relative;
+			border: 3px solid #908d90;
+			display: inline-block;	
+			background-color: #71656e;
+			margin-bottom:1300%;
+			padding:6px 8px 17px;
+			
+		}
+		.zoomclss{
+			bottom:10px;
+			right:1%;
+			position:absolute;
+		}
+		.shld:hover, .shield:hover{
+			color:white;
+			background-color: #c6bec4;
+		}
+		.beta{
+			margin-left:25px;
+		}
+		.telegrambtn {		  
+		  cursor: pointer;	
+		  float:left;
+		  margin-top:10px;
+		}
+		.telegrambtn:hover {
+		  color:#0088cc;
+		  cursor: pointer;		  		  
+		}
+		#ust{
+			background-color:#f9e8e85e;
+		}
+		
+		::-webkit-scrollbar{
+			background: #ddd;
+			width: 14px;
+		}
+		
+		:::-webkit-scrollbar-track{
+			box-shadow: inset 0 0 10px #0000070;
+			border-radius: 10px;
+		}
+		
+		::-webkit-scrollbar-thumb{
+			background: linear-gradient(125deg,#908d90,#71656e);
+			border-radius:10px;
+		}
+		.tooltip {
+		  position: relative;
+		  display: inline-block;
+		}
+
+		.tooltip .tooltiptext {
+		  visibility: hidden;
+		  width: 140px;
+		  background-color: #555;
+		  color: #fff;
+		  text-align: center;
+		  border-radius: 6px;
+		  padding: 5px;
+		  position: absolute;
+		  z-index: 1;
+		  bottom: 150%;
+		  left: 50%;
+		  margin-left: -75px;
+		  opacity: 0;
+		  transition: opacity 0.3s;
+		}
+
+		.tooltip .tooltiptext::after {
+		  content: "";
+		  position: absolute;
+		  top: 100%;
+		  left: 50%;
+		  margin-left: -5px;
+		  border-width: 5px;
+		  border-style: solid;
+		  border-color: #555 transparent transparent transparent;
+		}
+
+		.tooltip:hover .tooltiptext {
+		  visibility: visible;
+		  opacity: 1;
+		}
+        .siss, .sissi, .sisss {
+            color: #6c757d; 
+            border: none;
+            padding-top: 10px;
+            font-size: 20px;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
+            .siss:hover {
+                color: #62317d;
+            }
+
+            .sissi:hover {
+                color: #62317d;
+            }
+
+		.sissi{
+		  padding-top: 11px;
+          padding-right: 2px;
+		}
+		
+		
+		.sisss{
+			padding:12px 13px;
+		}
+		
+		
+		.totTL{
+			margin-top:5px; 
+		}
+
+        .nav {
+            list-style: none;
+            text-align: center;
+        }
+
+            .nav li {
+                position: relative;
+                display: inline-block;
+                margin-right: -4px;
+            }
+
+            .nav a {
+                display: block;
+                background-color: #f7f7f7;
+                background-image: -webkit-gradient(linear, left top, left bottom, from(#f7f7f7), to(#e7e7e7));
+                background-image: -webkit-linear-gradient(top, #f7f7f7, #e7e7e7);
+                background-image: -moz-linear-gradient(top, #f7f7f7, #e7e7e7);
+                background-image: -ms-linear-gradient(top, #f7f7f7, #e7e7e7);
+                background-image: -o-linear-gradient(top, #f7f7f7, #e7e7e7);
+                color: #a7a7a7;
+                margin-right: 36px;
+                margin-left: 36px;
+                width: 40px;
+                height: 40px;
+                position: relative;
+                text-align: center;
+                border-radius: 50%;
+                box-shadow: 0px 3px 8px #aaa, inset 0px 2px 3px #fff;
+            }
+
+                .nav a:hover {
+                    text-decoration: none;
+                    color: #555;
+                    background: #f5f5f5;
+                    cursor: pointer;
+                }
+
+            .nav li:before {
+                content: "";
+                display: block;
+                border-top: 1px solid #ddd;
+                border-bottom: 1px solid #fff;
+                width: 100%;
+                height: 1px;
+                position: absolute;
+                top: 50%;
+                z-index: -1;
+            }
+
+            .nav a:before {
+                content: "";
+                display: block;
+                background: #fff;
+                border-top: 2px solid #ddd;
+                position: absolute;
+                top: -5px;
+                left: -5px;
+                bottom: -5px;
+                right: -5px;
+                z-index: -1;
+                border-radius: 50%;
+                box-shadow: inset 0px 8px 48px #ddd;
+            }
+
+        .navmargin {
+            margin: auto;
+        }
+		
+        @media screen and (max-width: 1730px) {
+            .nav a {
+                display: block;
+                background-color: #f7f7f7;
+                background-image: -webkit-gradient(linear, left top, left bottom, from(#f7f7f7), to(#e7e7e7));
+                background-image: -webkit-linear-gradient(top, #f7f7f7, #e7e7e7);
+                background-image: -moz-linear-gradient(top, #f7f7f7, #e7e7e7);
+                background-image: -ms-linear-gradient(top, #f7f7f7, #e7e7e7);
+                background-image: -o-linear-gradient(top, #f7f7f7, #e7e7e7);
+                color: #a7a7a7;
+                margin-right: 20px;
+                margin-left: 20px;
+                width: 40px;
+                height: 40px;
+                position: relative;
+                text-align: center;
+                border-radius: 50%;
+                box-shadow: 0px 3px 8px #aaa, inset 0px 2px 3px #fff;
+            }
+			.beta{
+				margin-top:15px;
+				width:20px;
+				height:18px;
+			}
+        }
+
+        @media screen and (max-width: 1225px) {
+            .nav a {
+                display: block;
+                background-color: #f7f7f7;
+                background-image: -webkit-gradient(linear, left top, left bottom, from(#f7f7f7), to(#e7e7e7));
+                background-image: -webkit-linear-gradient(top, #f7f7f7, #e7e7e7);
+                background-image: -moz-linear-gradient(top, #f7f7f7, #e7e7e7);
+                background-image: -ms-linear-gradient(top, #f7f7f7, #e7e7e7);
+                background-image: -o-linear-gradient(top, #f7f7f7, #e7e7e7);
+                color: #a7a7a7;
+                margin-right: 15px;
+                margin-left: 15px;
+                width: 40px;
+                height: 40px;
+                position: relative;
+                text-align: center;
+                border-radius: 50%;
+                box-shadow: 0px 3px 8px #aaa, inset 0px 2px 3px #fff;
+            }
+        }
+
+        @media screen and (max-width: 1440px) {
+            .container {
+                padding-left: 50px !important;
+            }
+
+            .cntnr .box .content {
+                height: calc(100% -100px);
+                top: 100%;
+                text-align: center;
+                padding: 48px 0px;
+                box-sizing: border-box;
+                transition: 0.5s;
+                opacity: 0;
+            }
+
+            .cntnr .box {
+                position: relative;
+                width: calc(100px - 30px);
+                height: calc(100px - 30px);
+                background: #000;
+                float: left;
+                margin: 5px;
+                box-sizing: border-box;
+                overflow: hidden;
+                border-radius: 0.25rem;
+            }
+
+                .cntnr .box:hover .icon {
+                    top: 10px;
+                    left: calc(50% - 15px);
+                    width: 30px;
+                    height: 30px;
+                    border-radius: 50%;
+                }
+
+            .telegrambtn {
+                cursor: pointer;
+                float: left;
+                width: 24px;
+                height: 24px;
+            }
+
+            .totTL {
+                margin-top: 5px;
+                margin-left: -15px;
+            }
+
+            
+        }
+
+
+
+
+
+
+
+
+
+        
+		
+    </style>
+	
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    
+	<link rel="stylesheet" href="https://code.jquery.com/ui/1.13.0/themes/base/jquery-ui.min.css">	
+	<!-- <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css"> -->
+
+    <!-- <script rel=âdns-prefetchâ src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script> -->
+    <script rel=âdns-prefetchâ src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+	
+	<script src="https://code.jquery.com/ui/1.13.0/jquery-ui.min.js"></script>
+    <!-- <script rel=âdns-prefetchâ src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script> GZ-->
+    <script rel=âdns-prefetchâ src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script rel=âdns-prefetchâ src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script rel=âdns-prefetchâ src="https://sehirharitasiapi.ibb.gov.tr/api/map2.js"></script>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css" integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous">
+    <title>Ä°ETT NasÄ±l Giderim</title>
+    <link rel="icon" type="image/ico" href="image/ietticon.ico" />
+
+	
+</head>
+<body>
+
+    <div class="container-fluid">
+
+        <div class="row">
+            <div class="col-lg-3 col-sm-12 col-md-6" style="box-shadow: inset 1px 1px 5px 0 #808080">
+				
+				<div  align="center">
+					<a style="text-decoration: none;" href="https://nasilgiderim.iett.gov.tr/">
+						<img src="image/ngid.png" class="col-9" style=" margin-top:8px; margin-bottom:8px; padding:-20px;" />
+					</a>
+					<a  style="text-decoration: none;" href="https://nasilgiderim.iett.gov.tr/en">
+						<img src="image/en.svg" width="24px" height="24px"/>
+					</a>
+
+				</div>
+				
+				<div id="giriskismi">	
+				<div class="row">
+					
+					<div class="input-group mb-3 col-12">
+						<button id="konumum" type="button" class="btn btn-outline-dark" title="Lokasyonum" ><i class="fas fa-street-view"></i></button>
+						<input type="text" style="background:#eaf1ef" class="form-control " title="LÃ¼tfen, nereden gitmek istediÄinizi yazarak gelen adreslerden seÃ§iniz." placeholder="Buradan" id="varis" name="varis" >		
+					</div>
+				</div>
+				<div class="row">
+					
+					<div class="input-group mb-3 col-8">
+						<input type="text"  style="background:#eaf1ef" class="form-control " title="LÃ¼tfen, gitmek istediÄiniz yeri yazarak gelen adreslerden gitmek istediÄiniz yeri seÃ§iniz." placeholder="Buraya" id="bitis" name="bitis">				   
+					</div>
+					<div class="col-4">
+						   <select name="Times" id="SelectTime" class="form-control " title="FarklÄ± bir saat dilimi seÃ§ebilirsiniz." style=" background:#eaf1ef;">
+							<option value="05:00">05:00</option>
+							<option value="05:15">05:15</option>
+							<option value="05:30">05:30</option>
+							<option value="05:45">05:45</option>
+							 
+							<option value="06:00">06:00</option>
+							<option value="06:15">06:15</option>
+							<option value="06:30">06:30</option>
+							<option value="06:45">06:45</option>
+							 
+							<option value="07:00">07:00</option>
+							<option value="07:15">07:15</option>
+							<option value="07:30">07:30</option>
+							<option value="07:45">07:45</option>
+							 
+							<option value="08:00">08:00</option>
+							<option value="08:15">08:15</option>
+							<option value="08:30">08:30</option>
+							<option value="08:45">08:45</option>
+							 
+							<option value="09:00">09:00</option>
+							<option value="09:15">09:15</option>
+							<option value="09:30">09:30</option>
+							<option value="09:45">09:45</option>
+							 
+							<option value="10:00">10:00</option>
+							<option value="10:15">10:15</option>
+							<option value="10:30">10:30</option>
+							<option value="10:45">10:45</option>
+							 
+							<option value="11:00">11:00</option>
+							<option value="11:15">11:15</option>
+							<option value="11:30">11:30</option>
+							<option value="11:45">11:45</option>
+							 
+							<option value="12:00">12:00</option>
+							<option value="12:15">12:15</option>
+							<option value="12:30">12:30</option>
+							<option value="12:45">12:45</option>
+							 
+							<option value="13:00">13:00</option>
+							<option value="13:15">13:15</option>
+							<option value="13:30">13:30</option>
+							<option value="13:45">13:45</option>
+							 
+							<option value="14:00">14:00</option>
+							<option value="14:15">14:15</option>
+							<option value="14:30">14:30</option>
+							<option value="14:45">14:45</option>
+							 
+							<option value="15:00">15:00</option>
+							<option value="15:15">15:15</option>
+							<option value="15:30">15:30</option>
+							<option value="15:45">15:45</option>
+							 
+							<option value="16:00">16:00</option>
+							<option value="16:15">16:15</option>
+							<option value="16:30">16:30</option>
+							<option value="16:45">16:45</option>
+							 
+							<option value="17:00">17:00 </option>
+							<option value="17:15">17:15 </option>
+							<option value="17:30">17:30 </option>
+							<option value="17:45">17:45 </option>
+							 
+							<option value="18:00">18:00 </option>
+							<option value="18:15">18:15 </option>
+							<option value="18:30">18:30 </option>
+							<option value="18:45">18:45 </option>
+							 
+							<option value="19:00">19:00 </option>
+							<option value="19:15">19:15 </option>
+							<option value="19:30">19:30 </option>
+							<option value="19:45">19:45 </option>
+							 
+							<option value="20:00">20:00 </option>
+							<option value="20:15">20:15 </option>
+							<option value="20:30">20:30 </option>
+							<option value="20:45">20:45 </option>
+							 
+							<option value="21:00">21:00 </option>
+							<option value="21:15">21:15 </option>
+							<option value="21:30">21:30 </option>
+							<option value="21:45">21:45 </option>
+							 
+							<option value="22:00">22:00 </option>
+							<option value="22:15">22:15 </option>
+							<option value="22:30">22:30 </option>
+							<option value="22:45">22:45 </option>
+							 
+							<option value="23:00">23:00 </option>
+							<option value="23:15">23:15 </option>
+							<option value="23:30">23:30 </option>
+							<option value="23:45">23:45 </option>
+							</select>
+						</div>
+				</div>
+					<div id="infSorRes" class="row" style="padding-bottom:15px;">
+                        <nav class="navmargin">
+                            <ul class="nav">
+                                <li><a id="btnquery" title="Sorgula" class="icon-location"><i class="fas fa-map-signs siss"></i></a></li>
+                                <li><a id="information" title="Bilgilendirme" data-toggle="modal" data-target="#exampleModal" class="icon-cog"><i class="fas fa-info siss"></i></a></li>
+                                <li><a id="paylas" title="PaylaÅ" data-toggle="modal" data-target="#exampleModalShare" class="icon-cw"><i class="fas fa-share-alt sissi"></i></a></li>
+                                <li><a id="sifirla" title="SÄ±fÄ±rla" class="icon-home"><i class="fas fa-home siss"></i></a></li>
+                            </ul>
+                        </nav>
+								
+					</div>
+					<div id="butonlar" class="btn-group " style="background-color:#eaf1ef; margin-bottom:10px; border-radius:5px; width:100%; border:1px solid black;">
+						<button id="kisasure" class="btn grp btn-dark" style="weight:bold; font-size:0.9rem; font-family:unset; border-radius:5px;"><strong>En KÄ±sa SÃ¼re</strong></button>
+						<button id="azyurume" class="btn grp" style="weight:bold; font-size:0.9rem; font-family:unset; border-radius:5px;"><strong>En Az YÃ¼rÃ¼me</strong></button>
+						<button id="azaktarma" href="#" class="btn grp" style="weight:bold; font-size:0.9rem; font-family:unset; border-radius:5px;"><strong>En Az Aktarma</strong></button>
+						<button id="metroter" class="btn grp"  style="weight:bold; font-size:0.9rem; font-family:unset; border-radius:5px;"><strong>Metro Tercihli</strong></button>
+					</div>
+				</div>
+                <div id="scrolldiv"  >
+					<div style=" max-height:44vh; overflow:auto;" >
+						<table class="table table-borderless " style="max-height: 44vh; overflow:auto;" >
+							<tbody id="firsttable"></tbody>
+							
+						</table>
+					</div>
+					<div style=" max-height: 70vh; overflow:auto; overflow-x:hidden;">
+						<table class="table table-hover " >
+							<tbody id="ust"></tbody>
+						</table>
+						<table  class="table table-borderless" >
+							<tbody id="alt"></tbody>
+						</table>
+					</div>
+                </div>
+				<div id="ustcizgi" >
+					<hr/>
+				</div>
+				<div class="modal fade" id="exampleModalShare" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+				  <div class="modal-dialog" role="document">
+					<div class="modal-content">
+					  <div class="modal-header">
+						<h5 class="modal-title" id="exampleModalLabel">YolculuÄu paylaÅmak iÃ§in lÃ¼tfen kopyalayÄ±nÄ±z.</h5>
+						<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+						  <span aria-hidden="true">&times;</span>
+						</button>
+					  </div>
+					  <div class="modal-body">
+						<input type="text" class="form-control" value="Hello World" id="shareInput">
+					  
+					  </div>
+					  
+						<div class="modal-footer" class="tooltip">
+						<button onclick="toolTipFunction()" class="btn btn-dark" onmouseout="outFunc()">
+						  <span class="tooltiptext" id="myTooltip">Kopyalamak iÃ§in tÄ±klayÄ±nÄ±z!</span>
+						  
+						</button>
+					  </div>
+					  
+					</div>
+				  </div>
+				</div>
+				
+				<div class="container" align="center" >
+					<div class="row cntnr" id="startinfo" >
+						<div class="box">
+							<div class="icon"><i class="fas fa-bus cni"></i></div>
+							<div class="content">
+								<p><b>MinibÃ¼s</b></p>	
+							</div>			
+						</div>
+						<div class="box">
+							<div class="icon"><i class="fas fa-train cni"></i></div>
+							<div class="content">
+								<p><b>Metro</b></p>	
+							</div>
+							
+						</div>
+						<div class="box">
+							<div class="icon"><i class="fas fa-ship cni"></i></div>
+							<div class="content">
+								<p><b>Vapur</b></p>	
+							</div>				
+						</div>
+						<div class="box">
+							<div class="icon"><i class="fas fa-bus-alt cni"></i></div>
+							<div class="content">
+								<p><b>MetrobÃ¼s</b></p>	
+							</div>			
+						</div>
+						<div class="box">
+							<div class="icon"><i class="fas fa-tram cni"></i></div>
+							<div class="content">
+								<p><b>Teleferik</b></p>	
+							</div>
+							
+						</div>
+						<div class="box">
+							<div class="icon"><i class="fas fa-taxi cni"></i></div>
+							<div class="content">
+								<p><b>TaksiDolmuÅu</b></p>	
+							</div>				
+						</div>
+						<div class="box">
+							<div class="icon"><i class="fas fa-train cni"></i></div>
+							<div class="content">
+								<p><b>Marmaray</b></p>	
+							</div>			
+						</div>
+						<div class="box">
+							<div class="icon"><i class="fas fa-bus-alt cni"></i></div>
+							<div class="content">
+								<p><b>OtobÃ¼s</b></p>	
+							</div>
+							
+						</div>
+						<div class="box">
+							<div class="icon"><i class="fas fa-subway cni"></i></div>
+							<div class="content">
+								<p><b>Tramvay</b><p>	
+							</div>				
+						</div>
+						
+					</div>					
+				</div>
+				<div style="padding-top:10px;">
+					<hr/>
+				</div>
+				
+				<div>
+					<hr style="border:1px solid white;">
+					<hr style="border:1px solid white;">
+					<hr style="border:1px solid white;">
+					<hr style="border:1px solid white;">
+					<hr style="border:1px solid white;">
+					<hr style="border:1px solid white;">
+					<hr style="border:1px solid white;">
+					<hr style="border:1px solid white;">
+				</div>
+				 <footer class="footer" style="position:absolute; bottom:10px; text-align:center; width:100%; float:left;">
+					<div >
+						<div>
+							
+						</div>
+						<div class="row oneri" style="margin-left:-65px;">
+							<div class="col-8" >
+								<p  style="font-weight:bold; margin-top:12px; float:right; font-size:0.8rem;">NasÄ±l Giderim ile ilgili Ãnerileriniz iÃ§in: </p>
+							</div>
+							<div class="col-3 row">
+								
+								<a class="telegrambtn" href="https://t.me/joinchat/CA62L1Wfbmwn2Wk0NtK0wA" ><i class="fab fa-telegram fa-2x" ></i></a> &nbsp; &nbsp;						
+								<a class="telegrambtn" href = "mailto: nasilgiderim@iett.gov.tr" ><i class="far fa-envelope fa-2x"></i></a>
+								<!--<a href="https://nasilgiderim.iett.gov.tr/new.html"><img src="image/beta.png" width="60" height="50" class="beta" /></a>-->
+							</div>	
+						</div>
+						<div class="botInf">	
+							<a href="https://www.linkedin.com/company/iett"><button class="lnk"><i class="fab fa-linkedin-in linkin" ></i></button></a> 
+							<a href="https://www.youtube.com/iettKurumsal"><button class="ytb"><i class="fab fa-youtube yout" ></i></button></a> 
+							<a href="https://www.instagram.com/ietttr/"><button class="nst"><i class="fab fa-instagram inst" ></i></button></a> 
+							<a href="https://twitter.com/ietttr"><button class="twt"><i class="fab fa-twitter twitt" ></i></button></a> 
+							<a href="https://www.facebook.com/iett.tr"><button class="fcb"><i class="fab fa-facebook-square faceb" ></i></button></a> 
+						</div>
+					
+						
+					</div>
+					<div>
+						<a href="https://play.google.com/store/search?q=otob%C3%BCs%C3%BCm%20nerede&c=apps">
+							<img src="image/goo.svg" width="120" height="60">
+						</a>
+						<a href="https://apps.apple.com/tr/app/otob%C3%BCs%C3%BCm-nerede/id1600651996">
+							<img src="image/app.svg" width="120" height="60">
+						</a>
+					</div>
+					
+				</footer>
+
+            </div>
+			
+			
+			
+			
+			
+            <div class="col-lg-9 col-sm-0 col-md-6 no-float" >
+
+                <div id="harita" style="width:100%; height:100%; z-index:1; height: 100vh; overflow:auto; " oncontextmenu="return showContextMenu(event);">
+                    
+					<div id="test" style="width:100px; height:100px; " class="context-menu no-float">
+                        <ul>
+
+                            <li id="buradan" class="btnbb third">Buradan</li>
+                            <li class="separator"></li>
+                            <li id="buraya"  class="btnbb third">Buraya</li>
+
+                        </ul>
+                    </div>
+                    <iframe id="mapFrame"  style="border:none;" src="https://sehirharitasiapi.ibb.gov.tr/#onlymap">
+
+                        <p>TarayÄ±cÄ±nÄ±z iframe Ã¶zelliklerini desteklemiyor !</p>
+                    </iframe>
+					<div class="zoomclss" align="center" >
+						<div id="zoomin"  class="fas fa-plus fa-xs shield"></div>
+						<br>
+						<div id="zoomout"  class="fas fa-minus fa-xs shld"></div>
+					</div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+	<div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true" >
+	  <div class="modal-dialog" role="document" style="height:500px; width:300px;">
+		<div class="modal-content" >
+		  <div class="modal-header">
+			<h5 class="modal-title col-12 btn-danger" style="text-align:center" id="exampleModalLabel">Renk ve Sembol AnlamlarÄ±</h5>
+			
+		  </div>
+		  <div class="modal-body">
+			<div class="row">
+
+                        <div class="col-5"><p><i class="fas fa-bus" style="color: #fdd835; margin-left:90px;"></i></p></div>
+                        <div class="col-6"> <p style="color:#fdd835; "><b>Ä°ETT</b></p></div>
+                        <div class="col-5"><p><i class="fas fa-bus-alt" style="color: #0000C0; margin-left:90px;"></i></p></div>
+                        <div class="col-6"> <p style="color:#0000C0; "><b>MinibÃ¼s</b></p></div>
+						<div class="col-5"><p><i class="fas fas fa-subway" style="color: #d32f2f; margin-left:90px;"></i></p></div>
+                        <div class="col-6"> <p style="color:#d32f2f; "><b>Metro</b></p></div>
+						<div class="col-5"><p><i class="fas fa-bus-alt" style="color: #6d4c41; margin-left:90px;"></i></p></div>
+                        <div class="col-6"> <p style="color:#6d4c41; "><b>MetrobÃ¼s</b></p></div>
+						<div class="col-5"><p><i class="fas fa-subway" style="color: #8e24aa; margin-left:90px;"></i></p></div>
+                        <div class="col-6"> <p style="color:#8e24aa; "><b>Marmaray</b></p></div>
+						<div class="col-5"><p><i class="fas fa-subway" style="color: #a20513; margin-left:90px;"></i></p></div>
+                        <div class="col-6"> <p style="color:#a20513; "><b>FÃ¼nikÃ¼ler</b></p></div>
+						<div class="col-5"><p><i class="fas fa-subway" style="color: #388e3c; margin-left:90px;"></i></p></div>
+                        <div class="col-6"> <p style="color:#388e3c; "><b>Teleferik</b></p></div>
+						<div class="col-5"><p><i class="fas fa-ship" style="color: #1e88e5; margin-left:90px;"></i></p></div>
+                        <div class="col-6"> <p style="color:#1e88e5; "><b>Åehir HatlarÄ±</b></p></div>
+						<div class="col-5"><p><i class="fas fa-ship" style="color: #1e88e5; margin-left:90px;"></i></p></div>
+                        <div class="col-6"> <p style="color:#1e88e5; "><b>Ä°DO</b></p></div>
+						<div class="col-5"><p><i class="fas fa-ship" style="color: #1e88e5; margin-left:90px;"></i></p></div>
+                        <div class="col-6"> <p style="color:#1e88e5; "><b>Dentur</b></p></div>
+						<div class="col-5"><p><i class="fas fa-ship" style="color: #1e88e5; margin-left:90px;"></i></p></div>
+                        <div class="col-6"> <p style="color:#1e88e5; "><b>Turyol</b></p></div>
+						<div class="col-5"><p><i class="fas fa-bus-alt" style="color: #f65f34; margin-left:90px;"></i></p></div>
+                        <div class="col-6"> <p style="color:#f65f34; "><b>Taksi DolmuÅ</b></p></div>
+						<div class="col-5"><p><i class="fas fa-subway" style="color: #d32f2f; margin-left:90px;"></i></p></div>
+                        <div class="col-6"> <p style="color:#d32f2f; "><b>Tramvay</b></p></div>
+                    </div>
+		  </div>
+		  <div class="modal-footer">
+			<button type="button" class="btn btn-success" data-dismiss="modal">Kapat</button>
+			
+		  </div>
+		</div>
+	  </div>
+</div>
+	<div id="lodgf" class="modal"><!-- Place at bottom of page --></div>
+
+	<!-- Global site tag (gtag.js) - Google Analytics -->
+	<script async src="https://www.googletagmanager.com/gtag/js?id=UA-145132941-1"></script>
+	<script>
+	  window.dataLayer = window.dataLayer || [];
+	  function gtag(){dataLayer.push(arguments);}
+	  gtag('js', new Date());
+
+	  gtag('config', 'UA-145132941-1');
+	</script>
+
+    <script>
+		
+		$(document).ready(function () {
+			var isMobile = {
+				Android: function () {
+					return navigator.userAgent.match(/Android/i);
+				},
+				BlackBerry: function () {
+					return navigator.userAgent.match(/BlackBerry/i);
+				},
+				iOS: function () {
+					return navigator.userAgent.match(/iPhone|iPad|iPod/i);
+				},
+				Opera: function () {
+					return navigator.userAgent.match(/Opera Mini/i);
+				},
+				Windows: function () {
+					return navigator.userAgent.match(/IEMobile/i);
+				},
+				any: function () {
+					return (isMobile.Android() || isMobile.BlackBerry() || isMobile.iOS() || isMobile.Opera() || isMobile.Windows());
+				}
+			};
+			
+			url = new URL(document.URL);
+			urlsp = url.searchParams;
+			var fromprc = encodeURI(urlsp.get("from"));
+            var toprc = encodeURI(urlsp.get("to"));
+			var fromname = encodeURI(urlsp.get("FromName")).replace(/-/gi," ");
+			if(fromname != "null" ){
+			varis.placeholder = fromname ;
+			}
+			var toname = encodeURI(urlsp.get("ToName")).replace(/-/gi," ");
+			if(toname != "null" ){
+			bitis.placeholder = toname.replace(/-/gi," ");
+			}
+			console.log(fromname + " - " + toname);
+			if(isMobile.any() && urlsp!=""){
+				window.location = ("https://nasilgiderim.iett.gov.tr/mobile.html?from=" + fromprc + "&to=" + toprc);
+			}
+		
+			if (isMobile.any() &&  urlsp=="") {
+				window.location = "https://nasilgiderim.iett.gov.tr/mobile.html";
+			}
+		});
+		
+		var allData;
+		
+		function toolTipFunction() {
+		  var copyText = document.getElementById("shareInput");
+		  copyText.select();
+		  document.execCommand("copy");
+		  
+		  var tooltip = document.getElementById("myTooltip");
+		  tooltip.innerHTML = "KopyalandÄ±! ";
+		}
+
+		function outFunc() {
+		  var tooltip = document.getElementById("myTooltip");
+		  tooltip.innerHTML = "Kopyala!";
+		}
+		
+		
+		$('#infSorRes').hide();
+		$('#butonlar').hide();
+        $('#test').hide();
+        $('#scrolldiv').hide();
+        var ibbMAP = new SehirHaritasiAPI({ mapFrame: "mapFrame", apiKey: "9cc0e8980533421c9f668bca97cccdb9" }, function () {
+            var finishlon = "";
+            var finishlat = "";
+            var startlon = "";
+            var startlat = "";
+            var fromvar = false;
+            var tovar = false;
+            var rotaol = false;
+			var contextacik = false;
+            var enlemstart, boylamstart, enlemfinish, boylamfinish;
+            var today = new Date();
+            var dd = today.getDate();
+            var mm = today.getMonth() + 1; //January is 0!
+            var yyyy = today.getFullYear();           
+            if (dd < 10) { dd = '0' + dd; }
+            if (mm < 10) { mm = '0' + mm; }
+            var tarih = dd + '-' + mm + '-' + yyyy;
+			
+			var HH = today.getHours();
+            var MM = today.getMinutes();
+			if (HH < 10) { HH = '0' + HH; }
+            if (MM < 10) { MM = '0' + MM; }
+			var saat = HH + ':' + MM;
+			var ArrTimeForDetail;
+			var DepTimeForDetail;
+            var renk = "#FF0000"
+            var buradanlat, buradanlon, burayalat, burayalon;
+            var onetime = 0;
+            var ekledet, lastoptimize;
+            var pathsayisi = 0;           
+			var yurume = '<i class="fas fa-shoe-prints " ></i>'
+			var bus = '<i class="fas fa-bus-alt "></i>'
+			var correct = '<i class="fas fa-check"></i>'
+			var arrow = '<i class="fas fa-angle-down"></i>'
+			var cizgi = '<i class="fas fa-grip-lines-vertical "></i>'
+			var dot = '<i style="color: #808080;">.</i>'
+			var line = '<div align="center">' + cizgi + '<br/>' + cizgi + '<br/>' + cizgi + '<br/>' + cizgi + '<br/>' + cizgi + '<br/>' + cizgi + '</div>'
+			var linekle, aNok, bNok, yuru;
+			var circle = '<img style="margin-bottom:8px;" src="image/rCircle.png" width="8" height="8">';
+			var linedot = '<div align="center">' + circle + '<br>' + circle + '<br>' + circle + '<br>' + circle + '<br>' + circle + '<br>' + circle + '</div>'
+			var circleBos = '<i class="fas fa-map-marker-alt"></i>';
+			var aNokt ;
+			var bNokt ;
+			var ilkLat, ilkLon, sonLat, sonLon;
+			var ilkLatAl=false;
+			var myIconUrl = "https://nasilgiderim.iett.gov.tr/image/mylocIcn.svg";
+			var StartIcon = "https://nasilgiderim.iett.gov.tr/image/finishIcn.svg";
+			var FinishIcon = "https://nasilgiderim.iett.gov.tr/image/startIcn.svg";
+			var IETTIcon = "https://nasilgiderim.iett.gov.tr/image/IETT.png";
+			var metroIcon = "https://nasilgiderim.iett.gov.tr/image/metro.png";
+			addTimeNow();
+			
+			$('body').on('click',function(){
+				$('#test').hide();
+				contextacik=false;
+			});
+			
+		
+			
+            function saatfarki(arrVaris, arrKalkis) {
+                var carpan = 0;
+				var saatVaris = arrVaris.substring(0, 2);
+				
+				if(saatVaris==00){
+					saatVaris=24;
+				}
+				if(saatVaris==01){
+					saatVaris=25;
+				}
+				if(saatVaris==02){
+					saatVaris=26;
+				}
+				if(saatVaris==03){
+					saatVaris=27;
+				}
+				
+				var dakikaVaris = arrVaris.substring(3, 5);
+				var saatKalkis = arrKalkis.substring(0, 2);
+				var dakikaKalkis = arrKalkis.substring(3, 5);
+				var farkdakika = dakikaVaris - dakikaKalkis;
+				var farksaat = saatVaris - saatKalkis;
+				if (farksaat > 0) {
+					carpan = farksaat * 60;
+				}
+				var sonuc = farkdakika + carpan;
+				
+				if(sonuc>200){
+					sonuc=185;
+				}
+				if(sonuc<0){
+					sonuc=0;
+				}
+                return sonuc;
+            };
+
+            function epochConv(epTimems) {
+                var myDate = new Date(epTimems);
+				var st = myDate.toLocaleString()
+                return st.substring(st.length-8, st.length-3);
+
+            }
+
+            //#######################################
+            
+            //#######################################
+
+            $(document).on('click', '.grp', function () {
+                $(this).parent().find('button').removeClass("btn-dark");
+                $(this).addClass('btn-dark');
+            });
+
+            //--------------------------------------------------
+
+
+
+            url = new URL(document.URL);
+            urlsp = url.searchParams;
+		
+            var fromprc = encodeURI(urlsp.get("from"));
+            var toprc = encodeURI(urlsp.get("to"));
+			
+            
+            if (fromprc.length > 10) {				
+                var fromres = fromprc.split(",");
+                var tores = toprc.split(",");
+                burayalat = tores[0];
+                burayalon = tores[1];
+                buradanlat = fromres[0];
+                buradanlon = fromres[1]; 
+				$('#butonlar').show();   
+				$('#infSorRes').show();
+                xarrive(burayalat, burayalon, buradanlat, buradanlon)
+                rotaol=true;
+				fromvar=true;
+				tovar=true;
+				$('#lodgf').hide()
+                
+            }
+
+
+
+
+			 //-------------------------------------------------------
+			
+			function getLocation(){
+				if (navigator.geolocation) {
+					navigator.geolocation.getCurrentPosition(showPosition);
+				} else { 
+					alert("TarayÄ±cÄ±nÄ±z desteklememektedir!");
+				}	
+			}
+			
+			function showPosition(position) {
+				
+			    buradanlat = position.coords.latitude; 
+			    buradanlon = position.coords.longitude;				
+				ibbMAP.Marker.Add({
+					lat: buradanlat,
+					lon: buradanlon,
+					iconUrl: myIconUrl ,
+				});
+				routeControl();	
+		   
+			}
+			
+			function routeControl(){
+				fromvar = true;
+			    rotaol = false;	
+				$.get('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + buradanlat + '&lon=' + buradanlon, function(data){
+					var mahalle = data.address.city;
+					var semt = data.address.town;
+					if(mahalle != undefined){
+						aNokt = mahalle +', '+ semt;
+					}else if(semt == undefined){
+						aNokt = mahalle;
+					}else{
+						aNokt = semt
+					}
+					varis.placeholder = aNokt; 
+					varis.value= aNokt;
+				});                       
+				if (fromvar && tovar && !rotaol) {
+					ibbMAP.Marker.Remove();
+					ibbMAP.Draw.Remove();
+					$('#ust').empty();
+					$('#alt').empty();
+					$('#firsttable').empty();
+					$('#firsttable').show();
+					$('#butonlar').show();
+					$('#infSorRes').show();
+					xarrive(burayalat, burayalon, buradanlat, buradanlon);
+					rotaol = true;
+					
+				} else {
+					
+				}
+			}
+			
+			//-------------------------------------------------------
+
+			//-------------------------------------------------------
+			//Zaman ayarlamalarÄ± !!
+            //*--*-*-**-*--+-*-*-+**-*-+*-++*-+*-+*-+*-+*-+*-+*-+*-+*-
+			function addTimeNow(){
+				
+				var timeNow = saat;
+				var d = document.getElementById("SelectTime"); 
+				var option = document.createElement("option"); 
+				option.text = timeNow; 
+				d.add(option, d[0]) 
+				d.value = timeNow;
+			}
+            
+
+            //*--*-*-**-*--+-*-*-+**-*-+*-++*-+*-+*-+*-+*-+*-+*-+*-+*-
+			//-------------------------------------------------------
+
+            function changetime() {
+
+                
+
+                if (fromvar && tovar ) {
+                    ibbMAP.Marker.Remove();
+                    ibbMAP.Draw.Remove();
+                    $('#ust').empty();
+                    $('#alt').empty();
+                    $('#firsttable').empty();
+                    $('#firsttable').show();
+                    $('#butonlar').show();
+					$('#infSorRes').show();
+                    xarrive(burayalat, burayalon, buradanlat, buradanlon, lastoptimize)
+
+                    rotaol = true;
+                } else {
+                    alert("LÃ¼tfen iki nokta seÃ§iniz!")
+                }
+
+            }
+
+            //-------------------------------------------------------
+            //-------------------------------------------------------
+			
+			
+			
+			
+            //-------------------------------------------------------
+			
+
+            ibbMAP.Map.OnClick(function (lat, lon, zoom, clickDirection, pixelX, pixelY) {
+				
+				if(!contextacik){
+					contextacik=true;
+					$("#test").show();
+					$("#test").parent().css({ position: 'relative' });
+					$("#test").css({ top: pixelY, left: pixelX, position: 'absolute' });
+					finishlat = lat;
+					finishlon = lon;
+					
+				}else{
+					$('#test').hide();
+					contextacik=false;
+				}
+            });
+
+
+            var rotatime = document.getElementById("kisasure");
+            var rotawalk = document.getElementById("azyurume");
+            var rotatransfers = document.getElementById("azaktarma");
+            var rotametro = document.getElementById("metroter");
+            var konumal = document.getElementById("konumum");
+            var konumsifirla = document.getElementById("sifirla");
+            var buradanfonk = document.getElementById("buradan");
+            var burayafonk = document.getElementById("buraya");
+			//sorgulama zaman
+			var sorgubtn = document.getElementById("btnquery");
+			var zoomyap = document.getElementById("zoomin");
+			var zoomcik = document.getElementById("zoomout");
+			
+            sorgubtn.onclick = function () {
+                changetime()
+            }
+			
+			
+			konumal.onclick = function () {
+				getLocation();
+			}
+			
+			zoomcik.onclick = function (){
+				ibbMAP.Map.ZoomOut();
+			}
+			
+			zoomyap.onclick = function (){
+				ibbMAP.Map.ZoomIn(); 
+			}
+			
+            rotatime.onclick = function () {
+                ibbMAP.Marker.Remove();
+                ibbMAP.Draw.Remove();
+                $('#firsttable').empty();
+                $('#ust').empty();
+                $('#alt').empty();
+                $('#firsttable').show();
+                xarrive(burayalat, burayalon, buradanlat, buradanlon, "time")
+                
+            }
+            rotawalk.onclick = function () {
+                ibbMAP.Marker.Remove();
+                ibbMAP.Draw.Remove();
+                $('#firsttable').empty();
+                $('#ust').empty();
+                $('#alt').empty();
+                $('#firsttable').show();
+                xarrive(burayalat, burayalon, buradanlat, buradanlon, "walk")
+               
+            }
+            rotatransfers.onclick = function () {
+                ibbMAP.Marker.Remove();
+                ibbMAP.Draw.Remove();
+                $('#firsttable').empty();
+                $('#ust').empty();
+                $('#alt').empty();
+                $('#firsttable').show();
+                xarrive(burayalat, burayalon, buradanlat, buradanlon, "transfers")
+                
+            }
+            rotametro.onclick = function () {
+                ibbMAP.Marker.Remove();
+                ibbMAP.Draw.Remove();
+                $('#firsttable').empty();
+                $('#ust').empty();
+                $('#alt').empty();
+                $('#firsttable').show();
+                xarrive(burayalat, burayalon, buradanlat, buradanlon, "metro")
+                
+
+            }
+            //konumal.onclick = function () {
+            //    ibbMAP.Map.GetLocation();
+            //}
+            konumsifirla.onclick = function () {
+                fromvar = false;
+                tovar = false;
+                rotaol = false;
+                ibbMAP.Marker.Remove();
+                ibbMAP.Draw.Remove();
+				aNokt = "";
+                varis.value = "";
+                bitis.value = "";
+                varis.placeholder = "Buradan";
+                bitis.placeholder = "Buraya";
+                $('#ust').empty();
+                $('#alt').empty();
+                $('#firsttable').empty();
+                $('#scrolldiv').hide();
+				$('#butonlar').hide();
+				$('#infSorRes').hide();
+				$('#startinfo').show();
+				//$('.oneri').show();
+				$('#ustcizgi').show();
+				var select = document.getElementById('SelectTime');
+				select.selectedIndex = 0;
+            }
+
+            //*******************************************************
+
+            buradanfonk.onclick = function () {
+                $.get('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=' + finishlat + '&lon=' + finishlon, function(data){
+					var mahalle = data.address.city;
+					var semt = data.address.town;
+					if(mahalle != undefined){
+						aNokt = mahalle +', '+ semt;
+					}else if(semt == undefined){
+						aNokt = mahalle;
+					}else{
+						aNokt = semt
+					}
+					varis.placeholder = aNokt;
+					varis.value=aNokt;
+				}); 
+				if (fromvar) {
+                    ibbMAP.Marker.Remove();
+                    ibbMAP.Draw.Remove();
+                    rotaol = false;
+                } else {
+                    fromvar = true;
+                }
+                $('#test').hide();
+				contextacik=false;
+                buradanlat = finishlat;
+                buradanlon = finishlon;
+                ibbMAP.Marker.Add({
+                    lat: buradanlat,
+                    lon: buradanlon,
+                    iconUrl: FinishIcon,
+
+                });
+                if (fromvar && tovar && !rotaol) {
+                    ibbMAP.Marker.Remove();
+                    ibbMAP.Draw.Remove();
+                    $('#ust').empty();
+                    $('#alt').empty();
+                    $('#firsttable').empty();
+                    $('#firsttable').show();
+					$('#butonlar').show();
+					$('#infSorRes').show();
+					$('#giriskismi').show();
+                    xarrive(burayalat, burayalon, buradanlat, buradanlon)
+                    
+                    rotaol = true;
+                } else {
+
+                }
+            }
+                                          
+            burayafonk.onclick = function () {
+				$.get('https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='+finishlat+'&lon='+finishlon, function(data){
+					var mahalle = data.address.city;
+					var semt = data.address.town;
+					if(mahalle != undefined){
+						bNokt = mahalle +', '+ semt;
+					}else if(semt == undefined){
+						bNokt = mahalle;
+					}else{
+						bNokt = semt
+					}
+					bitis.value=bNokt;
+					bitis.placeholder = bNokt; 
+				});   
+                if (tovar) {
+                    ibbMAP.Marker.Remove();
+                    ibbMAP.Draw.Remove();
+                    rotaol = false;
+                } else {
+                    tovar = true;
+                }
+                burayalat = finishlat;
+                burayalon = finishlon;
+                $('#test').hide();
+				contextacik=false;
+                ibbMAP.Marker.Add({
+                    lat: burayalat,
+                    lon: burayalon,
+                    iconUrl: StartIcon,
+
+                });                   
+                if (fromvar && tovar && !rotaol) {
+                    ibbMAP.Marker.Remove();
+                    ibbMAP.Draw.Remove();
+                    $('#ust').empty();
+                    $('#alt').empty();
+                    $('#firsttable').empty();
+                    $('#firsttable').show();
+					$('#butonlar').show();
+					$('#infSorRes').show();
+					$('#giriskismi').show();
+                    xarrive(burayalat, burayalon, buradanlat, buradanlon)
+                    
+                    rotaol = true;
+                } else {
+                    
+                }
+            }
+
+            //*******************************************************
+
+            $("#varis").autocomplete({
+                source: function (request, response) {
+                    $.ajax({
+                        type: "GET",
+						timeout: 5000,
+                        url: "https://cbsproxy.ibb.gov.tr/?aramaws&srchtxt=" + $("#varis").val() + "&rownum=10&ilce=&detayli=false",
+                        crossDomain: true,
+                        data: {
+                            q: request.term
+                        },
+                        success: function (data) {
+							try{
+								var firstdata = data.ArrayOfAramaResult;
+								var datam = firstdata.AramaResult;
+								response($(datam).map(function (item, i) {
+									var Wlabel ;
+									if(i.MAHALLE_KOY_ADI == null){
+										Wlabel = i.ADI  + "   -   " + i.ILCE_ADI  ;
+										
+										
+									}else{
+										Wlabel = i.ADI  + "   -   " + i.ILCE_ADI + "/" + i.MAHALLE_KOY_ADI ;
+										
+									}
+									return {	
+										label:Wlabel,
+										value: i.LAT + "_" + i.LON
+									};
+								})
+								);
+							}
+							catch(err){
+								$.ajax({
+									type: "GET",
+									url: "https://nasilgiderim.iett.gov.tr/search?query=" + $("#varis").val(),
+									crossDomain: true,
+									data: {
+										q: request.term
+									},
+									success: function (data) {
+										try{
+											var datam = data.stops;
+											response($(datam).map(function (item, i) {
+												return {
+													label: i.stopName,
+													value: i.point[0] + "_" + i.point[1]
+												};
+											})
+											);
+										}catch(err){
+										}
+									}									
+								});
+							}
+							
+                        }
+						
+                    });
+                },
+                minLength: 3,
+                select: function (event, ui) {
+                    var name = ui.item.label;
+                    $("#varis").val(ui.item.label);
+                    startlon = ui.item.value.split("_")[1];
+                    startlat = ui.item.value.split("_")[0];
+                    buradanlon = startlon;
+                    buradanlat = startlat;
+                    if (fromvar) {
+                        ibbMAP.Marker.Remove();
+                        ibbMAP.Draw.Remove();
+                        rotaol = false;
+                    } else {
+                        fromvar = true;                 
+                    }
+                    ibbMAP.Marker.Add({
+                        lat: ui.item.value.split("_")[0],
+                        lon: ui.item.value.split("_")[1],
+                        iconUrl: StartIcon,
+                        zoom: 3,
+                        gotoPosition: true,
+
+                    });
+                    if (fromvar && tovar && !rotaol) {
+                        ibbMAP.Marker.Remove();
+                        ibbMAP.Draw.Remove();
+                        $('#ust').empty();
+                        $('#alt').empty();
+                        $('#firsttable').empty();
+                        $('#firsttable').show();
+						$('#butonlar').show();
+						$('#infSorRes').show();
+                        xarrive(burayalat, burayalon, buradanlat, buradanlon)
+                       
+                        rotaol = true;
+                    }
+
+                    return false;
+                    
+                    
+                },
+                focus: function (event, ui) {
+                    $("#varis").val(ui.item.label);
+                }
+
+            });
+             $("#bitis").autocomplete({
+                source: function (request, response) {
+                    $.ajax({
+                        type: "GET",
+						timeout: 5000,
+                        url: "https://cbsproxy.ibb.gov.tr/?aramaws&srchtxt=" + $("#bitis").val() + "&rownum=10&ilce=&detayli=false",
+                        crossDomain: true,
+                        data: {
+                            q: request.term
+                        },
+                        success: function (data) {
+							try{
+								var firstdata = data.ArrayOfAramaResult;
+								var datam = firstdata.AramaResult;
+								//console.info(datam);
+								response($(datam).map(function (item, i) {
+									var Wlabel ;
+									if(i.MAHALLE_KOY_ADI == null){
+										Wlabel =  i.ADI + "   -   " + i.ILCE_ADI  ;
+									}else{
+										Wlabel =  i.ADI + "   -   " + i.ILCE_ADI + "/" + i.MAHALLE_KOY_ADI ;
+									}
+									return {									
+										label:Wlabel,
+										value: i.LAT + "_" + i.LON
+									};
+								})
+								);
+							}
+							catch(err){
+								$.ajax({
+									type: "GET",
+									url: "https://nasilgiderim.iett.gov.tr/search?query=" + $("#bitis").val(),
+									crossDomain: true,
+									data: {
+										q: request.term
+									},
+									success: function (data) {
+										try{
+											var datam = data.stops;
+											console.info(datam);
+											response($(datam).map(function (item, i) {
+												return {
+													label: i.stopName,
+													value: i.point[0] + "_" + i.point[1]
+												};
+											})
+											);
+										}catch(err){
+										}
+									}
+								});
+							}
+                        }
+						
+                    });
+                },
+                minLength: 3,
+                select: function (event, ui) {
+                    var name = ui.item.label;
+                    $("#bitis").val(ui.item.label);
+                    finishlon = ui.item.value.split("_")[1];
+                    finishlat = ui.item.value.split("_")[0];
+                    burayalon = finishlon;
+                    burayalat = finishlat;
+                    if (tovar) {
+                        ibbMAP.Marker.Remove();
+                        ibbMAP.Draw.Remove();
+                        rotaol = false;
+                    } else {
+                        tovar = true;
+                    }
+                    ibbMAP.Marker.Add({
+                        lat: ui.item.value.split("_")[0],
+                        lon: ui.item.value.split("_")[1],
+                        iconUrl: FinishIcon,
+                        zoom: 3,
+                        gotoPosition: true,
+
+                    });                    
+                    if (fromvar && tovar && !rotaol) {
+                        
+						ibbMAP.Marker.Remove();
+                        ibbMAP.Draw.Remove();
+                        $('#ust').empty();
+                        $('#alt').empty();
+                        $('#firsttable').empty();
+                        $('#firsttable').show();
+						$('#butonlar').show();
+						$('#infSorRes').show();
+                        xarrive(burayalat, burayalon, buradanlat, buradanlon)
+                        
+                        rotaol = true;
+                    }
+                    
+                    return false;
+                },
+                focus: function (event, ui) {
+                    $("#bitis").val(ui.item.label);
+
+                }
+
+            });
+			
+			//hasdhahgsdhasda98sd9ua09sdÄ±09230*40*
+			
+			//huasduas0d39d09Ä±2903d903d9k
+
+            function xarrive(finishlat, finishlon, startlat, startlon, optimizefor = 'time',routesirasi = '0') {
+                $('#ustcizgi').hide();
+				$('#startinfo').hide();
+				//$('.oneri').hide();
+				if(optimizefor=='time'){
+					$('#azyurume').removeClass("btn-dark");
+					$('#azaktarma').removeClass("btn-dark");
+					$('#metroter').removeClass("btn-dark");
+					$('#kisasure').addClass('btn-dark');
+				}
+				$('#ust').empty();
+                $('#alt').empty();
+                $('#firsttable').empty();
+                $('#scrolldiv').show();
+				var timedegeri = document.getElementById("SelectTime").value;
+                pathsayisi = 0;
+                lastoptimize = optimizefor;
+                var wkt = 'LINESTRING(';
+                $.ajax({
+                    type: "GET",
+					timeout: 5000,
+                    url: "https://nasilgiderim.iett.gov.tr/router?from=" + startlat + "," + startlon + "&to=" + finishlat + "," + finishlon + "&time=" + timedegeri + "&date=" + tarih + "&isArrival=false&optimizefor=" + optimizefor,
+					
+                    crossDomain: true,
+                    success: function (data) {
+						allData = data;
+						shareInput.value="https://nasilgiderim.iett.gov.tr/?from=" + startlat + "," + startlon + "&to=" + finishlat + "," + finishlon;
+						var Route = data.routes;
+                        var paths = Route.path;
+						
+						Route.forEach(function (r) {
+                            var Coiki = r.CO2Emission;
+                            var calBur = r.caloriesBurned;
+                            var walkDis = r.walkDistance;
+                            var totFee = r.totalFee;
+                            var arrTime = r.arrivalTime;
+                            var depTime = r.departureTime;
+
+                            var tblekle = '<tr style="cursor:pointer; border-bottom:1px solid black;"><td title="Detay iÃ§in tÄ±klayÄ±nÄ±z." id="getirdetay" data-sira="' + pathsayisi + '"  class="row" colspan="5" style="margin-right:0px;"><div class="col-3" align="center"><div style="margin-top:10px; font-size:25px;"><strong>'+saatfarki(epochConv(arrTime), epochConv(depTime))+'</strong></div><div style="margin-left:5px; font-size:12px;">Dk</div></div>          <div align="center" class="col-9 row">       <div class="col-6">        <div style="margin-top:5px;"> <i class="fas fa-walking"></i> <strong> '+walkDis+' m </strong> </div>      </div>        <div class="col-6">         <div class="totTL"> <i class="fas fa-lira-sign"></i> <strong> '+totFee+' </strong> </div></div>  <div style="margin-top:10px;" class="col-10" align="center"> <strong> '+ epochConv(depTime) + "-" + epochConv(arrTime) +'</strong> </div>  </div>  </td></tr>'
+                            pathsayisi++;
+							
+							
+                            if (Coiki == "0") {
+                                $('#firsttable').append('<td><b class="col btn btn-warning " ><b>YÃ¼rÃ¼me</b></td>');
+                            }
+                            
+							var tabekle;
+                            r.path.forEach(function (p) {
+                                var busLine = p.lineId;
+                                var tip = p.type;
+								
+                                if (busLine != "walking" && busLine != "") {
+                                    //tabekle = '<td class="row" style="display: table-cell"></ td>';
+									var tipi ;
+									var tooltipi ;
+									if(tip == "bus"){tipi = "btn-warning fas fa-bus"; tooltipi="OtobÃ¼s";}
+									else if (tip == "minibus") { tipi = "btn-primary fas fa-bus-alt"; tooltipi="MinibÃ¼s"; }
+									else if (tip == "metro") { tipi = "btn-danger fas fa-subway"; tooltipi="Metro"; }
+									else if (tip == "funi") { tipi = "btn-danger fas fa-subway"; tooltipi="FÃ¼nikÃ¼ler"; }
+									else if (tip == "tele") { tipi = "btn-success fas fa-bus-alt"; tooltipi="Teleferik"; }
+									else if (tip == "shatlari") { tipi = "btn-info fas fa-ship"; tooltipi="Åehir HatlarÄ±"; }
+									else if (tip == "ido") { tipi = "btn-info fas fa-ship"; tooltipi="Ä°DO"; }
+									else if (tip == "turyol") { tipi = "btn-info fas fa-ship"; tooltipi="Turyol"; }
+									else if (tip == "dentur") { tipi = "btn-info fas fa-ship"; tooltipi="Dentur"; }
+									else if (tip == "taksiDolmus") { tipi = " btn-secondary fas fa-taxi"; tooltipi="TaksiDolmuÅu"; }
+									else if (tip == "tram") { tipi = "btn-danger fas fa-subway"; tooltipi="Tramvay"; }
+									else if (tip == "mar") { tipi = "btn-primary fas fa-subway"; tooltipi="Marmaray";  }
+									else if (tip == "metrobus") { tipi = "btn-dark fas fa-bus"; tooltipi="MetrobÃ¼s"; }
+									else { tipi = " btn-secondary fas fa-bus" }
+									
+                                    tabekle = '<td class="btn btn-sm '+tipi+' " style="margin-top:4px; font-size:0.9rem; margin-bottom:1px; margin-right:2px; border-radius:5px; border:1px solid grey;" data-placement="top" title='+tooltipi+'>&nbsp;&nbsp;' + busLine + " " + '<i class="fas fa-angle-right"></i> </td> &nbsp;';
+									
+                                    $('#firsttable').append(tabekle);
+                                }
+								
+                            });
+							
+                            $('#firsttable').append(tblekle);
+						});	
+						
+					try {
+							if (data.routes[routesirasi].length===0){
+							$('#firsttable').append("</br/><strong>  Tercih BulunamadÄ±!</strong>");
+							}else {
+							var ilkRoute = data.routes[routesirasi].path;
+						
+
+							ilkRoute.forEach(function (path) {
+								var stops = path.stops;
+
+								var tip = path.type;
+
+								if (tip == "bus") { renk = "#fdd835" }
+								else if (tip == "minibus") { renk = "#0000C0" }
+								else if (tip == "metro") { renk = '#d32f2f' }
+								else if (tip == "funi") { renk = '#a20513' }
+								else if (tip == "tele") { renk = '#388e3c' }
+								else if (tip == "shatlari") { renk = '#1e88e5' }
+								else if (tip == "ido") { renk = '#1e88e5' }
+								else if (tip == "dentur") { renk = '#1e88e5' }
+								else if (tip == "turyol") { renk = '#1e88e5' }
+								else if (tip == "taksiDolmus") { renk = '#f65f34' }
+								else if (tip == "tram") { renk = '#d32f2f' }
+								else if (tip == "mar") { renk = '#8e24aa' }
+								else if (tip == "metrobus") { renk = '#6d4c41' }
+								else { renk = "#808080" }
+								//console.log(tip)
+
+								var ilksayac = 0;
+								stops.forEach(function (stop) {
+									if(ilksayac==0 && (tip == "metro" || tip == "tram" || tip == "mar")){
+										ilksayac++;
+										ibbMAP.Marker.Add({
+											lat: stop.point[0],
+											lon: stop.point[1],
+											iconUrl: metroIcon,	
+											content: stop.stopName,
+											title: 'Durak AdÄ±:',
+											strokeWidth: 4,
+										});
+										wkt += stop.point[1] + " " + stop.point[0] + ","
+									}else if(ilksayac==0 && (tip == "bus" || tip == "metrobus")){
+										ilksayac++;
+										ibbMAP.Marker.Add({
+											lat: stop.point[0],
+											lon: stop.point[1],
+											iconUrl: IETTIcon,
+											content: stop.stopName+" DuraÄÄ±",
+											title: 'Durak AdÄ±:',
+											strokeWidth: 4,
+										});
+										wkt += stop.point[1] + " " + stop.point[0] + ","
+									}else{									
+										wkt += stop.point[1] + " " + stop.point[0] + ","
+										ibbMAP.Marker.Add({
+											lat: stop.point[0],
+											lon: stop.point[1],
+											iconUrl: ibbMAP.icons.info,
+											strokeWidth: 4,
+										});
+									}
+								});
+
+								wkt = wkt.substring(0, wkt.length - 1);
+								wkt = wkt + ")";
+
+								ibbMAP.Draw.WKT(
+									{
+										style:
+										{
+											strokeColor: renk,
+											strokeOpacity: 1,
+											fillColor: '#0080FF',
+											fillOpacity: 0.7,
+											strokeWidth: 4,
+											strokeDashStyle: '8 10'
+										},
+										wkt: wkt,
+
+
+									});
+
+								wkt = 'LINESTRING(';
+
+								ibbMAP.Marker.Add({
+									lat: startlat,
+									lon: startlon,
+									iconUrl: FinishIcon,
+								});
+								ibbMAP.Marker.Add({
+									lat: finishlat,
+									lon: finishlon,
+									iconUrl: StartIcon,
+								});
+								});
+						
+							}
+						} catch (e) {
+							$('#firsttable').append("</br/><strong> Tercih BulunamadÄ±!</strong>");
+						}
+
+						
+
+                    }
+                });
+				console.log("from=" + finishlat + "," + finishlon + "&to=" + startlat + "," + startlon + "&time=" + timedegeri + "&date=" + tarih + "&isArrival=false&optimizefor=" + optimizefor)
+            }
+			
+			
+			//*-*-***--*-*-*-**-*-*-*-*-*-*-*-**-*--
+			//-------********-------*****-----*****-
+			//Hszrdlciett
+            $(document).on('click', '#getirdetay', function () {
+				var wkt = 'LINESTRING(';
+                var inci = $(this).data("sira");
+                $('#firsttable').hide();
+                $('#ust').empty();
+                $('#giriskismi').hide();
+				//$('#giriskismi').css('max-height', '70vh');
+				$('#alt').empty();
+				ibbMAP.Marker.Remove();
+                ibbMAP.Draw.Remove();
+				var timedegeri = document.getElementById("SelectTime").value;              
+				//console.log(allData);
+				
+				if (allData.routes[inci].length===0){
+					$('#firsttable').append("</br/><strong> Tercih BulunamadÄ±!</strong>");
+				}else {
+					
+					var Route = allData.routes[inci];
+					var paths = Route.path;
+					//console.log(Route);
+					var Coiki = Route.CO2Emission;
+					var calBur = Route.caloriesBurned;
+					var walkDis = Route.walkDistance;
+					var totFee = Route.totalFee;
+					var arrTime = Route.arrivalTime;
+					var depTime = Route.departureTime;
+					var tbleekle = '<tr><td>  <div style="margin-left:25px;">  <div style="margin-bottom:5px;"><strong class="row"><div class="col-6">Yolculuk SÃ¼resi:</div><div class="col-5"> ' + saatfarki(epochConv(arrTime), epochConv(depTime)) + ' dk</div></strong></div>  <div style="margin-bottom:5px;"><strong class="row"><div class="col-6">Saat AralÄ±ÄÄ±: </div><div class="col-5">' + epochConv(depTime) + "-" + epochConv(arrTime) + '</div></strong></div>  <div style="margin-bottom:5px;"><strong class="row"><div class="col-6">YÃ¼rÃ¼me mesafesi:</div><div class="col-5">' + walkDis + ' metre</div></strong></div>  <div style="margin-bottom:5px;"><strong class="row"><div class="col-6">Toplam Ã¼cret: </div><div class="col-5">' + totFee + ' <i class="fas fa-lira-sign"></i></div></strong></div>  <div style="margin-bottom:10px;"><strong class="row"><div class="col-6"> Harcanacak kalori:</div><div class="col-5"> ' + calBur + ' cal.</div></strong></div>  <div><input style="width:100px; font-weight:bold;" type="button" data-sira="' + pathsayisi + '" class="btn btn-outline-dark geri"  value="Geri"></div>   </div>  </td></tr>'
+					$('#ust').append(tbleekle);
+					ArrTimeForDetail = epochConv(arrTime);
+					DepTimeForDetail = epochConv(depTime);
+					//alert(DepTimeForDetail+" "+ArrTimeForDetail);
+					if (varis.value != ""){
+						
+						aNokt = varis.value;
+					}
+					aNok = '<tr><td><div class="row " ><div class="col-2" align="center"><b>' + DepTimeForDetail + '</b></div><div class="col-1" align="center">' + arrow + '</div><div class="col-8" ><b> ' + aNokt + ' </b></div></div></td></tr>';
+					$('#alt').append(aNok);
+					paths.forEach(function (path) {
+						var stops = path.stops;
+						var walkDS = path.walkDistance;
+						var lineID = path.lineId;
+						var lineNAME = path.lineName;
+						var DetayVaris = path.arrivalTime;
+						var DetayKalkis = path.departureTime;
+						var kullanDetayVaris = epochConv(DetayVaris);
+						var kullanDetayKalkis = epochConv(DetayKalkis);	
+						var tipDetail = path.type;
+						var tipRenk = "#fdd835";
+						var busu = " fas fa-bus";
+						var neyine = "aracÄ±na"
+						if (lineID != "walking" && lineID != "" && lineID != "undefined") {
+							//tabekle = '<td class="row" style="display: table-cell"></ td>';
+							
+							if(tipDetail == "bus"){busu = " fas fa-bus"; tipRenk="#fdd835;"; neyine="otobÃ¼sÃ¼ne";}
+							else if (tipDetail == "minibus") { busu = "fas fa-bus-alt"; tipRenk="#0000C0;"; neyine="minibÃ¼sÃ¼ne"; }
+							else if (tipDetail == "metro") { busu = "fas fa-subway"; tipRenk="#d32f2f;"; neyine="metrosuna";}
+							else if (tipDetail == "funi") { busu = " fas fa-subway"; tipRenk="#a20513;"; neyine="fÃ¼nikÃ¼lerine";}
+							else if (tipDetail == "tele") { busu = " fas fa-bus-alt"; tipRenk="#388e3c;"; neyine="teleferiÄine";}
+							else if (tipDetail == "shatlari") { busu = " fas fa-ship"; tipRenk="#1e88e5;"; neyine="vapuruna";}
+							else if (tipDetail == "ido") { busu = " fas fa-ship"; tipRenk="#1e88e5;"; neyine="vapuruna";}
+							else if (tipDetail == "turyol") { bus = " fas fa-ship"; tipRenk="#1e88e5;"; neyine="vapuruna";}
+							else if (tipDetail == "dentur") { busu = "fas fa-ship"; tipRenk="#1e88e5;"; neyine="vapuruna";}
+							else if (tipDetail == "taksiDolmus") { busu = " fas fa-taxi"; tipRenk="#6C757D;"; neyine="taksi dolmuÅuna";}
+							else if (tipDetail == "tram") { busu = " fas fa-subway"; tipRenk="#d32f2f;"; neyine="tramvayÄ±na";}
+							else if (tipDetail == "mar") { busu = "fas fa-subway"; tipRenk="#8e24aa;";  neyine="marmarayÄ±na";}
+							else if (tipDetail == "metrobus") { busu = " fas fa-bus"; tipRenk="#6d4c41;"; neyine="metrobÃ¼sÃ¼ne";}
+							else { tipDetail = "  fas fa-bus" }
+							
+							
+						}
+						
+						stops.forEach(function (stop) {
+							durakisim = stop.stopName;
+							//document.write(durakisim);
+
+						});
+						if (lineID == "walking") {
+						if(walkDS != 0){
+							yuru = '<tr><td><div class="row " ><div class="col-2" align-items:center;" style="margin-top:7%; color:#8acafe;" align="center">' + yurume + '</div><div class="col-1" align="center">' + linedot + '</div><div class="col-8" style="margin-top:7%;"><b> ' + walkDS + '</b> metre yÃ¼rÃ¼yÃ¼n</div></div></td></tr>'
+						}
+						
+						if (durakisim == "") {
+							if (bitis.value == ""){
+								ekledet = '<tr><td><div class="row " ><div class="col-2"  align="center"><b>' + kullanDetayVaris + '</b></div><div class="col-1" align="center">' + circleBos + '</div><div class="col-8" ><b> B noktasÄ± </b></div></div></td></tr>';
+							}else {
+								ekledet = '<tr><td><div class="row " ><div class="col-2"  align="center"><b>' + kullanDetayVaris + '</b></div><div class="col-1" align="center">' + circleBos + '</div><div class="col-8" ><b>'+ bitis.value +'</b></div></div></td></tr>';
+							}
+							
+							
+						} else {
+							if(walkDS==78){kullanDetayVaris=kullanDetayKalkis;}
+							ekledet = '<tr><td><div class="row " ><div class="col-2" align="center"><b>' + kullanDetayVaris + '</b></div><div class="col-1" align="center">' + arrow + '</div><div class="col-8" ><b>' + durakisim + '</b> duraÄÄ± </div></div></td></tr>'												
+						}
+						} else {
+							if (durakisim.indexOf("Mini")!=-1) {   
+								durakisim = durakisim.substring(0, durakisim.length - 8);
+						}
+				
+							ekledet = '<tr><td><div class="row " ><div class="col-2" align="center"><b>' + kullanDetayVaris + '</b></div><div class="col-1" align="center">' + arrow + '</div><div class="col-8" ><b>' + durakisim + '</b> DuraÄÄ±nda inin </div></div></td></tr>'
+							yuru = '<tr><td><div class="row "  ><div class="col-2" style="margin-top:7%;" align="center"><i style="color:'+tipRenk+'" class="' + busu + '"></i></div><div class="col-1" align="center">' + line + '</div><div style="margin-top:7%;" class="col-8" ><b>' + lineID + '</b> '+neyine+' binin </div></div></td></tr>'
+			
+						}
+						
+						$('#alt').append(yuru);
+						$('#alt').append(ekledet);
+						
+						
+						
+					});	
+					
+					paths.forEach(function (path) {
+							var stops = path.stops;
+							var tip = path.type;
+
+							if (tip == "bus") { renk = "#fdd835" }
+							else if (tip == "minibus") { renk = "#0000C0" }
+							else if (tip == "metro") { renk = '#d32f2f' }
+							else if (tip == "funi") { renk = '#a20513' }
+							else if (tip == "tele") { renk = '#388e3c' }
+							else if (tip == "shatlari") { renk = '#1e88e5' }
+							else if (tip == "ido") { renk = '#1e88e5' }
+							else if (tip == "dentur") { renk = '#1e88e5' }
+							else if (tip == "turyol") { renk = '#1e88e5' }
+							else if (tip == "taksiDolmus") { renk = '#f65f34' }
+							else if (tip == "tram") { renk = '#d32f2f' }
+							else if (tip == "mar") { renk = '#8e24aa' }
+							else if (tip == "metrobus") { renk = '#6d4c41' }
+							else { renk = "#808080" }
+							//console.log(tip)
+
+							var ilksayac=0;
+							stops.forEach(function (stop) {
+								if(ilksayac==0 && (tip == "metro" || tip == "tram" || tip == "mar")){
+										ilksayac++;
+										ibbMAP.Marker.Add({
+											lat: stop.point[0],
+											lon: stop.point[1],
+											iconUrl: metroIcon,	
+											content: stop.stopName,
+											title: 'Durak AdÄ±:',
+											strokeWidth: 4,
+										});
+										wkt += stop.point[1] + " " + stop.point[0] + ","
+									}else if(ilksayac==0 && (tip == "bus" || tip == "metrobus")){
+										ilksayac++;
+										ibbMAP.Marker.Add({
+											lat: stop.point[0],
+											lon: stop.point[1],
+											iconUrl: IETTIcon,
+											content: stop.stopName+" DuraÄÄ±",
+											title: 'Durak AdÄ±:',
+											strokeWidth: 4,
+										});
+										wkt += stop.point[1] + " " + stop.point[0] + ","
+									}else{										
+										wkt += stop.point[1] + " " + stop.point[0] + ","
+										ibbMAP.Marker.Add({
+											lat: stop.point[0],
+											lon: stop.point[1],
+											iconUrl: ibbMAP.icons.info,
+											strokeWidth: 4,
+											
+										});
+									}
+							});
+
+							wkt = wkt.substring(0, wkt.length - 1);
+							wkt = wkt + ")";
+
+							ibbMAP.Draw.WKT(
+								{
+									style:
+									{
+										strokeColor: renk,
+										strokeOpacity: 1,
+										fillColor: '#0080FF',
+										fillOpacity: 0.7,
+										strokeWidth: 4,
+										strokeDashStyle: '8 10'
+									},
+									wkt: wkt,
+
+
+								});
+
+							wkt = 'LINESTRING(';
+
+							ibbMAP.Marker.Add({
+								lat: buradanlat,
+								lon: buradanlon,
+								iconUrl: FinishIcon,
+							});
+							ibbMAP.Marker.Add({
+								lat: burayalat,
+								lon: burayalon,
+								iconUrl: StartIcon,
+							});
+							});
+					
+						
+					
+				}
+					
+				
+		   
+            });
+			
+			$(document).on('mouseover', '#getirdetay', function () {
+				var wkt = 'LINESTRING(';
+                var inci = $(this).data("sira");
+                
+				//$('#giriskismi').css('max-height', '70vh');
+				
+				ibbMAP.Marker.Remove();
+                ibbMAP.Draw.Remove();
+				var timedegeri = document.getElementById("SelectTime").value;              
+				//console.log(allData);
+				
+				if (allData.routes[inci].length===0){
+					$('#firsttable').append("</br/><strong> Tercih BulunamadÄ±!</strong>");
+				}else {
+					
+					var Route = allData.routes[inci];
+					var paths = Route.path;
+					//console.log(Route);
+					var Coiki = Route.CO2Emission;
+					var calBur = Route.caloriesBurned;
+					var walkDis = Route.walkDistance;
+					var totFee = Route.totalFee;
+					var arrTime = Route.arrivalTime;
+					var depTime = Route.departureTime;
+					
+					
+					ArrTimeForDetail = epochConv(arrTime);
+					DepTimeForDetail = epochConv(depTime);
+					//alert(DepTimeForDetail+" "+ArrTimeForDetail);
+					
+					
+					
+					paths.forEach(function (path) {
+							var stops = path.stops;
+							var tip = path.type;
+
+							if (tip == "bus") { renk = "#fdd835" }
+							else if (tip == "minibus") { renk = "#0000C0" }
+							else if (tip == "metro") { renk = '#d32f2f' }
+							else if (tip == "funi") { renk = '#a20513' }
+							else if (tip == "tele") { renk = '#388e3c' }
+							else if (tip == "shatlari") { renk = '#1e88e5' }
+							else if (tip == "ido") { renk = '#1e88e5' }
+							else if (tip == "dentur") { renk = '#1e88e5' }
+							else if (tip == "turyol") { renk = '#1e88e5' }
+							else if (tip == "taksiDolmus") { renk = '#f65f34' }
+							else if (tip == "tram") { renk = '#d32f2f' }
+							else if (tip == "mar") { renk = '#8e24aa' }
+							else if (tip == "metrobus") { renk = '#6d4c41' }
+							else { renk = "#808080" }
+							//console.log(tip)
+
+							var ilksayac=0;
+							stops.forEach(function (stop) {
+								if(ilksayac==0 && (tip == "metro" || tip == "tram" || tip == "mar")){
+									ilksayac++;
+									ibbMAP.Marker.Add({
+										lat: stop.point[0],
+										lon: stop.point[1],
+										iconUrl: metroIcon,	
+										content: stop.stopName,
+										title: 'Durak AdÄ±:',
+										strokeWidth: 4,
+									});
+									wkt += stop.point[1] + " " + stop.point[0] + ","
+								}else if(ilksayac==0 && (tip == "bus" || tip == "metrobus")){
+									ilksayac++;
+									ibbMAP.Marker.Add({
+										lat: stop.point[0],
+										lon: stop.point[1],
+										iconUrl: IETTIcon,
+										content: stop.stopName+" DuraÄÄ±",
+										title: 'Durak AdÄ±:',
+										strokeWidth: 4,
+									});
+									wkt += stop.point[1] + " " + stop.point[0] + ","
+								}else{										
+									wkt += stop.point[1] + " " + stop.point[0] + ","
+									ibbMAP.Marker.Add({
+										lat: stop.point[0],
+										lon: stop.point[1],
+										iconUrl: ibbMAP.icons.info,
+										strokeWidth: 4,										
+									});
+								}
+							});
+
+							wkt = wkt.substring(0, wkt.length - 1);
+							wkt = wkt + ")";
+
+							ibbMAP.Draw.WKT(
+								{
+									style:
+									{
+										strokeColor: renk,
+										strokeOpacity: 1,
+										fillColor: '#0080FF',
+										fillOpacity: 0.7,
+										strokeWidth: 4,
+										strokeDashStyle: '8 10'
+									},
+									wkt: wkt,
+
+
+								});
+
+							wkt = 'LINESTRING(';
+
+							ibbMAP.Marker.Add({
+								lat: buradanlat,
+								lon: buradanlon,
+								iconUrl: FinishIcon,
+							});
+							ibbMAP.Marker.Add({
+								lat: burayalat,
+								lon: burayalon,
+								iconUrl: StartIcon,
+							});
+							});
+					
+						
+					
+				}
+					
+            });
+
+            $(document).on('click', '.geri', function () {
+				$('#giriskismi').show();
+                $('#firsttable').show();
+                $('#ust').empty();
+                $('#alt').empty();
+            });
+			
+			$body = $("body");
+			
+			$(document).on({
+				ajaxStart: function() { $body.addClass("loading"); },
+				
+				ajaxStop: function() { $body.removeClass("loading"); }    
+			});
+
+        });
+
+		
+		
+
+
+    </script>
+	
+	
+	
+</body>
+</html>
