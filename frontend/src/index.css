@@ -63,6 +63,23 @@ input::placeholder {
   outline-offset: 2px;
 }
 
+.leaflet-container {
+  background: var(--color-bg);
+  font-family: var(--font-body);
+  outline: none;
+}
+
+.leaflet-control-attribution {
+  background: rgba(11, 18, 32, 0.7) !important;
+  color: var(--color-muted) !important;
+  font-size: 10px !important;
+  padding: 1px 6px !important;
+}
+
+.leaflet-control-attribution a {
+  color: var(--color-muted) !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

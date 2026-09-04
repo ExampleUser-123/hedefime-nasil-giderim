@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import type { CarResult, PlanResult, TransitLeg, TransitRoute } from '@/lib/api'
+import type { CarResult, Mode, PlanResult, TransitLeg, TransitRoute } from '@/lib/api'
 import {
   IconBus,
   IconCar,
@@ -10,8 +9,6 @@ import {
   IconWallet,
   IconWalk,
 } from '@/icons'
-
-type Mode = 'otobus' | 'metro' | 'yuruyus' | 'arac'
 
 type Recommendations = PlanResult['recommendations']
 
@@ -156,20 +153,20 @@ function LegRow({ leg }: { leg: TransitLeg }) {
 function TransitRouteCard({
   route,
   badges,
-  defaultOpen,
+  selected,
+  onSelect,
 }: {
   route: TransitRoute
   badges: string[]
-  defaultOpen: boolean
+  selected: boolean
+  onSelect: () => void
 }) {
-  const [open, setOpen] = useState(defaultOpen)
-
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-bg/50">
       <button
         type="button"
-        onClick={() => setOpen(!open)}
-        aria-expanded={open}
+        onClick={onSelect}
+        aria-expanded={selected}
         className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-surface-2/60"
       >
         <div className="min-w-0 flex-1">
@@ -198,11 +195,11 @@ function TransitRouteCard({
           </p>
         </div>
         <IconChevronRight
-          className={`h-4 w-4 shrink-0 text-muted transition-transform ${open ? 'rotate-90' : ''}`}
+          className={`h-4 w-4 shrink-0 text-muted transition-transform ${selected ? 'rotate-90' : ''}`}
         />
       </button>
 
-      {open && (
+      {selected && (
         <div className="border-t border-line px-4 py-1.5">
           <ol className="divide-y divide-line/60">
             {route.legs.map((leg, index) => (
@@ -215,7 +212,15 @@ function TransitRouteCard({
   )
 }
 
-function TransitList({ result }: { result: PlanResult }) {
+function TransitList({
+  result,
+  selectedIndex,
+  onSelect,
+}: {
+  result: PlanResult
+  selectedIndex: number
+  onSelect: (index: number) => void
+}) {
   const { routes, recommendations, status } = result.public_transport
 
   if (status !== 'success' || routes.length === 0) {
@@ -233,12 +238,13 @@ function TransitList({ result }: { result: PlanResult }) {
           key={index}
           route={route}
           badges={getBadges(route, recommendations)}
-          defaultOpen={index === 0}
+          selected={index === selectedIndex}
+          onSelect={() => onSelect(index)}
         />
       ))}
 
       <p className="pt-1 text-center text-xs text-muted">
-        {routes.length} rota bulundu · İETT verileriyle
+        {routes.length} rota bulundu · İETT verileriyle · Haritada seçili rota gösterilir
       </p>
     </div>
   )
@@ -247,9 +253,13 @@ function TransitList({ result }: { result: PlanResult }) {
 export default function RouteResults({
   mode,
   result,
+  selectedIndex,
+  onSelectIndex,
 }: {
   mode: Mode
   result: PlanResult
+  selectedIndex: number
+  onSelectIndex: (index: number) => void
 }) {
   const recommendations = result.recommendations ?? result.public_transport.recommendations
 
@@ -257,7 +267,13 @@ export default function RouteResults({
     <div className="mt-4 space-y-3 rounded-2xl border border-line bg-surface-2/90 p-4" role="region" aria-label="Rota sonuçları">
       {mode === 'arac' && <CarDetails car={result.car} people={1} />}
       {mode === 'yuruyus' && <WalkingDetails car={result.car} />}
-      {(mode === 'otobus' || mode === 'metro') && <TransitList result={{ ...result, recommendations }} />}
+      {(mode === 'otobus' || mode === 'metro') && (
+        <TransitList
+          result={{ ...result, recommendations }}
+          selectedIndex={selectedIndex}
+          onSelect={onSelectIndex}
+        />
+      )}
 
       <div className="flex items-center gap-2 border-t border-line pt-3 text-xs text-muted">
         <IconRoute className="h-4 w-4 shrink-0" />

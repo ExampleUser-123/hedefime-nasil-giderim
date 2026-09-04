@@ -1,10 +1,16 @@
 const API_BASE = 'http://127.0.0.1:8000'
 
+export type Mode = 'otobus' | 'metro' | 'yuruyus' | 'arac'
+
 export type Place = {
   display_name: string
   lat: number
   lon: number
 }
+
+export type LatLng = [number, number]
+
+export type Coord = { lat: number; lon: number }
 
 export type TransitLeg = {
   type: string
@@ -18,6 +24,7 @@ export type TransitLeg = {
   to_stop: string | null
   stops: string[]
   alternate_lines: string[]
+  coords?: LatLng[]
 }
 
 export type TransitRoute = {
@@ -38,11 +45,14 @@ export type CarResult = {
   fuel_liters: number
   total_cost: number
   cost_per_person: number
+  geometry?: LatLng[]
 }
 
 export type PlanResult = {
   start: string
   destination: string
+  start_coord: Coord
+  end_coord: Coord
   car: CarResult
   public_transport: {
     status: string

@@ -49,6 +49,79 @@ def _get_stop_names(stops):
     return names
 
 
+def _get_stop_coords(stops):
+    """Durak koordinatlarını [lat, lon] listesi olarak çıkarır.
+    İETT cevabında koordinat yoksa boş liste döner."""
+
+    coords = []
+
+    for stop in stops:
+        if not stop:
+            continue
+
+        point = stop.get("point")
+
+        try:
+            if point and len(point) >= 2:
+                coords.append([float(point[0]), float(point[1])])
+        except (TypeError, ValueError):
+            continue
+
+    return coords
+
+
+def _decode_polyline(encoded):
+    """Google encoded polyline çözücü → [[lat, lon], ...]"""
+
+    coords = []
+    index = 0
+    lat = 0
+    lon = 0
+
+    while index < len(encoded):
+        for multiplier in (1, 100000):
+            result = 0
+            shift = 0
+
+            while True:
+                byte = ord(encoded[index]) - 63
+                index += 1
+                result |= (byte & 0x1F) << shift
+                shift += 5
+
+                if byte < 0x20:
+                    break
+
+            value = (result >> 1) ^ -(result & 1)
+
+            if multiplier == 1:
+                lat += value
+            else:
+                lon += value
+
+        coords.append([lat / 100000, lon / 100000])
+
+    return coords
+
+
+def _get_leg_coords(leg, stops):
+    """Leg geometrisini sections polyline'larından çözer,
+    yoksa durak noktalarına düşer."""
+
+    coords = []
+
+    for section in leg.get("sections", []):
+        polyline = section.get("polyline") if section else None
+
+        if polyline:
+            coords.extend(_decode_polyline(polyline))
+
+    if not coords:
+        coords = _get_stop_coords(stops)
+
+    return coords
+
+
 def _parse_leg(leg):
     """
     İETT router'daki tek bir yolculuk ayağını
@@ -62,6 +135,7 @@ def _parse_leg(leg):
 
     stops = leg.get("stops", [])
     stop_names = _get_stop_names(stops)
+    leg_coords = _get_leg_coords(leg, stops)
 
     # Yürüme ayağı
     if route_id == "walking":
@@ -79,7 +153,8 @@ def _parse_leg(leg):
             ),
             "from_stop": None,
             "to_stop": None,
-            "alternate_lines": []
+            "alternate_lines": [],
+            "coords": leg_coords
         }
 
     # Toplu taşıma ayağı
@@ -97,7 +172,8 @@ def _parse_leg(leg):
         "from_stop": stop_names[0] if stop_names else None,
         "to_stop": stop_names[-1] if stop_names else None,
         "stops": stop_names,
-        "alternate_lines": leg.get("alternateLineId", [])
+        "alternate_lines": leg.get("alternateLineId", []),
+        "coords": leg_coords
     }
 
 

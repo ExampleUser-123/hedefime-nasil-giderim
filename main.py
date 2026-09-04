@@ -758,6 +758,16 @@ def plan(
         "destination": end_place["display_name"],
         "people": people,
 
+        "start_coord": {
+            "lat": start_place["lat"],
+            "lon": start_place["lon"]
+        },
+
+        "end_coord": {
+            "lat": end_place["lat"],
+            "lon": end_place["lon"]
+        },
+
         "locations": {
             "start_province": start_province,
             "end_province": end_province

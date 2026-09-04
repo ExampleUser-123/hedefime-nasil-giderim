@@ -4,10 +4,20 @@ import WeatherChip from '@/components/WeatherChip'
 import RouteSearch from '@/components/RouteSearch'
 import AiBanner from '@/components/AiBanner'
 import ChatDrawer from '@/components/ChatDrawer'
+import MapView from '@/components/MapView'
 import { IconLogo } from '@/icons'
+import type { Mode, PlanResult } from '@/lib/api'
 
 export default function App() {
   const [chatOpen, setChatOpen] = useState(false)
+  const [plan, setPlan] = useState<PlanResult | null>(null)
+  const [mode, setMode] = useState<Mode>('otobus')
+  const [routeIndex, setRouteIndex] = useState(0)
+
+  function handlePlanChange(nextPlan: PlanResult | null) {
+    setPlan(nextPlan)
+    setRouteIndex(0)
+  }
 
   return (
     <MotionConfig reducedMotion="user">
@@ -17,7 +27,10 @@ export default function App() {
           style={{ backgroundImage: 'url(/hero-map-background.png)' }}
           aria-hidden="true"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-bg/40 via-bg/20 to-bg/80" aria-hidden="true" />
+
+        {plan && <MapView plan={plan} mode={mode} routeIndex={routeIndex} />}
+
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-bg/30 via-transparent to-bg/70" aria-hidden="true" />
 
         <header className="relative z-10 flex items-center justify-between px-5 pt-5 sm:px-8">
           <div className="flex items-center gap-2.5">
@@ -40,7 +53,14 @@ export default function App() {
           className="relative z-10 mx-auto w-full max-w-xl px-4 pb-6 sm:px-6"
         >
           <div className="rounded-3xl border border-line bg-surface/85 p-5 shadow-2xl shadow-black/40 backdrop-blur-md sm:p-6">
-            <RouteSearch />
+            <RouteSearch
+              mode={mode}
+              onModeChange={setMode}
+              plan={plan}
+              onPlanChange={handlePlanChange}
+              selectedIndex={routeIndex}
+              onSelectIndex={setRouteIndex}
+            />
 
             <div className="mt-4">
               <AiBanner onOpen={() => setChatOpen(true)} />

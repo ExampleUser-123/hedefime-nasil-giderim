@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { fetchPlan, type PlanResult } from '@/lib/api'
+import { fetchPlan, type Mode, type PlanResult } from '@/lib/api'
 import RouteResults from '@/components/RouteResults'
 import {
   IconBus,
@@ -17,15 +17,25 @@ const MODES = [
   { id: 'arac', label: 'Araç', icon: IconCar },
 ] as const
 
-type Mode = (typeof MODES)[number]['id']
-
-export default function RouteSearch() {
+export default function RouteSearch({
+  mode,
+  onModeChange,
+  plan,
+  onPlanChange,
+  selectedIndex,
+  onSelectIndex,
+}: {
+  mode: Mode
+  onModeChange: (mode: Mode) => void
+  plan: PlanResult | null
+  onPlanChange: (plan: PlanResult | null) => void
+  selectedIndex: number
+  onSelectIndex: (index: number) => void
+}) {
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
-  const [mode, setMode] = useState<Mode>('otobus')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [result, setResult] = useState<PlanResult | null>(null)
 
   function swap() {
     setFrom(to)
@@ -37,11 +47,10 @@ export default function RouteSearch() {
 
     setLoading(true)
     setError(null)
-    setResult(null)
 
     try {
-      const plan = await fetchPlan(from.trim(), to.trim())
-      setResult(plan)
+      const nextPlan = await fetchPlan(from.trim(), to.trim())
+      onPlanChange(nextPlan)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Rota alınamadı.')
     } finally {
@@ -94,7 +103,7 @@ export default function RouteSearch() {
               type="button"
               role="radio"
               aria-checked={mode === id}
-              onClick={() => setMode(id)}
+              onClick={() => onModeChange(id)}
               className={`flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2.5 text-xs font-medium transition-colors sm:flex-row sm:gap-1.5 sm:text-sm ${
                 mode === id
                   ? 'border-accent bg-accent/10 text-accent'
@@ -130,7 +139,14 @@ export default function RouteSearch() {
         </p>
       )}
 
-      {result && <RouteResults mode={mode} result={result} />}
+      {plan && (
+        <RouteResults
+          mode={mode}
+          result={plan}
+          selectedIndex={selectedIndex}
+          onSelectIndex={onSelectIndex}
+        />
+      )}
     </div>
   )
 }

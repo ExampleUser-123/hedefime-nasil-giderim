@@ -17,7 +17,10 @@ def calculate_route(
 
     response = requests.get(
         route_url,
-        params={"overview": "false"},
+        params={
+            "overview": "simplified",
+            "geometries": "geojson"
+        },
         timeout=10
     )
 
@@ -33,7 +36,13 @@ def calculate_route(
     distance_km = route["distance"] / 1000
     duration_minutes = route["duration"] / 60
 
+    geometry = [
+        [coord[1], coord[0]]
+        for coord in route["geometry"]["coordinates"]
+    ]
+
     return {
         "distance_km": round(distance_km, 2),
-        "duration_minutes": round(duration_minutes, 0)
+        "duration_minutes": round(duration_minutes, 0),
+        "geometry": geometry
     }
