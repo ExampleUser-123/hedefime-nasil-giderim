@@ -376,6 +376,7 @@ def find_transit_routes(
 
     - İstanbul: İETT router (tam A→B rota planı)
     - İzmir: ESHOT açık veri (doğrudan hat önerisi)
+    - Kocaeli: GTFS'ten derlenen durak-hat verisi (doğrudan hat önerisi)
     """
 
     def _province_name(province):
@@ -390,6 +391,11 @@ def find_transit_routes(
         from services.izmir import find_izmir_route
 
         return find_izmir_route(start_lat, start_lon, end_lat, end_lon)
+
+    if start_city == "Kocaeli" and end_city == "Kocaeli":
+        from services.kocaeli import find_kocaeli_route
+
+        return find_kocaeli_route(start_lat, start_lon, end_lat, end_lon)
 
     return find_public_transport_route(
         start_lat,

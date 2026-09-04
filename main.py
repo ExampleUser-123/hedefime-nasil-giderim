@@ -799,8 +799,20 @@ def plan(
         and end_province.get("name") == "İzmir"
     )
 
-    has_provider = (start_is_istanbul and end_is_istanbul) or (
-        start_is_izmir and end_is_izmir
+    start_is_kocaeli = (
+        start_province is not None
+        and start_province.get("name") == "Kocaeli"
+    )
+
+    end_is_kocaeli = (
+        end_province is not None
+        and end_province.get("name") == "Kocaeli"
+    )
+
+    has_provider = (
+        (start_is_istanbul and end_is_istanbul)
+        or (start_is_izmir and end_is_izmir)
+        or (start_is_kocaeli and end_is_kocaeli)
     )
 
     if (
@@ -808,7 +820,7 @@ def plan(
         and not has_provider
     ):
         public_result["error"] = (
-            "Toplu taşıma verisi şu an İstanbul ve İzmir için mevcut. "
+            "Toplu taşıma verisi şu an İstanbul, İzmir ve Kocaeli için mevcut. "
             "Diğer illerde Araç veya Uçak modunu kullanabilirsin; "
             "şehir içi toplu taşıma desteği il il eklenecek."
         )

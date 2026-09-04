@@ -166,13 +166,13 @@ def _estimate_duration(route_walk_m, bus_straight_m, exit_walk_m):
     return round(walk_time + bus_time + 5)
 
 
-def _no_route(message):
+def _no_route(message, source="ESHOT"):
     return {
         "transport_type": "public_transport",
         "status": "no_route",
         "error": message,
         "routes": [],
-        "source": "ESHOT",
+        "source": source,
     }
 
 
