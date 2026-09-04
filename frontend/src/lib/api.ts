@@ -191,3 +191,18 @@ export function sendAssistantMessage(sessionId: string, message: string) {
     90000,
   )
 }
+
+export type RouteIntent = {
+  start: string | null
+  end: string | null
+  people: number
+  mode: Mode | null
+}
+
+export function parseRouteIntent(text: string) {
+  return request<RouteIntent>('/parse-intent', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: text }),
+  }, 30000)
+}

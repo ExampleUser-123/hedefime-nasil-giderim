@@ -63,7 +63,7 @@ function straightLineKm(result: PlanResult): number {
   return 2 * R * Math.asin(Math.sqrt(a))
 }
 
-function CarDetails({ car, people }: { car: CarResult; people: number }) {
+export function CarDetails({ car, people }: { car: CarResult; people: number }) {
   return (
     <div>
       <div className="flex items-center gap-2.5">
@@ -101,7 +101,7 @@ function CarDetails({ car, people }: { car: CarResult; people: number }) {
   )
 }
 
-function WalkingDetails({ result }: { result: PlanResult }) {
+export function WalkingDetails({ result }: { result: PlanResult }) {
   const distanceKm = (result.car?.distance_km ?? straightLineKm(result) * 1.3)
   const minutes = Math.round((distanceKm / 4.8) * 60)
 
@@ -264,7 +264,7 @@ function isFerryRoute(route: TransitRoute): boolean {
   )
 }
 
-function TransitList({
+export function TransitList({
   result,
   mode,
   people,
@@ -349,7 +349,7 @@ function TransitList({
   )
 }
 
-function FlightDetails({ flight }: { flight: FlightEstimate }) {
+export function FlightDetails({ flight }: { flight: FlightEstimate }) {
   if (!flight.available) {
     return (
       <div>

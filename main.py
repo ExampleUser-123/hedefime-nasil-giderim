@@ -27,7 +27,7 @@ from services.gtfs import (
     is_service_active
 )
 
-from services.ai import ask_assistant
+from services.ai import ask_assistant, parse_route_intent, QuotaExceededError
 from services.cache import cache_stats, cache_clear
 from services.chat_store import (
     create_session,
@@ -950,6 +950,34 @@ class AssistantMessage(BaseModel):
     message: str
     session_id: str | None = None
     history: list[dict] = []
+
+
+class IntentMessage(BaseModel):
+    message: str
+
+
+@app.post("/parse-intent")
+def parse_intent(body: IntentMessage):
+    """Doğal dili rota formu alanlarına çevirir (AI asistan hızlı girişi)."""
+
+    message = body.message.strip()
+
+    if not message:
+        return {"error": "Mesaj boş olamaz."}
+
+    try:
+        return parse_route_intent(message)
+
+    except QuotaExceededError:
+        return {
+            "error": "AI asistanının dakikalık kullanım limiti doldu. "
+            "Birkaç saniye sonra tekrar dene."
+        }
+
+    except Exception:
+        return {
+            "error": "AI asistanına şu anda ulaşılamıyor. Formu elle doldurabilirsin."
+        }
 
 
 @app.post("/ai-assistant")

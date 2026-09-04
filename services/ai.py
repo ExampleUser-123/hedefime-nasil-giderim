@@ -1,4 +1,6 @@
+import json
 import os
+import re
 import time
 
 from google import genai
@@ -363,6 +365,67 @@ def _send_with_retry(chat, message: str, max_retries: int = 2):
 
 class QuotaExceededError(Exception):
     """Gemini ücretsiz kota limiti aşıldı."""
+
+
+def parse_route_intent(text: str) -> dict:
+    """
+    Doğal dili rota form alanlarına çevirir.
+
+    "Yarın 4 kişi İzmit'ten İzmir'e en ucuz nasıl gideriz?" gibi bir
+    cümleyden {"start", "end", "people", "mode"} alanlarını çıkarır.
+    """
+
+    ai_client = _get_client()
+
+    prompt = f"""Aşağıdaki Türkçe cümleyi rota arama formu alanlarına ayrıştır.
+
+Cümle: "{text}"
+
+SADECE şu JSON formatında cevap ver, başka hiçbir şey yazma:
+{{"start": "başlangıç yeri", "end": "hedef yeri", "people": <1-8 arası sayı>, "mode": "<otobus|metro|deniz|arac|ucak|yuruyus|null>"}}
+
+Kurallar:
+- start veya end cümlede belirtilmemişse null yaz.
+- people belirtilmemişse 1 yaz.
+- mode belirtilmemişse null yaz. "en ucuz" gibi ifadelerde mode null kalır.
+- Şehir isimlerini sadeleştir: "İzmit'ten" → "İzmit".
+"""
+
+    try:
+        response = ai_client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt,
+            config=types.GenerateContentConfig(temperature=0.1),
+        )
+    except Exception as exc:
+        text_repr = str(exc)
+
+        if "429" in text_repr or "RESOURCE_EXHAUSTED" in text_repr:
+            raise QuotaExceededError() from exc
+
+        raise
+
+    raw = (response.text or "").strip()
+    raw = re.sub(r"^```(?:json)?|```$", "", raw, flags=re.MULTILINE).strip()
+
+    match = re.search(r"\{.*\}", raw, flags=re.DOTALL)
+
+    if not match:
+        return {"error": "İstekünü rota alanlarına ayrıştıramadım."}
+
+    try:
+        data = json.loads(match.group(0))
+    except ValueError:
+        return {"error": "İstekünü rota alanlarına ayrıştıramadım."}
+
+    return {
+        "start": data.get("start"),
+        "end": data.get("end"),
+        "people": max(1, min(8, int(data.get("people") or 1))),
+        "mode": data.get("mode") if data.get("mode") in (
+            "otobus", "metro", "deniz", "arac", "ucak", "yuruyus"
+        ) else None,
+    }
 
 
 def ask_assistant(message: str, history: list | None = None) -> dict:
