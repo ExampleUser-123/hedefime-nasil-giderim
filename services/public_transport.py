@@ -376,7 +376,8 @@ def find_transit_routes(
 
     - İstanbul: İETT router (tam A→B rota planı)
     - İzmir: ESHOT açık veri (doğrudan hat önerisi)
-    - Kocaeli: GTFS'ten derlenen durak-hat verisi (doğrudan hat önerisi)
+    - Kocaeli, Konya: GTFS'ten derlenen veri
+    - Antalya, Adana: KentKart servisinden derlenen veri
     """
 
     def _province_name(province):
@@ -387,17 +388,41 @@ def find_transit_routes(
     start_city = _province_name(start_province)
     end_city = _province_name(end_province)
 
-    if start_city == "İzmir" and end_city == "İzmir":
+    if start_city != end_city or start_city is None:
+        return find_public_transport_route(
+            start_lat,
+            start_lon,
+            end_lat,
+            end_lon
+        )
+
+    if start_city == "İzmir":
         from services.izmir import find_izmir_route
 
         return find_izmir_route(start_lat, start_lon, end_lat, end_lon)
 
-    if start_city == "Kocaeli" and end_city == "Kocaeli":
-        from services.kocaeli import find_kocaeli_route
+    direct_providers = {
+        "Kocaeli": ("services.kocaeli", "find_kocaeli_route"),
+        "Konya": ("services.konya", "find_konya_route"),
+        "Antalya": ("services.antalya", "find_antalya_route"),
+        "Adana": ("services.adana", "find_adana_route"),
+    }
 
-        return find_kocaeli_route(start_lat, start_lon, end_lat, end_lon)
+    provider = direct_providers.get(start_city)
 
-    return find_public_transport_route(
+    if provider is None:
+        return find_public_transport_route(
+            start_lat,
+            start_lon,
+            end_lat,
+            end_lon
+        )
+
+    import importlib
+
+    module = importlib.import_module(provider[0])
+
+    return getattr(module, provider[1])(
         start_lat,
         start_lon,
         end_lat,

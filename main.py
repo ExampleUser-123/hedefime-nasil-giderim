@@ -779,40 +779,21 @@ def plan(
     # (İstanbul: İETT router, İzmir: ESHOT açık veri)
     # -----------------------------------------------------
 
-    start_is_istanbul = (
-        start_province is not None
-        and start_province.get("name") == "İstanbul"
-    )
+    SUPPORTED_TRANSIT_CITIES = {
+        "İstanbul",
+        "İzmir",
+        "Kocaeli",
+        "Konya",
+        "Antalya",
+        "Adana",
+    }
 
-    end_is_istanbul = (
-        end_province is not None
-        and end_province.get("name") == "İstanbul"
-    )
-
-    start_is_izmir = (
-        start_province is not None
-        and start_province.get("name") == "İzmir"
-    )
-
-    end_is_izmir = (
-        end_province is not None
-        and end_province.get("name") == "İzmir"
-    )
-
-    start_is_kocaeli = (
-        start_province is not None
-        and start_province.get("name") == "Kocaeli"
-    )
-
-    end_is_kocaeli = (
-        end_province is not None
-        and end_province.get("name") == "Kocaeli"
-    )
+    start_city = start_province.get("name") if start_province else None
+    end_city = end_province.get("name") if end_province else None
 
     has_provider = (
-        (start_is_istanbul and end_is_istanbul)
-        or (start_is_izmir and end_is_izmir)
-        or (start_is_kocaeli and end_is_kocaeli)
+        start_city in SUPPORTED_TRANSIT_CITIES
+        and end_city == start_city
     )
 
     if (
@@ -820,9 +801,10 @@ def plan(
         and not has_provider
     ):
         public_result["error"] = (
-            "Toplu taşıma verisi şu an İstanbul, İzmir ve Kocaeli için mevcut. "
-            "Diğer illerde Araç veya Uçak modunu kullanabilirsin; "
-            "şehir içi toplu taşıma desteği il il eklenecek."
+            "Toplu taşıma verisi şu an İstanbul, İzmir, Kocaeli, Konya, "
+            "Antalya ve Adana için mevcut. Diğer illerde Araç veya Uçak "
+            "modunu kullanabilirsin; şehir içi toplu taşıma desteği "
+            "il il eklenecek."
         )
 
     # -----------------------------------------------------
