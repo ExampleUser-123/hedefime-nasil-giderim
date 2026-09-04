@@ -256,6 +256,14 @@ function isRailRoute(route: TransitRoute): boolean {
   )
 }
 
+const FERRY_TYPE_PATTERN = /FERRY|VAPUR|TURYOL|SHAT|SEHIR_HATLARI/
+
+function isFerryRoute(route: TransitRoute): boolean {
+  return route.legs.some(
+    (leg) => leg.type !== 'walking' && FERRY_TYPE_PATTERN.test(leg.type.toUpperCase()),
+  )
+}
+
 function TransitList({
   result,
   mode,
@@ -275,6 +283,38 @@ function TransitList({
     return (
       <div className="rounded-2xl border border-line bg-bg/50 px-4 py-5 text-center text-sm text-muted">
         {error ?? 'Bu iki nokta arasında toplu taşıma rotası bulunamadı.'}
+      </div>
+    )
+  }
+
+  // Deniz modu: vapur içeren rota yoksa net mesaj ver
+  if (mode === 'deniz') {
+    const ferryRoutes = routes.filter(isFerryRoute)
+
+    if (ferryRoutes.length === 0) {
+      return (
+        <div className="rounded-2xl border border-line bg-bg/50 px-4 py-5 text-center text-sm text-muted">
+          Bu güzergahta deniz ulaşımı (vapur) bulunamadı. Otobüs moduna göz at.
+        </div>
+      )
+    }
+
+    return (
+      <div className="space-y-2.5">
+        {ferryRoutes.slice(0, 4).map((route, index) => (
+          <TransitRouteCard
+            key={index}
+            route={route}
+            people={people}
+            badges={getBadges(route, recommendations)}
+            selected={index === selectedIndex}
+            onSelect={() => onSelect(index)}
+          />
+        ))}
+
+        <p className="pt-1 text-center text-xs text-muted">
+          {ferryRoutes.length} deniz rotası · {source ?? 'İETT'} verileriyle
+        </p>
       </div>
     )
   }
@@ -406,7 +446,7 @@ export default function RouteResults({
           </p>
         )
       )}
-      {(mode === 'otobus' || mode === 'metro') && (
+      {(mode === 'otobus' || mode === 'metro' || mode === 'deniz') && (
         <TransitList
           result={{ ...result, recommendations }}
           mode={mode}

@@ -10,7 +10,7 @@ const TILE_URL =
 const TILE_ATTRIBUTION =
   'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ &mdash; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 
-export type MapMode = 'otobus' | 'metro' | 'yuruyus' | 'arac' | 'ucak'
+export type MapMode = 'otobus' | 'metro' | 'yuruyus' | 'arac' | 'ucak' | 'deniz'
 
 type Path = {
   positions: LatLng[]
@@ -54,7 +54,18 @@ function buildPaths(plan: PlanResult, mode: MapMode, routeIndex: number): Path[]
     return [straight]
   }
 
-  const routes = plan.public_transport.routes
+  const allRoutes = plan.public_transport.routes
+
+  // Deniz/metro modlarında listeyle aynı filtre haritada da uygulanır
+  let routes = allRoutes
+
+  if (mode === 'deniz') {
+    const ferry = allRoutes.filter((r) =>
+      r.legs.some((leg) => leg.type !== 'walking' && /FERRY|VAPUR|TURYOL|SHAT/.test(leg.type.toUpperCase())),
+    )
+    if (ferry.length) routes = ferry
+  }
+
   const route = routes[routeIndex] ?? routes[0]
 
   if (!route) {

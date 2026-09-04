@@ -5,6 +5,7 @@ import VehiclePicker, { loadRememberedVehicle } from '@/components/VehiclePicker
 import {
   IconBus,
   IconCar,
+  IconFerry,
   IconLocate,
   IconMetro,
   IconPin,
@@ -17,6 +18,7 @@ import {
 const MODES = [
   { id: 'otobus', label: 'Otobüs', icon: IconBus },
   { id: 'metro', label: 'Metro', icon: IconMetro },
+  { id: 'deniz', label: 'Deniz', icon: IconFerry },
   { id: 'yuruyus', label: 'Yürüyüş', icon: IconWalk },
   { id: 'arac', label: 'Araç', icon: IconCar },
   { id: 'ucak', label: 'Uçak', icon: IconPlane },
@@ -192,7 +194,7 @@ export default function RouteSearch({
           </button>
         </div>
 
-        <div className="mt-4 grid grid-cols-5 gap-1.5" role="radiogroup" aria-label="Ulaşım türü">
+        <div className="mt-4 grid grid-cols-6 gap-1.5" role="radiogroup" aria-label="Ulaşım türü">
           {MODES.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
