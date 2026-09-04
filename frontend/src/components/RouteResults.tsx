@@ -4,6 +4,7 @@ import {
   IconCar,
   IconChevronRight,
   IconClock,
+  IconFerry,
   IconMetro,
   IconPlane,
   IconRoute,
@@ -40,6 +41,8 @@ function legIcon(leg: TransitLeg) {
   const type = leg.type.toUpperCase()
 
   if (/METRO|MARMARAY|TRAM|FUNIC|CABLE|NOSTAL/.test(type)) return IconMetro
+
+  if (/FERRY|VAPUR|TURYOL|SHAT|SEHIR_HATLARI/.test(type)) return IconFerry
 
   return IconBus
 }

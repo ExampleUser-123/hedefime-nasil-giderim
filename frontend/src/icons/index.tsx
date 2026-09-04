@@ -103,6 +103,16 @@ export function IconPlane({ className }: IconProps) {
   )
 }
 
+export function IconFerry({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <path d="M12 10.19V4a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1v6.19" />
+      <path d="M2 13.68V13a1 1 0 0 1 1-1h18a1 1 0 0 1 1 1v.68a2 2 0 0 1-.96 1.71L13 20.55a2 2 0 0 1-2 0l-8.04-5.16A2 2 0 0 1 2 13.68" />
+      <path d="M6 12 8.5 8h7L18 12" />
+    </svg>
+  )
+}
+
 export function IconSparkle({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">

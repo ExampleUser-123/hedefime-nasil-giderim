@@ -21,12 +21,11 @@ import os
 from services.izmir import (
     MAX_SUGGESTIONS,
     MAX_STOPS_PER_SIDE,
-    NEAR_RADIUS_M,
     _bus_leg,
     _estimate_duration,
     _haversine_m,
     _no_route,
-    _stops_within,
+    _stops_near_adaptive,
     _walking_leg,
 )
 
@@ -96,8 +95,8 @@ def find_kocaeli_route(start_lat, start_lon, end_lat, end_lon):
             "source": "Kocaeli Ulaşım",
         }
 
-    near_start = _stops_within(stops, start_lat, start_lon, NEAR_RADIUS_M)
-    near_end = _stops_within(stops, end_lat, end_lon, NEAR_RADIUS_M)
+    near_start = _stops_near_adaptive(stops, start_lat, start_lon)
+    near_end = _stops_near_adaptive(stops, end_lat, end_lon)
 
     if not near_start or not near_end:
         return _no_route(
@@ -163,9 +162,17 @@ def find_kocaeli_route(start_lat, start_lon, end_lat, end_lon):
 
         bus_leg = _bus_leg(line_display, item["board"], item["alight"])
         bus_leg["type"] = leg_type
-        bus_leg["name"] = f"{line_display}"
-        if item["line_long"]:
-            bus_leg["long_name"] = item["line_long"]
+
+        if leg_type == "ferry":
+            bus_leg["name"] = (
+                f"Vapur ({item['line_long']})"
+                if item["line_long"]
+                else "Vapur"
+            )
+        else:
+            bus_leg["name"] = f"{line_display}"
+            if item["line_long"]:
+                bus_leg["long_name"] = item["line_long"]
         bus_leg["route_id"] = f"kocaeli:{line_display}"
 
         legs = [
