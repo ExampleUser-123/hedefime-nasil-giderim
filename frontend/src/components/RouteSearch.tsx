@@ -188,13 +188,13 @@ export default function RouteSearch({
             type="button"
             onClick={swap}
             aria-label="Başlangıç ve hedefi değiştir"
-            className="absolute right-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-surface text-muted transition-colors hover:border-accent hover:text-accent"
+            className="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-line bg-surface text-muted transition-colors hover:border-accent hover:text-accent"
           >
             <IconSwap className="h-4 w-4" />
           </button>
         </div>
 
-        <div className="mt-4 grid grid-cols-6 gap-1.5" role="radiogroup" aria-label="Ulaşım türü">
+        <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="radiogroup" aria-label="Ulaşım türü">
           {MODES.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -202,7 +202,7 @@ export default function RouteSearch({
               role="radio"
               aria-checked={mode === id}
               onClick={() => onModeChange(id)}
-              className={`flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-xl border px-1 py-2.5 text-[11px] font-medium transition-colors ${
+              className={`flex min-h-[44px] shrink-0 items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-colors ${
                 mode === id
                   ? 'border-accent bg-accent/10 text-accent'
                   : 'border-line bg-bg/40 text-muted hover:border-muted hover:text-fg'
@@ -230,9 +230,9 @@ export default function RouteSearch({
           </button>
         )}
         <div className="mt-3 flex items-center justify-between rounded-xl bg-bg/60 px-3 py-2">
-          <span className="flex items-center gap-2 text-sm text-muted">
-            <IconUsers className="h-4 w-4" />
-            Kişi sayısı
+          <span className="flex min-w-20 items-center gap-2 text-sm font-bold tabular-nums" aria-live="polite">
+            <IconUsers className="h-4 w-4 shrink-0 text-muted" />
+            {people} kişi
           </span>
           <div className="flex items-center gap-1" role="group" aria-label="Kişi sayısı seçimi">
             <button
@@ -244,9 +244,6 @@ export default function RouteSearch({
             >
               −
             </button>
-            <span className="min-w-8 text-center text-sm font-bold tabular-nums" aria-live="polite">
-              {people}
-            </span>
             <button
               type="button"
               onClick={() => setPeople((current) => Math.min(8, current + 1))}
