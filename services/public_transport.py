@@ -234,7 +234,7 @@ def _fix_leg_connections(legs, start_name, destination_name):
     return legs
 
 
-@cached(ttl_seconds=600)
+@cached(ttl_seconds=600, should_cache=lambda r: r.get("status") == "success")
 def find_public_transport_route(
     start_lat,
     start_lon,

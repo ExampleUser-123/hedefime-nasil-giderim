@@ -773,6 +773,31 @@ def plan(
     )
 
     # -----------------------------------------------------
+    # İSTANBUL DIŞI TOPLU TAŞIMA BİLGİLENDİRMESİ
+    # (İETT router yalnızca İstanbul verisi içerir)
+    # -----------------------------------------------------
+
+    start_is_istanbul = (
+        start_province is not None
+        and start_province.get("name") == "İstanbul"
+    )
+
+    end_is_istanbul = (
+        end_province is not None
+        and end_province.get("name") == "İstanbul"
+    )
+
+    if (
+        public_result.get("status") != "success"
+        and not (start_is_istanbul and end_is_istanbul)
+    ):
+        public_result["error"] = (
+            "Toplu taşıma verisi şu an yalnızca İstanbul için mevcut. "
+            "Diğer illerde Araç veya Uçak modunu kullanabilirsin; "
+            "şehir içi toplu taşıma desteği il il eklenecek."
+        )
+
+    # -----------------------------------------------------
     # VARSAYILAN ARAÇ VE YAKIT MALİYETİ
     # (araç kısmı hata verirse rota bilgisi kaybolmasın)
     # -----------------------------------------------------

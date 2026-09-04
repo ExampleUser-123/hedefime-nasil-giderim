@@ -79,6 +79,7 @@ export type PlanResult = {
   flight: FlightEstimate | null
   public_transport: {
     status: string
+    error?: string | null
     routes: TransitRoute[]
     recommendations: {
       fastest: TransitRoute | null

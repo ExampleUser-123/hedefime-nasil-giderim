@@ -31,12 +31,15 @@ def cache_set(key, value, ttl_seconds: int):
     )
 
 
-def cached(ttl_seconds: int):
+def cached(ttl_seconds: int, should_cache=None):
     """
     Fonksiyon sonuçlarını önbelleğe alan decorator.
 
     None dönen sonuçlar önbelleğe alınmaz
     (hata durumlarının tekrar denenebilmesi için).
+
+    should_cache verildiyse sonuç, bu fonksiyona verilip
+    True döndüğünde önbelleğe alınır (ör. sadece başarılı cevaplar).
     """
 
     def decorator(func):
@@ -55,7 +58,7 @@ def cached(ttl_seconds: int):
 
             result = func(*args, **kwargs)
 
-            if result is not None:
+            if result is not None and (should_cache is None or should_cache(result)):
                 cache_set(key, result, ttl_seconds)
 
             return result

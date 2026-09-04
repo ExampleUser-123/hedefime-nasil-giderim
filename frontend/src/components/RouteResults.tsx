@@ -169,15 +169,19 @@ function LegRow({ leg }: { leg: TransitLeg }) {
 
 function TransitRouteCard({
   route,
+  people,
   badges,
   selected,
   onSelect,
 }: {
   route: TransitRoute
+  people: number
   badges: string[]
   selected: boolean
   onSelect: () => void
 }) {
+  const totalPrice = route.fee != null ? route.fee * people : null
+
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-bg/50">
       <button
@@ -189,10 +193,13 @@ function TransitRouteCard({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="text-base font-bold tabular-nums">{route.duration_minutes ?? '?'} dk</span>
-            {route.fee != null && (
+            {totalPrice != null && (
               <span className="rounded-full bg-accent/15 px-2 py-0.5 text-xs font-bold text-accent tabular-nums">
-                {route.fee} TL
+                {people > 1 ? `${totalPrice} TL · ${people} kişi` : `${totalPrice} TL`}
               </span>
+            )}
+            {people > 1 && route.fee != null && (
+              <span className="text-xs text-muted tabular-nums">kişi başı {route.fee} TL</span>
             )}
             {badges.map((badge) => (
               <span key={badge} className="rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-accent-ink">
@@ -231,19 +238,21 @@ function TransitRouteCard({
 
 function TransitList({
   result,
+  people,
   selectedIndex,
   onSelect,
 }: {
   result: PlanResult
+  people: number
   selectedIndex: number
   onSelect: (index: number) => void
 }) {
-  const { routes, recommendations, status } = result.public_transport
+  const { routes, recommendations, status, error } = result.public_transport
 
   if (status !== 'success' || routes.length === 0) {
     return (
       <div className="rounded-2xl border border-line bg-bg/50 px-4 py-5 text-center text-sm text-muted">
-        Bu iki nokta arasında toplu taşıma rotası bulunamadı.
+        {error ?? 'Bu iki nokta arasında toplu taşıma rotası bulunamadı.'}
       </div>
     )
   }
@@ -254,6 +263,7 @@ function TransitList({
         <TransitRouteCard
           key={index}
           route={route}
+          people={people}
           badges={getBadges(route, recommendations)}
           selected={index === selectedIndex}
           onSelect={() => onSelect(index)}
@@ -367,6 +377,7 @@ export default function RouteResults({
       {(mode === 'otobus' || mode === 'metro') && (
         <TransitList
           result={{ ...result, recommendations }}
+          people={people}
           selectedIndex={selectedIndex}
           onSelect={onSelectIndex}
         />
