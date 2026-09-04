@@ -1,4 +1,5 @@
 import os
+import time
 
 from google import genai
 from google.genai import types
@@ -328,6 +329,42 @@ def web_ara(query: str) -> dict:
 # ANA ASISTAN FONKSİYONU
 # =========================================================
 
+def _send_with_retry(chat, message: str, max_retries: int = 2):
+    """Gemini mesajını gönderir; geçici hatalarda (503/yoğunluk)
+    kısa bekleyip tekrar dener. Kota (429) hatasında özel istisna
+    tipiyle döner."""
+
+    last_error = None
+
+    for attempt in range(max_retries + 1):
+        try:
+            return chat.send_message(message)
+        except Exception as exc:
+            last_error = exc
+            text = str(exc)
+
+            if "429" in text or "RESOURCE_EXHAUSTED" in text:
+                raise QuotaExceededError() from exc
+
+            retryable = (
+                "503" in text
+                or "UNAVAILABLE" in text
+                or "500" in text
+                or "INTERNAL" in text
+            )
+
+            if not retryable or attempt == max_retries:
+                raise
+
+            time.sleep(2 * (attempt + 1))
+
+    raise last_error
+
+
+class QuotaExceededError(Exception):
+    """Gemini ücretsiz kota limiti aşıldı."""
+
+
 def ask_assistant(message: str, history: list | None = None) -> dict:
     """
     AI asistana mesaj gönderir ve cevabı döndürür.
@@ -378,7 +415,20 @@ def ask_assistant(message: str, history: list | None = None) -> dict:
         history=contents
     )
 
-    response = chat.send_message(message)
+    try:
+        response = _send_with_retry(chat, message)
+    except QuotaExceededError:
+        return {
+            "reply": "Şu anda ücretsiz kota limitine ulaştık. "
+                     "Yarım dakika kadar bekleyip tekrar yazarsan devam edebilirim.",
+            "search_used": False
+        }
+    except Exception:
+        return {
+            "reply": "AI sunucusuna şu anda ulaşamadım. "
+                     "Birkaç saniye sonra tekrar dener misin?",
+            "search_used": False
+        }
 
     reply = ""
 

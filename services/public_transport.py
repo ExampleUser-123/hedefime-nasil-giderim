@@ -2,6 +2,8 @@ import requests
 import json
 from datetime import datetime
 
+from services.cache import cached
+
 
 IETT_ROUTER_URL = "https://nasilgiderim.iett.gov.tr/router"
 
@@ -232,6 +234,7 @@ def _fix_leg_connections(legs, start_name, destination_name):
     return legs
 
 
+@cached(ttl_seconds=600)
 def find_public_transport_route(
     start_lat,
     start_lon,
@@ -257,17 +260,32 @@ def find_public_transport_route(
         "optimizefor": optimizefor
     }
 
-    response = requests.get(
-        IETT_ROUTER_URL,
-        params=params,
-        timeout=10
-    )
+    try:
+        response = requests.get(
+            IETT_ROUTER_URL,
+            params=params,
+            timeout=10
+        )
 
-    response.raise_for_status()
+        response.raise_for_status()
+    except requests.RequestException:
+        return {
+            "transport_type": "public_transport",
+            "status": "error",
+            "error": "Toplu taşıma servisine şu anda ulaşılamadı.",
+            "routes": []
+        }
 
     # Türkçe karakterlerin düzgün okunması için
-    data = response.content.decode("utf-8-sig")
-    data = json.loads(data)
+    try:
+        data = json.loads(response.content.decode("utf-8-sig"))
+    except ValueError:
+        return {
+            "transport_type": "public_transport",
+            "status": "error",
+            "error": "Toplu taşıma servisi beklenmeyen bir cevap verdi.",
+            "routes": []
+        }
 
     # Router hata döndürdüyse
     if data.get("error"):

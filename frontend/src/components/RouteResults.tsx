@@ -43,6 +43,22 @@ function legIcon(leg: TransitLeg) {
   return IconBus
 }
 
+function straightLineKm(result: PlanResult): number {
+  const R = 6371
+  const toRad = (deg: number) => (deg * Math.PI) / 180
+
+  const dLat = toRad(result.end_coord.lat - result.start_coord.lat)
+  const dLon = toRad(result.end_coord.lon - result.start_coord.lon)
+
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(result.start_coord.lat)) *
+      Math.cos(toRad(result.end_coord.lat)) *
+      Math.sin(dLon / 2) ** 2
+
+  return 2 * R * Math.asin(Math.sqrt(a))
+}
+
 function CarDetails({ car, people }: { car: CarResult; people: number }) {
   return (
     <div>
@@ -81,8 +97,8 @@ function CarDetails({ car, people }: { car: CarResult; people: number }) {
   )
 }
 
-function WalkingDetails({ car }: { car: CarResult }) {
-  const distanceKm = car.distance_km * 1.25
+function WalkingDetails({ result }: { result: PlanResult }) {
+  const distanceKm = (result.car?.distance_km ?? straightLineKm(result) * 1.3)
   const minutes = Math.round((distanceKm / 4.8) * 60)
 
   return (
@@ -265,8 +281,15 @@ export default function RouteResults({
 
   return (
     <div className="mt-4 space-y-3 rounded-2xl border border-line bg-surface-2/90 p-4" role="region" aria-label="Rota sonuçları">
-      {mode === 'arac' && <CarDetails car={result.car} people={1} />}
-      {mode === 'yuruyus' && <WalkingDetails car={result.car} />}
+      {mode === 'arac' &&
+        (result.car ? (
+          <CarDetails car={result.car} people={1} />
+        ) : (
+          <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+            {result.car_error ?? 'Araç bilgisi hesaplanamadı.'}
+          </p>
+        ))}
+      {mode === 'yuruyus' && <WalkingDetails result={result} />}
       {(mode === 'otobus' || mode === 'metro') && (
         <TransitList
           result={{ ...result, recommendations }}

@@ -5,30 +5,37 @@ from services.cache import cached
 
 @cached(ttl_seconds=3600)
 def get_fuel_prices():
+    """Ulusal yakıt fiyatlarını getirir. API erişilemezse None döner
+    (önbelleğe alınmaz, sonraki istekte tekrar denenir)."""
+
     url = "https://ucuzyakitbul.com.tr/api/prices/national"
 
-    response = requests.get(
-        url,
-        timeout=10
-    )
+    try:
+        response = requests.get(
+            url,
+            timeout=10
+        )
 
-    response.raise_for_status()
+        response.raise_for_status()
 
-    data = response.json()
+        data = response.json()
+    except (requests.RequestException, ValueError):
+        return None
 
     prices = {}
 
-    for fuel in data["prices"]:
-        fuel_type = fuel["fuelType"]
-        price = fuel["price"]
-        date = fuel["date"]
+    for fuel in data.get("prices", []):
+        fuel_type = fuel.get("fuelType")
+        price = fuel.get("price")
+        date = fuel.get("date")
 
-        prices[fuel_type] = {
-            "price": price,
-            "date": date
-        }
+        if fuel_type and price is not None:
+            prices[fuel_type] = {
+                "price": price,
+                "date": date
+            }
 
-    return prices
+    return prices or None
 
 
 def calculate_fuel_cost(
@@ -40,6 +47,11 @@ def calculate_fuel_cost(
     prices = get_fuel_prices()
 
     valid_fuels = ["Benzin", "Motorin", "LPG"]
+
+    if prices is None:
+        return {
+            "error": "Yakıt fiyatları şu anda alınamıyor. Lütfen tekrar dene."
+        }
 
     if fuel_type not in valid_fuels:
         return {

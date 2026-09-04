@@ -53,7 +53,8 @@ export type PlanResult = {
   destination: string
   start_coord: Coord
   end_coord: Coord
-  car: CarResult
+  car: CarResult | null
+  car_error: string | null
   public_transport: {
     status: string
     routes: TransitRoute[]
@@ -89,13 +90,28 @@ export type ChatMessage = {
   searchUsed?: boolean
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, init)
+async function request<T>(path: string, init?: RequestInit, timeoutMs = 30000): Promise<T> {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
 
-  const data = await response.json()
+  let response: Response
+
+  try {
+    response = await fetch(`${API_BASE}${path}`, { ...init, signal: controller.signal })
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new Error('İstek çok uzun sürdü. İnternet bağlantını kontrol edip tekrar dene.')
+    }
+
+    throw new Error('Sunucuya ulaşılamadı. Backend çalışıyor mu?')
+  } finally {
+    clearTimeout(timer)
+  }
+
+  const data = await response.json().catch(() => null)
 
   if (!response.ok) {
-    throw new Error(data?.error ?? 'Beklenmeyen bir hata oluştu.')
+    throw new Error(data?.error ?? 'Sunucu bir hata verdi. Lütfen tekrar dene.')
   }
 
   if (data?.error) {
@@ -108,6 +124,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export function fetchPlan(start: string, end: string, people = 1) {
   return request<PlanResult>(
     `/plan?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&people=${people}`,
+    undefined,
+    45000,
   )
 }
 
@@ -127,5 +145,6 @@ export function sendAssistantMessage(sessionId: string, message: string) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message, session_id: sessionId }),
     },
+    90000,
   )
 }

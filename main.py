@@ -1,5 +1,10 @@
-from fastapi import FastAPI
+import logging
+
+from concurrent.futures import ThreadPoolExecutor
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -35,6 +40,22 @@ from services.chat_store import (
 
 
 app = FastAPI(title="HEDEFİME NASIL GİDİCEM")
+
+logger = logging.getLogger("hng")
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """Beklenmeyen her hatayı JSON hata mesajına çevirir;
+    arayüz her zaman anlaşılır bir cevap görür."""
+
+    logger.exception("İşlenmeyen hata: %s %s", request.method, request.url.path)
+
+    return JSONResponse(
+        status_code=500,
+        content={"error": "Sunucuda beklenmeyen bir hata oluştu. Lütfen tekrar dene."},
+    )
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -657,21 +678,20 @@ def plan(
 ):
 
     # -----------------------------------------------------
-    # BAŞLANGIÇ YERİNİ BUL
+    # BAŞLANGIÇ VE HEDEF YERİ (PARALEL)
     # -----------------------------------------------------
 
-    start_place = search_place(start)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        start_future = pool.submit(search_place, start)
+        end_future = pool.submit(search_place, end)
+
+        start_place = start_future.result()
+        end_place = end_future.result()
 
     if start_place is None:
         return {
             "error": f"Başlangıç noktası bulunamadı: {start}"
         }
-
-    # -----------------------------------------------------
-    # HEDEF YERİ BUL
-    # -----------------------------------------------------
-
-    end_place = search_place(end)
 
     if end_place is None:
         return {
@@ -686,56 +706,28 @@ def plan(
     end_province = find_province_from_place(end_place)
 
     # -----------------------------------------------------
-    # ÖZEL ARAÇ ROTASI
+    # ARAÇ ROTASI + TOPLU TAŞIMA (PARALEL)
     # -----------------------------------------------------
 
-    route_result = calculate_route(
-        start_place["lat"],
-        start_place["lon"],
-        end_place["lat"],
-        end_place["lon"]
-    )
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        route_future = pool.submit(
+            calculate_route,
+            start_place["lat"],
+            start_place["lon"],
+            end_place["lat"],
+            end_place["lon"]
+        )
 
-    if route_result is None:
-        return {
-            "error": "Araç rotası bulunamadı."
-        }
+        public_future = pool.submit(
+            find_public_transport_route,
+            start_place["lat"],
+            start_place["lon"],
+            end_place["lat"],
+            end_place["lon"]
+        )
 
-    # -----------------------------------------------------
-    # VARSAYILAN ARAÇ
-    # -----------------------------------------------------
-
-    vehicle = get_vehicle("toyota_corolla")
-
-    if vehicle is None:
-        return {
-            "error": "Varsayılan araç bulunamadı."
-        }
-
-    # -----------------------------------------------------
-    # YAKIT MALİYETİ
-    # -----------------------------------------------------
-
-    fuel_result = calculate_fuel_cost(
-        distance_km=route_result["distance_km"],
-        fuel_type=vehicle["fuel_type"],
-        fuel_consumption=vehicle["consumption"],
-        people=people
-    )
-
-    if "error" in fuel_result:
-        return fuel_result
-
-    # -----------------------------------------------------
-    # TOPLU TAŞIMA
-    # -----------------------------------------------------
-
-    public_result = find_public_transport_route(
-        start_place["lat"],
-        start_place["lon"],
-        end_place["lat"],
-        end_place["lon"]
-    )
+        route_result = route_future.result()
+        public_result = public_future.result()
 
     # Başlangıç ve hedef isimlerini düzelt
     public_result = clean_public_transport_result(
@@ -748,6 +740,39 @@ def plan(
     public_result = add_public_transport_recommendations(
         public_result
     )
+
+    # -----------------------------------------------------
+    # VARSAYILAN ARAÇ VE YAKIT MALİYETİ
+    # (araç kısmı hata verirse rota bilgisi kaybolmasın)
+    # -----------------------------------------------------
+
+    vehicle = get_vehicle("toyota_corolla")
+
+    car_result = None
+    car_error = None
+
+    if route_result is None:
+        car_error = "Araç rotası bulunamadı."
+    elif vehicle is None:
+        car_error = "Varsayılan araç bulunamadı."
+    else:
+        fuel_result = calculate_fuel_cost(
+            distance_km=route_result["distance_km"],
+            fuel_type=vehicle["fuel_type"],
+            fuel_consumption=vehicle["consumption"],
+            people=people
+        )
+
+        if "error" in fuel_result:
+            car_error = fuel_result["error"]
+        else:
+            car_result = {
+                "vehicle": vehicle["name"],
+                "fuel_type": vehicle["fuel_type"],
+                "fuel_consumption": vehicle["consumption"],
+                **route_result,
+                **fuel_result
+            }
 
     # -----------------------------------------------------
     # SONUÇ
@@ -773,13 +798,8 @@ def plan(
             "end_province": end_province
         },
 
-        "car": {
-            "vehicle": vehicle["name"],
-            "fuel_type": vehicle["fuel_type"],
-            "fuel_consumption": vehicle["consumption"],
-            **route_result,
-            **fuel_result
-        },
+        "car": car_result,
+        "car_error": car_error,
 
         "public_transport": public_result,
 

@@ -45,7 +45,7 @@ function buildPaths(plan: PlanResult, mode: MapMode, routeIndex: number): Path[]
   }
 
   if (mode === 'arac') {
-    return plan.car.geometry?.length
+    return plan.car?.geometry?.length
       ? [{ positions: plan.car.geometry, dashed: false }]
       : [straight]
   }
