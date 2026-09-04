@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Hedefime Nasıl Giderim</string>
+    <string name="title_activity_main">Hedefime Nasıl Giderim</string>
+    <string name="package_name">com.hedefime.giderim</string>
+    <string name="custom_url_scheme">com.hedefime.giderim</string>
+</resources>
