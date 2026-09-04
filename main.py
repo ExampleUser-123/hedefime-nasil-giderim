@@ -39,7 +39,7 @@ from services.chat_store import (
 )
 
 
-app = FastAPI(title="HEDEFİME NASIL GİDİCEM")
+app = FastAPI(title="HEDEFİME NASIL GİDERİM")
 
 logger = logging.getLogger("hng")
 
@@ -238,7 +238,7 @@ def add_public_transport_recommendations(result):
 @app.get("/")
 def home():
     return {
-        "message": "HEDEFİME NASIL GİDİCEM API çalışıyor!"
+        "message": "HEDEFİME NASIL GİDERİM API çalışıyor!"
     }
 
 

@@ -15,7 +15,7 @@ def search_place(query: str):
     }
 
     headers = {
-        "User-Agent": "HEDEFIME-NASIL-GIDICEM/1.0"
+        "User-Agent": "HEDEFIME-NASIL-GIDERIM/1.0"
     }
 
     response = requests.get(
@@ -56,7 +56,7 @@ def reverse_geocode(lat: float, lon: float):
     }
 
     headers = {
-        "User-Agent": "HEDEFIME-NASIL-GIDICEM/1.0"
+        "User-Agent": "HEDEFIME-NASIL-GIDERIM/1.0"
     }
 
     response = requests.get(
