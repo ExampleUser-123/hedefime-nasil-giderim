@@ -269,11 +269,13 @@ function TransitList({
 export default function RouteResults({
   mode,
   result,
+  people = 1,
   selectedIndex,
   onSelectIndex,
 }: {
   mode: Mode
   result: PlanResult
+  people?: number
   selectedIndex: number
   onSelectIndex: (index: number) => void
 }) {
@@ -283,7 +285,7 @@ export default function RouteResults({
     <div className="mt-4 space-y-3 rounded-2xl border border-line bg-surface-2/90 p-4" role="region" aria-label="Rota sonuçları">
       {mode === 'arac' &&
         (result.car ? (
-          <CarDetails car={result.car} people={1} />
+          <CarDetails car={result.car} people={people} />
         ) : (
           <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
             {result.car_error ?? 'Araç bilgisi hesaplanamadı.'}

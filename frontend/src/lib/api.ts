@@ -129,6 +129,14 @@ export function fetchPlan(start: string, end: string, people = 1) {
   )
 }
 
+export function reverseGeocode(lat: number, lon: number) {
+  return request<{ display_name: string; lat: number; lon: number }>(
+    `/reverse-geocode?lat=${lat}&lon=${lon}`,
+    undefined,
+    15000,
+  )
+}
+
 export function fetchWeather(place: string) {
   return request<Weather>(`/weather?place=${encodeURIComponent(place)}&days=1`)
 }

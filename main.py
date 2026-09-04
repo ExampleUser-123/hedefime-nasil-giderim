@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from datetime import datetime
 
-from services.geocoding import search_place
+from services.geocoding import search_place, reverse_geocode
 from services.routing import calculate_route
 from services.fuel import get_fuel_prices, calculate_fuel_cost
 from services.vehicles import get_vehicles, get_vehicle
@@ -260,6 +260,19 @@ def search_place_endpoint(q: str):
         "query": q,
         "result": result
     }
+
+
+@app.get("/reverse-geocode")
+def reverse_geocode_endpoint(lat: float, lon: float):
+
+    result = reverse_geocode(lat, lon)
+
+    if result is None:
+        return {
+            "error": "Bu koordinatta yer bulunamadı."
+        }
+
+    return result
 
 
 # =========================================================
