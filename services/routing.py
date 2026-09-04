@@ -1,6 +1,9 @@
 import requests
 
+from services.cache import cached
 
+
+@cached(ttl_seconds=3600)
 def calculate_route(
     start_lat: float,
     start_lon: float,

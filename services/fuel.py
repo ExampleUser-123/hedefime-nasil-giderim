@@ -1,6 +1,9 @@
 import requests
 
+from services.cache import cached
 
+
+@cached(ttl_seconds=3600)
 def get_fuel_prices():
     url = "https://ucuzyakitbul.com.tr/api/prices/national"
 

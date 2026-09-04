@@ -1,6 +1,9 @@
 import requests
 
+from services.cache import cached
 
+
+@cached(ttl_seconds=24 * 3600)
 def search_place(query: str):
     url = "https://nominatim.openstreetmap.org/search"
 
