@@ -6,32 +6,54 @@ export type Place = {
   lon: number
 }
 
+export type TransitLeg = {
+  type: string
+  line: string | null
+  name: string | null
+  route_id: string
+  distance_m?: number
+  departure_time: string | null
+  arrival_time: string | null
+  from_stop: string | null
+  to_stop: string | null
+  stops: string[]
+  alternate_lines: string[]
+}
+
+export type TransitRoute = {
+  fee: number | null
+  walking_distance_m: number
+  calories_burned: number | null
+  co2_emission: number | null
+  departure_time: string | null
+  arrival_time: string | null
+  duration_minutes: number | null
+  legs: TransitLeg[]
+}
+
+export type CarResult = {
+  vehicle: string
+  distance_km: number
+  duration_minutes: number
+  fuel_liters: number
+  total_cost: number
+  cost_per_person: number
+}
+
 export type PlanResult = {
   start: string
   destination: string
-  car: {
-    vehicle: string
-    distance_km: number
-    duration_minutes: number
-    fuel_liters: number
-    total_cost: number
-    cost_per_person: number
-  }
+  car: CarResult
   public_transport: {
     status: string
-    routes: Array<{
-      fee: number | null
-      duration_minutes: number | null
-      departure_time: string | null
-      arrival_time: string | null
-      walking_distance_m: number
-    }>
+    routes: TransitRoute[]
     recommendations: {
-      fastest: PlanResult['public_transport']['routes'][number] | null
-      cheapest: PlanResult['public_transport']['routes'][number] | null
-      least_walking: PlanResult['public_transport']['routes'][number] | null
+      fastest: TransitRoute | null
+      cheapest: TransitRoute | null
+      least_walking: TransitRoute | null
     }
   }
+  recommendations: PlanResult['public_transport']['recommendations']
 }
 
 export type Weather = {

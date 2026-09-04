@@ -1,14 +1,12 @@
 import { useState } from 'react'
 import { fetchPlan, type PlanResult } from '@/lib/api'
+import RouteResults from '@/components/RouteResults'
 import {
   IconBus,
   IconCar,
-  IconClock,
   IconMetro,
   IconPin,
-  IconRoute,
   IconSwap,
-  IconWallet,
   IconWalk,
 } from '@/icons'
 
@@ -50,8 +48,6 @@ export default function RouteSearch() {
       setLoading(false)
     }
   }
-
-  const fastest = result?.public_transport.recommendations.fastest ?? null
 
   return (
     <div>
@@ -134,49 +130,7 @@ export default function RouteSearch() {
         </p>
       )}
 
-      {result && (
-        <div className="mt-4 space-y-3 rounded-2xl border border-line bg-surface-2/90 p-4">
-          {result.car && (
-            <div className="flex items-start gap-3">
-              <IconCar className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
-              <div className="min-w-0">
-                <p className="text-sm font-semibold">Arabayla</p>
-                <p className="mt-0.5 text-sm text-muted">
-                  {result.car.duration_minutes} dk · {result.car.distance_km} km ·{' '}
-                  {result.car.total_cost} TL yakıt
-                </p>
-              </div>
-            </div>
-          )}
-
-          {fastest && (
-            <div className="flex items-start gap-3 border-t border-line pt-3">
-              <IconBus className="mt-0.5 h-5 w-5 shrink-0 text-accent" />
-              <div className="min-w-0">
-                <p className="text-sm font-semibold">Toplu taşımada en hızlı</p>
-                <p className="mt-0.5 text-sm text-muted">
-                  {fastest.duration_minutes ?? '?'} dk
-                  {fastest.fee != null && ` · ${fastest.fee} TL`}
-                  {fastest.departure_time && ` · kalkış ${fastest.departure_time}`}
-                </p>
-              </div>
-            </div>
-          )}
-
-          <div className="flex items-center gap-2 border-t border-line pt-3 text-xs text-muted">
-            <IconRoute className="h-4 w-4" />
-            <span className="truncate">{result.start}</span>
-            <span aria-hidden="true">→</span>
-            <span className="truncate">{result.destination}</span>
-          </div>
-
-          <div className="flex items-center gap-2 text-xs text-muted">
-            <IconClock className="h-3.5 w-3.5" />
-            <span>Bilgiler anlık olarak hesaplandı</span>
-            <IconWallet className="ml-auto h-3.5 w-3.5" />
-          </div>
-        </div>
-      )}
+      {result && <RouteResults mode={mode} result={result} />}
     </div>
   )
 }
