@@ -15,6 +15,7 @@ from services.vehicles import get_vehicles, get_vehicle
 from services.public_transport import find_public_transport_route
 from services.location import find_province
 from services.weather import get_weather
+from services.flight import estimate_flight
 
 from services.gtfs import (
     search_stops,
@@ -248,12 +249,23 @@ def home():
 
 
 # =========================================================
+# ARAÇ LİSTESİ
+# =========================================================
+
+@app.get("/vehicles")
+def vehicles_endpoint():
+    return [
+        {"id": vehicle_id, **data}
+        for vehicle_id, data in get_vehicles().items()
+    ]
+
+
+# =========================================================
 # YER ARAMA
 # =========================================================
 
 @app.get("/search-place")
 def search_place_endpoint(q: str):
-
     result = search_place(q)
 
     if result is None:
@@ -692,7 +704,8 @@ def service_active(service_id: str):
 def plan(
     start: str,
     end: str,
-    people: int = 1
+    people: int = 1,
+    vehicle: str = "toyota_corolla"
 ):
 
     # -----------------------------------------------------
@@ -764,20 +777,21 @@ def plan(
     # (araç kısmı hata verirse rota bilgisi kaybolmasın)
     # -----------------------------------------------------
 
-    vehicle = get_vehicle("toyota_corolla")
+    vehicle_data = get_vehicle(vehicle)
+
+    if vehicle_data is None:
+        vehicle_data = get_vehicle("toyota_corolla")
 
     car_result = None
     car_error = None
 
     if route_result is None:
         car_error = "Araç rotası bulunamadı."
-    elif vehicle is None:
-        car_error = "Varsayılan araç bulunamadı."
     else:
         fuel_result = calculate_fuel_cost(
             distance_km=route_result["distance_km"],
-            fuel_type=vehicle["fuel_type"],
-            fuel_consumption=vehicle["consumption"],
+            fuel_type=vehicle_data["fuel_type"],
+            fuel_consumption=vehicle_data["consumption"],
             people=people
         )
 
@@ -785,12 +799,23 @@ def plan(
             car_error = fuel_result["error"]
         else:
             car_result = {
-                "vehicle": vehicle["name"],
-                "fuel_type": vehicle["fuel_type"],
-                "fuel_consumption": vehicle["consumption"],
+                "vehicle": vehicle_data["name"],
+                "fuel_type": vehicle_data["fuel_type"],
+                "fuel_consumption": vehicle_data["consumption"],
                 **route_result,
                 **fuel_result
             }
+
+    # -----------------------------------------------------
+    # UÇAK TAHMİNİ (kuş uçuşu mesafe üzerinden)
+    # -----------------------------------------------------
+
+    flight_result = None
+
+    if route_result is not None:
+        # Araç rotası mesafesi karayolu olduğu için kuş uçuşu ~%75 alıyoruz
+        straight_km = route_result["distance_km"] * 0.75
+        flight_result = estimate_flight(straight_km, people)
 
     # -----------------------------------------------------
     # SONUÇ
@@ -818,6 +843,10 @@ def plan(
 
         "car": car_result,
         "car_error": car_error,
+
+        "vehicle_selected": vehicle_data["name"],
+
+        "flight": flight_result,
 
         "public_transport": public_result,
 

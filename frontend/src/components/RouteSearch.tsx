@@ -1,12 +1,14 @@
 import { useState } from 'react'
-import { fetchPlan, reverseGeocode, type Mode, type PlanResult } from '@/lib/api'
+import { fetchPlan, reverseGeocode, type Mode, type PlanResult, type Vehicle } from '@/lib/api'
 import RouteResults from '@/components/RouteResults'
+import VehiclePicker, { loadRememberedVehicle } from '@/components/VehiclePicker'
 import {
   IconBus,
   IconCar,
   IconLocate,
   IconMetro,
   IconPin,
+  IconPlane,
   IconSwap,
   IconUsers,
   IconWalk,
@@ -17,6 +19,7 @@ const MODES = [
   { id: 'metro', label: 'Metro', icon: IconMetro },
   { id: 'yuruyus', label: 'Yürüyüş', icon: IconWalk },
   { id: 'arac', label: 'Araç', icon: IconCar },
+  { id: 'ucak', label: 'Uçak', icon: IconPlane },
 ] as const
 
 export default function RouteSearch({
@@ -39,7 +42,11 @@ export default function RouteSearch({
   const [loading, setLoading] = useState(false)
   const [locating, setLocating] = useState(false)
   const [people, setPeople] = useState(1)
+  const [vehicle, setVehicle] = useState<Vehicle | null>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const rememberedId = loadRememberedVehicle()
 
   function swap() {
     setFrom(to)
@@ -53,7 +60,12 @@ export default function RouteSearch({
     setError(null)
 
     try {
-      const nextPlan = await fetchPlan(from.trim(), to.trim(), people)
+      const nextPlan = await fetchPlan(
+        from.trim(),
+        to.trim(),
+        people,
+        vehicle?.id ?? rememberedId ?? undefined,
+      )
       onPlanChange(nextPlan)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Rota alınamadı.')
@@ -61,6 +73,32 @@ export default function RouteSearch({
       setLoading(false)
     }
   }
+
+  function handleVehicleSelect(nextVehicle: Vehicle, remember: boolean) {
+    setVehicle(nextVehicle)
+
+    try {
+      if (remember) {
+        localStorage.setItem('hng-vehicle-id', nextVehicle.id)
+        localStorage.setItem('hng-vehicle-name', nextVehicle.name)
+      } else {
+        localStorage.removeItem('hng-vehicle-id')
+        localStorage.removeItem('hng-vehicle-name')
+      }
+    } catch {
+      // localStorage kapalıysa sessizce devam
+    }
+
+    setPickerOpen(false)
+  }
+
+  const rememberedName = (() => {
+    try {
+      return localStorage.getItem('hng-vehicle-name')
+    } catch {
+      return null
+    }
+  })()
 
   function detectLocation() {
     if (locating) return
@@ -154,7 +192,7 @@ export default function RouteSearch({
           </button>
         </div>
 
-        <div className="mt-4 grid grid-cols-4 gap-2" role="radiogroup" aria-label="Ulaşım türü">
+        <div className="mt-4 grid grid-cols-5 gap-1.5" role="radiogroup" aria-label="Ulaşım türü">
           {MODES.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -162,7 +200,7 @@ export default function RouteSearch({
               role="radio"
               aria-checked={mode === id}
               onClick={() => onModeChange(id)}
-              className={`flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2.5 text-xs font-medium transition-colors sm:flex-row sm:gap-1.5 sm:text-sm ${
+              className={`flex min-h-[44px] flex-col items-center justify-center gap-1 rounded-xl border px-1 py-2.5 text-[11px] font-medium transition-colors ${
                 mode === id
                   ? 'border-accent bg-accent/10 text-accent'
                   : 'border-line bg-bg/40 text-muted hover:border-muted hover:text-fg'
@@ -173,6 +211,22 @@ export default function RouteSearch({
             </button>
           ))}
         </div>
+
+        {mode === 'arac' && (
+          <button
+            type="button"
+            onClick={() => setPickerOpen(true)}
+            className="mt-3 flex w-full items-center justify-between rounded-xl bg-bg/60 px-3 py-2.5 text-left transition-colors hover:bg-bg"
+          >
+            <span className="flex items-center gap-2 text-sm text-muted">
+              <IconCar className="h-4 w-4" />
+              <span className="truncate">
+                {vehicle?.name ?? rememberedName ?? 'Toyota Corolla 1.6 (varsayılan)'}
+              </span>
+            </span>
+            <span className="shrink-0 text-xs font-bold text-accent">Değiştir</span>
+          </button>
+        )}
         <div className="mt-3 flex items-center justify-between rounded-xl bg-bg/60 px-3 py-2">
           <span className="flex items-center gap-2 text-sm text-muted">
             <IconUsers className="h-4 w-4" />
@@ -235,6 +289,13 @@ export default function RouteSearch({
           onSelectIndex={onSelectIndex}
         />
       )}
+
+      <VehiclePicker
+        open={pickerOpen}
+        selectedId={vehicle?.id ?? rememberedId ?? ''}
+        onClose={() => setPickerOpen(false)}
+        onSelect={handleVehicleSelect}
+      />
     </div>
   )
 }

@@ -1,7 +1,15 @@
 const API_BASE =
   import.meta.env.VITE_API_BASE ?? 'http://127.0.0.1:8000'
 
-export type Mode = 'otobus' | 'metro' | 'yuruyus' | 'arac'
+export type Mode = 'otobus' | 'metro' | 'yuruyus' | 'arac' | 'ucak'
+
+export type Vehicle = {
+  id: string
+  name: string
+  brand: string
+  fuel_type: 'Benzin' | 'Motorin' | 'LPG'
+  consumption: number
+}
 
 export type Place = {
   display_name: string
@@ -49,6 +57,17 @@ export type CarResult = {
   geometry?: LatLng[]
 }
 
+export type FlightEstimate = {
+  available: boolean
+  reason?: string
+  distance_km?: number
+  duration_minutes?: number
+  estimated_price_per_person?: number
+  total_price?: number
+  people?: number
+  note?: string
+}
+
 export type PlanResult = {
   start: string
   destination: string
@@ -56,6 +75,8 @@ export type PlanResult = {
   end_coord: Coord
   car: CarResult | null
   car_error: string | null
+  vehicle_selected: string
+  flight: FlightEstimate | null
   public_transport: {
     status: string
     routes: TransitRoute[]
@@ -122,12 +143,22 @@ async function request<T>(path: string, init?: RequestInit, timeoutMs = 30000): 
   return data as T
 }
 
-export function fetchPlan(start: string, end: string, people = 1) {
-  return request<PlanResult>(
-    `/plan?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}&people=${people}`,
-    undefined,
-    45000,
-  )
+export function fetchPlan(start: string, end: string, people = 1, vehicleId?: string) {
+  const params = new URLSearchParams({
+    start,
+    end,
+    people: String(people),
+  })
+
+  if (vehicleId) {
+    params.set('vehicle', vehicleId)
+  }
+
+  return request<PlanResult>(`/plan?${params.toString()}`, undefined, 45000)
+}
+
+export function fetchVehicles() {
+  return request<Vehicle[]>('/vehicles', undefined, 15000)
 }
 
 export function reverseGeocode(lat: number, lon: number) {
