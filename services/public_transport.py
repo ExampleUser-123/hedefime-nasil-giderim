@@ -358,5 +358,42 @@ def find_public_transport_route(
     return {
         "transport_type": "public_transport",
         "status": "success",
-        "routes": routes
+        "routes": routes,
+        "source": "İETT",
     }
+
+
+def find_transit_routes(
+    start_lat,
+    start_lon,
+    end_lat,
+    end_lon,
+    start_province=None,
+    end_province=None
+):
+    """
+    İle göre uygun toplu taşıma sağlayıcısını seçer.
+
+    - İstanbul: İETT router (tam A→B rota planı)
+    - İzmir: ESHOT açık veri (doğrudan hat önerisi)
+    """
+
+    def _province_name(province):
+        if isinstance(province, dict):
+            return province.get("name")
+        return province
+
+    start_city = _province_name(start_province)
+    end_city = _province_name(end_province)
+
+    if start_city == "İzmir" and end_city == "İzmir":
+        from services.izmir import find_izmir_route
+
+        return find_izmir_route(start_lat, start_lon, end_lat, end_lon)
+
+    return find_public_transport_route(
+        start_lat,
+        start_lon,
+        end_lat,
+        end_lon
+    )

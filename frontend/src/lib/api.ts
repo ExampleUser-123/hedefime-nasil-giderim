@@ -80,6 +80,8 @@ export type PlanResult = {
   public_transport: {
     status: string
     error?: string | null
+    source?: string
+    note?: string
     routes: TransitRoute[]
     recommendations: {
       fastest: TransitRoute | null

@@ -12,7 +12,7 @@ from services.geocoding import search_place, reverse_geocode
 from services.routing import calculate_route
 from services.fuel import get_fuel_prices, calculate_fuel_cost
 from services.vehicles import get_vehicles, get_vehicle
-from services.public_transport import find_public_transport_route
+from services.public_transport import find_transit_routes
 from services.location import find_province
 from services.weather import get_weather
 from services.flight import estimate_flight
@@ -750,11 +750,13 @@ def plan(
         )
 
         public_future = pool.submit(
-            find_public_transport_route,
+            find_transit_routes,
             start_place["lat"],
             start_place["lon"],
             end_place["lat"],
-            end_place["lon"]
+            end_place["lon"],
+            start_province,
+            end_province
         )
 
         route_result = route_future.result()
@@ -773,8 +775,8 @@ def plan(
     )
 
     # -----------------------------------------------------
-    # İSTANBUL DIŞI TOPLU TAŞIMA BİLGİLENDİRMESİ
-    # (İETT router yalnızca İstanbul verisi içerir)
+    # DESTEKLENMEYEN İLLERDE BİLGİLENDİRMESİ
+    # (İstanbul: İETT router, İzmir: ESHOT açık veri)
     # -----------------------------------------------------
 
     start_is_istanbul = (
@@ -787,12 +789,26 @@ def plan(
         and end_province.get("name") == "İstanbul"
     )
 
+    start_is_izmir = (
+        start_province is not None
+        and start_province.get("name") == "İzmir"
+    )
+
+    end_is_izmir = (
+        end_province is not None
+        and end_province.get("name") == "İzmir"
+    )
+
+    has_provider = (start_is_istanbul and end_is_istanbul) or (
+        start_is_izmir and end_is_izmir
+    )
+
     if (
         public_result.get("status") != "success"
-        and not (start_is_istanbul and end_is_istanbul)
+        and not has_provider
     ):
         public_result["error"] = (
-            "Toplu taşıma verisi şu an yalnızca İstanbul için mevcut. "
+            "Toplu taşıma verisi şu an İstanbul ve İzmir için mevcut. "
             "Diğer illerde Araç veya Uçak modunu kullanabilirsin; "
             "şehir içi toplu taşıma desteği il il eklenecek."
         )

@@ -236,18 +236,37 @@ function TransitRouteCard({
   )
 }
 
+const RAIL_TYPES = new Set([
+  'metro',
+  'marmaray',
+  'funicular',
+  'funikular',
+  'tram',
+  'teleferik',
+  'rail',
+  'nostalgic',
+])
+
+function isRailRoute(route: TransitRoute): boolean {
+  return route.legs.some(
+    (leg) => leg.type !== 'walking' && RAIL_TYPES.has(leg.type.toLowerCase()),
+  )
+}
+
 function TransitList({
   result,
+  mode,
   people,
   selectedIndex,
   onSelect,
 }: {
   result: PlanResult
+  mode: Mode
   people: number
   selectedIndex: number
   onSelect: (index: number) => void
 }) {
-  const { routes, recommendations, status, error } = result.public_transport
+  const { routes, recommendations, status, error, source, note } = result.public_transport
 
   if (status !== 'success' || routes.length === 0) {
     return (
@@ -257,9 +276,15 @@ function TransitList({
     )
   }
 
+  // Metro modu: raylı sistem içeren rotalar yoksa tüm rotaları göster
+  const visibleRoutes =
+    mode === 'metro' && routes.some(isRailRoute)
+      ? routes.filter(isRailRoute)
+      : routes
+
   return (
     <div className="space-y-2.5">
-      {routes.slice(0, 4).map((route, index) => (
+      {visibleRoutes.slice(0, 4).map((route, index) => (
         <TransitRouteCard
           key={index}
           route={route}
@@ -270,8 +295,12 @@ function TransitList({
         />
       ))}
 
+      {note && (
+        <p className="text-center text-xs text-muted">{note}</p>
+      )}
+
       <p className="pt-1 text-center text-xs text-muted">
-        {routes.length} rota bulundu · İETT verileriyle · Haritada seçili rota gösterilir
+        {visibleRoutes.length} rota bulundu · {source ?? 'İETT'} verileriyle · Haritada seçili rota gösterilir
       </p>
     </div>
   )
@@ -377,6 +406,7 @@ export default function RouteResults({
       {(mode === 'otobus' || mode === 'metro') && (
         <TransitList
           result={{ ...result, recommendations }}
+          mode={mode}
           people={people}
           selectedIndex={selectedIndex}
           onSelect={onSelectIndex}
