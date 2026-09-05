@@ -12,7 +12,8 @@ const MODE_LABELS: Record<string, string> = {
   otobus: 'Otobüs',
   metro: 'Metro',
   deniz: 'Deniz',
-  arac: 'Araç',
+  arac: 'Araba',
+  motosiklet: 'Motosiklet',
   ucak: 'Uçak',
   tren: 'Tren',
   yuruyus: 'Yürüyüş',
@@ -133,9 +134,9 @@ export function ProfileScreen({ defaultVehicle }: { defaultVehicle: string | nul
     <ScreenShell title="Profil" icon={<IconUser className="h-5 w-5" />}>
       <div className="rounded-2xl border border-line bg-surface-2/90 p-4">
         <p className="text-xs uppercase tracking-wide text-muted">Varsayılan araç</p>
-        <p className="mt-1 text-sm font-bold">{defaultVehicle ?? 'Araç modunda seçilmedi'}</p>
+        <p className="mt-1 text-sm font-bold">{defaultVehicle ?? 'Araba/Motosiklet modunda seçilmedi'}</p>
         <p className="mt-1 text-xs text-muted">
-          Araç modunda "Hatırla" işaretlersen buradaki araç her seferinde kullanılır.
+          Araba veya Motosiklet modunda "Hatırla" işaretlersen buradaki araç her seferinde kullanılır.
         </p>
       </div>
 

@@ -884,6 +884,158 @@ VEHICLES = {
         "consumption": 9.5,
     },
 
+    # ---------------- ELEKTRİKLİ (tüketim kWh/100 km) ----------------
+    "togg_t10x": {
+        "name": "Togg T10X",
+        "brand": "Togg",
+        "fuel_type": "Elektrik",
+        "consumption": 20.0,
+    },
+    "togg_t10f": {
+        "name": "Togg T10F",
+        "brand": "Togg",
+        "fuel_type": "Elektrik",
+        "consumption": 20.5,
+    },
+    "tesla_model_3": {
+        "name": "Tesla Model 3",
+        "brand": "Tesla",
+        "fuel_type": "Elektrik",
+        "consumption": 14.5,
+    },
+    "tesla_model_y": {
+        "name": "Tesla Model Y",
+        "brand": "Tesla",
+        "fuel_type": "Elektrik",
+        "consumption": 16.0,
+    },
+    "hyundai_kona_ev": {
+        "name": "Hyundai Kona Electric",
+        "brand": "Hyundai",
+        "fuel_type": "Elektrik",
+        "consumption": 14.7,
+    },
+    "hyundai_ioniq5": {
+        "name": "Hyundai Ioniq 5",
+        "brand": "Hyundai",
+        "fuel_type": "Elektrik",
+        "consumption": 17.5,
+    },
+    "kia_niro_ev": {
+        "name": "Kia Niro EV",
+        "brand": "Kia",
+        "fuel_type": "Elektrik",
+        "consumption": 15.4,
+    },
+    "kia_ev6": {
+        "name": "Kia EV6",
+        "brand": "Kia",
+        "fuel_type": "Elektrik",
+        "consumption": 17.0,
+    },
+    "vw_id3": {
+        "name": "Volkswagen ID.3",
+        "brand": "Volkswagen",
+        "fuel_type": "Elektrik",
+        "consumption": 15.5,
+    },
+    "vw_id4": {
+        "name": "Volkswagen ID.4",
+        "brand": "Volkswagen",
+        "fuel_type": "Elektrik",
+        "consumption": 17.0,
+    },
+    "bmw_i4": {
+        "name": "BMW i4",
+        "brand": "BMW",
+        "fuel_type": "Elektrik",
+        "consumption": 16.5,
+    },
+    "mercedes_eqa": {
+        "name": "Mercedes-Benz EQA",
+        "brand": "Mercedes-Benz",
+        "fuel_type": "Elektrik",
+        "consumption": 17.5,
+    },
+    "audi_q4_etron": {
+        "name": "Audi Q4 e-tron",
+        "brand": "Audi",
+        "fuel_type": "Elektrik",
+        "consumption": 17.5,
+    },
+    "renault_zoe": {
+        "name": "Renault Zoe",
+        "brand": "Renault",
+        "fuel_type": "Elektrik",
+        "consumption": 16.8,
+    },
+    "fiat_500e": {
+        "name": "Fiat 500e",
+        "brand": "Fiat",
+        "fuel_type": "Elektrik",
+        "consumption": 13.9,
+    },
+    "skoda_enyaq": {
+        "name": "Skoda Enyaq",
+        "brand": "Skoda",
+        "fuel_type": "Elektrik",
+        "consumption": 17.0,
+    },
+    "peugeot_e208": {
+        "name": "Peugeot e-208",
+        "brand": "Peugeot",
+        "fuel_type": "Elektrik",
+        "consumption": 14.5,
+    },
+    "opel_mokka_e": {
+        "name": "Opel Mokka-e",
+        "brand": "Opel",
+        "fuel_type": "Elektrik",
+        "consumption": 15.5,
+    },
+    "citroen_ec4": {
+        "name": "Citroën ë-C4",
+        "brand": "Citroën",
+        "fuel_type": "Elektrik",
+        "consumption": 15.5,
+    },
+    "dacia_spring": {
+        "name": "Dacia Spring",
+        "brand": "Dacia",
+        "fuel_type": "Elektrik",
+        "consumption": 13.9,
+    },
+    "nissan_leaf": {
+        "name": "Nissan Leaf",
+        "brand": "Nissan",
+        "fuel_type": "Elektrik",
+        "consumption": 15.0,
+    },
+    "mg4": {
+        "name": "MG 4 Electric",
+        "brand": "MG",
+        "fuel_type": "Elektrik",
+        "consumption": 16.8,
+    },
+    "volvo_xc40_recharge": {
+        "name": "Volvo XC40 Recharge",
+        "brand": "Volvo",
+        "fuel_type": "Elektrik",
+        "consumption": 18.5,
+    },
+    "cupra_born": {
+        "name": "Cupra Born",
+        "brand": "Cupra",
+        "fuel_type": "Elektrik",
+        "consumption": 15.5,
+    },
+    "porsche_taycan": {
+        "name": "Porsche Taycan",
+        "brand": "Porsche",
+        "fuel_type": "Elektrik",
+        "consumption": 20.5,
+    },
+
     # ---------------- TİCARİ ----------------
     "fiat_doblo": {
         "name": "Fiat Doblo 1.3 Multijet",

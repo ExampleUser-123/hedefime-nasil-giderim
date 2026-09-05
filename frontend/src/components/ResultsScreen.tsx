@@ -6,6 +6,7 @@ import {
   IconBus,
   IconCar,
   IconChevronRight,
+  IconMoto,
   IconPlane,
   IconStar,
   IconTrain,
@@ -30,7 +31,7 @@ function formatDuration(minutes: number): string {
   return `${hours} sa ${String(mins).padStart(2, '0')} dk`
 }
 
-function buildCandidates(plan: PlanResult, people: number): Candidate[] {
+function buildCandidates(plan: PlanResult, people: number, mode: Mode): Candidate[] {
   const candidates: Candidate[] = []
   const pt = plan.public_transport
 
@@ -77,10 +78,12 @@ function buildCandidates(plan: PlanResult, people: number): Candidate[] {
   }
 
   if (plan.car) {
+    const isMoto = mode === 'motosiklet'
+
     candidates.push({
       id: 'arac',
-      title: 'Özel Araç',
-      icon: IconCar,
+      title: isMoto ? 'Motosiklet' : 'Araba',
+      icon: isMoto ? IconMoto : IconCar,
       minutes: plan.car.duration_minutes,
       pricePerPerson: plan.car.cost_per_person,
       total: plan.car.total_cost,
@@ -223,8 +226,8 @@ export default function ResultsScreen({
   onBack: () => void
 }) {
   const candidates = useMemo(
-    () => buildCandidates(plan, people),
-    [plan, people],
+    () => buildCandidates(plan, people, mode),
+    [plan, people, mode],
   )
   const best = useMemo(() => pickBest(candidates), [candidates])
 

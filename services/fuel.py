@@ -46,7 +46,7 @@ def calculate_fuel_cost(
 ):
     prices = get_fuel_prices()
 
-    valid_fuels = ["Benzin", "Motorin", "LPG"]
+    valid_fuels = ["Benzin", "Motorin", "LPG", "Elektrik"]
 
     if prices is None:
         return {
@@ -69,9 +69,16 @@ def calculate_fuel_cost(
         }
 
     if fuel_type not in prices:
-        return {
-            "error": "Yakıt fiyatı bulunamadı."
-        }
+        if fuel_type == "Elektrik":
+            # Fiyat API'si elektrik yayınlamıyor; ort. halka açık şarj maliyeti (TL/kWh)
+            prices[fuel_type] = {
+                "price": 6.5,
+                "date": "tahmini · şarj yeri ve tarifesine göre değişir",
+            }
+        else:
+            return {
+                "error": "Yakıt fiyatı bulunamadı."
+            }
 
     fuel_price = prices[fuel_type]["price"]
     price_date = prices[fuel_type]["date"]

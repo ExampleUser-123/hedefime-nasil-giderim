@@ -22,10 +22,11 @@ import {
 const MODES = [
   { id: 'otobus', label: 'Otobüs', icon: IconBus },
   { id: 'metro', label: 'Metro', icon: IconMetro },
+  { id: 'motosiklet', label: 'Motosiklet', icon: IconMoto },
   { id: 'deniz', label: 'Deniz', icon: IconFerry },
   { id: 'tren', label: 'Tren', icon: IconTrain },
   { id: 'yuruyus', label: 'Yürüyüş', icon: IconWalk },
-  { id: 'arac', label: 'Araç', icon: IconCar },
+  { id: 'arac', label: 'Araba', icon: IconCar },
   { id: 'ucak', label: 'Uçak', icon: IconPlane },
 ] as const
 
@@ -80,7 +81,7 @@ export default function RouteSearch({
         start,
         end,
         people,
-        vehicle?.id ?? rememberedId ?? undefined,
+        effectiveVehicleId,
       )
       onPlanChange(nextPlan)
       addHistory({ from: start, to: end, people, mode })
@@ -145,6 +146,25 @@ export default function RouteSearch({
 
   const selectedType: VehicleType = vehicle?.vehicle_type ?? rememberedType
   const RowVehicleIcon = selectedType === 'motosiklet' ? IconMoto : IconCar
+
+  // Moda uygun araç: Motosiklet modunda motosiklet, Araba modunda araba kullanılır
+  const isMotoMode = mode === 'motosiklet'
+  const modeWantsType: VehicleType = isMotoMode ? 'motosiklet' : 'arac'
+  const effectiveVehicleId = (() => {
+    if (mode !== 'arac' && mode !== 'motosiklet') return vehicle?.id ?? rememberedId ?? undefined
+
+    if (vehicle?.vehicle_type === modeWantsType) return vehicle.id
+    if (!vehicle && rememberedId && rememberedType === modeWantsType) return rememberedId
+
+    return isMotoMode ? 'honda_pcx' : 'toyota_corolla'
+  })()
+
+  const vehicleRowLabel =
+    effectiveVehicleId === 'honda_pcx' && !vehicle && rememberedType !== 'motosiklet'
+      ? 'Honda PCX 125 (varsayılan)'
+      : effectiveVehicleId === 'toyota_corolla' && !vehicle && rememberedType !== 'arac'
+        ? 'Toyota Corolla 1.6 (varsayılan)'
+        : (vehicle?.name ?? rememberedName ?? '')
 
   function detectLocation() {
     if (locating) return
@@ -258,7 +278,7 @@ export default function RouteSearch({
           ))}
         </div>
 
-        {mode === 'arac' && (
+        {(mode === 'arac' || mode === 'motosiklet') && (
           <button
             type="button"
             onClick={() => setPickerOpen(true)}
@@ -267,7 +287,7 @@ export default function RouteSearch({
             <span className="flex items-center gap-2 text-sm text-muted">
               <RowVehicleIcon className="h-4 w-4" />
               <span className="truncate">
-                {vehicle?.name ?? rememberedName ?? 'Toyota Corolla 1.6 (varsayılan)'}
+                {vehicleRowLabel || (isMotoMode ? 'Honda PCX 125 (varsayılan)' : 'Toyota Corolla 1.6 (varsayılan)')}
               </span>
             </span>
             <span className="shrink-0 text-xs font-bold text-accent">Değiştir</span>
@@ -335,7 +355,7 @@ export default function RouteSearch({
       <VehiclePicker
         open={pickerOpen}
         selectedId={vehicle?.id ?? rememberedId ?? ''}
-        initialType={selectedType}
+        initialType={isMotoMode ? 'motosiklet' : 'arac'}
         onClose={() => setPickerOpen(false)}
         onSelect={handleVehicleSelect}
       />

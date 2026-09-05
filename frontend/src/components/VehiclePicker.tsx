@@ -12,11 +12,6 @@ export function loadRememberedVehicle(): string | null {
   }
 }
 
-const TYPE_TABS: { id: VehicleType; label: string; icon: typeof IconCar }[] = [
-  { id: 'arac', label: 'Otomobil', icon: IconCar },
-  { id: 'motosiklet', label: 'Motosiklet', icon: IconMoto },
-]
-
 export default function VehiclePicker({
   open,
   selectedId,
@@ -32,7 +27,6 @@ export default function VehiclePicker({
 }) {
   const [vehicles, setVehicles] = useState<Vehicle[] | null>(null)
   const [query, setQuery] = useState('')
-  const [typeTab, setTypeTab] = useState<VehicleType>(initialType)
   const [remember, setRemember] = useState(() => loadRememberedVehicle() !== null)
   const [error, setError] = useState<string | null>(null)
 
@@ -44,10 +38,6 @@ export default function VehiclePicker({
       .catch((e) => setError(e instanceof Error ? e.message : 'Araç listesi alınamadı.'))
   }, [open, vehicles])
 
-  useEffect(() => {
-    if (open) setTypeTab(initialType)
-  }, [open, initialType])
-
   const filtered = useMemo(() => {
     if (!vehicles) return []
 
@@ -57,7 +47,7 @@ export default function VehiclePicker({
       // Eski backend cevaplarında vehicle_type yok; hepsi Otomobil sayılır
       const vType = v.vehicle_type ?? 'arac'
 
-      if (vType !== typeTab) return false
+      if (vType !== initialType) return false
 
       if (!q) return true
 
@@ -66,26 +56,28 @@ export default function VehiclePicker({
         v.brand.toLocaleLowerCase('tr').includes(q)
       )
     })
-  }, [vehicles, query, typeTab])
+  }, [vehicles, query, initialType])
 
   if (!open) return null
+
+  const PickerIcon = initialType === 'motosiklet' ? IconMoto : IconCar
 
   return (
     <div
       className="absolute inset-0 z-20 flex items-end justify-center bg-black/50 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
-      aria-label="Araç seç"
+      aria-label={initialType === 'motosiklet' ? 'Motosiklet seç' : 'Araç seç'}
       onClick={onClose}
     >
       <div
-        className="max-h-[70%] w-full max-w-md overflow-hidden rounded-t-3xl border border-line bg-surface shadow-2xl sm:rounded-3xl"
+        className="max-h-[80%] w-full max-w-md overflow-hidden rounded-t-3xl border border-line bg-surface shadow-2xl sm:rounded-3xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-line px-4 py-3">
           <h2 className="flex items-center gap-2 text-sm font-bold">
-            <IconCar className="h-4 w-4 text-accent" />
-            Aracını seç
+            <PickerIcon className="h-4 w-4 text-accent" />
+            {initialType === 'motosiklet' ? 'Motorunu seç' : 'Aracını seç'}
           </h2>
           <button
             type="button"
@@ -95,26 +87,6 @@ export default function VehiclePicker({
           >
             <IconClose className="h-4 w-4" />
           </button>
-        </div>
-
-        <div className="flex gap-1.5 border-b border-line px-4 py-2.5" role="tablist" aria-label="Araç tipi">
-          {TYPE_TABS.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              aria-selected={typeTab === id}
-              onClick={() => setTypeTab(id)}
-              className={`flex min-h-[38px] flex-1 items-center justify-center gap-1.5 rounded-xl border text-sm font-medium transition-colors ${
-                typeTab === id
-                  ? 'border-accent bg-accent/10 text-accent'
-                  : 'border-line bg-bg/40 text-muted hover:text-fg'
-              }`}
-            >
-              <Icon className="h-4 w-4" />
-              {label}
-            </button>
-          ))}
         </div>
 
         <div className="border-b border-line px-4 py-3">
@@ -127,7 +99,7 @@ export default function VehiclePicker({
           />
         </div>
 
-        <div className="max-h-[40vh] overflow-y-auto">
+        <div className="max-h-[55vh] overflow-y-auto">
           {error && (
             <p className="px-4 py-4 text-sm text-red-300">{error}</p>
           )}

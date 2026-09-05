@@ -491,7 +491,7 @@ export default function RouteResults({
 
   return (
     <div className="mt-4 space-y-3 rounded-2xl border border-line bg-surface-2/90 p-4" role="region" aria-label="Rota sonuçları">
-      {mode === 'arac' &&
+      {(mode === 'arac' || mode === 'motosiklet') &&
         (result.car ? (
           <CarDetails car={result.car} people={people} />
         ) : (
@@ -541,7 +541,7 @@ export default function RouteResults({
         </span>
         <span className="ml-auto flex items-center gap-1">
           <IconWallet className="h-3.5 w-3.5" />
-          {mode === 'arac' ? 'Yakıt maliyeti dahil' : 'Ücretler yaklaşık'}
+          {mode === 'yuruyus' ? 'Yakıt maliyeti dahil değil' : mode === 'motosiklet' ? 'Yakıt maliyeti (motosiklet) dahil' : mode === 'arac' ? 'Yakıt maliyeti dahil' : 'Ücretler yaklaşık'}
         </span>
       </div>
     </div>

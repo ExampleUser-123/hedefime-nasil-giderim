@@ -423,7 +423,7 @@ Kurallar:
         "end": data.get("end"),
         "people": max(1, min(8, int(data.get("people") or 1))),
         "mode": data.get("mode") if data.get("mode") in (
-            "otobus", "metro", "deniz", "arac", "ucak", "tren", "yuruyus"
+            "otobus", "metro", "deniz", "arac", "motosiklet", "ucak", "tren", "yuruyus"
         ) else None,
     }
 
