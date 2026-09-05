@@ -1,4 +1,4 @@
-import type { CarResult, FlightEstimate, Mode, PlanResult, TransitLeg, TransitRoute } from '@/lib/api'
+import type { CarResult, FlightEstimate, Mode, PlanResult, TrainEstimate, TransitLeg, TransitRoute } from '@/lib/api'
 import {
   IconBus,
   IconCar,
@@ -8,6 +8,7 @@ import {
   IconMetro,
   IconPlane,
   IconRoute,
+  IconTrain,
   IconWallet,
   IconWalk,
 } from '@/icons'
@@ -411,6 +412,68 @@ export function FlightDetails({ flight }: { flight: FlightEstimate }) {
   )
 }
 
+export function TrainDetails({ train }: { train: TrainEstimate }) {
+  if (!train.available) {
+    return (
+      <div>
+        <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+          {train.reason ?? 'Bu mesafe için tren önerilmiyor.'}
+        </p>
+        <p className="mt-2 text-center text-xs text-muted">
+          Alternatif olarak Otobüs veya Araç moduna bakabilirsin.
+        </p>
+      </div>
+    )
+  }
+
+  const hours = Math.floor((train.duration_minutes ?? 0) / 60)
+  const minutes = (train.duration_minutes ?? 0) % 60
+
+  return (
+    <div>
+      <div className="flex items-center gap-2.5">
+        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/15 text-accent">
+          <IconTrain className="h-4.5 w-4.5" />
+        </span>
+        <div className="flex-1">
+          <p className="text-sm font-bold">Trenle (tahmini)</p>
+          <p className="text-xs text-muted">
+            Kapıdan kapıya ~{hours} sa {minutes} dk · istasyon süreçleri dahil
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="rounded-xl bg-bg/60 px-3.5 py-3">
+          <p className="text-xs text-muted">Kişi başı (tahmini)</p>
+          <p className="text-lg font-bold tabular-nums">
+            {train.estimated_price_per_person?.toLocaleString('tr-TR')} TL
+          </p>
+        </div>
+        <div className="rounded-xl bg-bg/60 px-3.5 py-3">
+          <p className="text-xs text-muted">
+            Toplam ({train.people} kişi)
+          </p>
+          <p className="text-lg font-bold tabular-nums text-accent">
+            {train.total_price?.toLocaleString('tr-TR')} TL
+          </p>
+        </div>
+      </div>
+
+      <p className="mt-3 text-xs text-muted">{train.note}</p>
+
+      <a
+        href="https://ebilet.tcdd.gov.tr"
+        target="_blank"
+        rel="noreferrer"
+        className="mt-2 inline-block text-xs font-bold text-accent underline-offset-2 hover:underline"
+      >
+        TCDD'de gerçek bilet fiyatlarını gör →
+      </a>
+    </div>
+  )
+}
+
 export default function RouteResults({
   mode,
   result,
@@ -443,6 +506,15 @@ export default function RouteResults({
         ) : (
           <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
             Uçak bilgisi hesaplanamadı.
+          </p>
+        )
+      )}
+      {mode === 'tren' && (
+        result.train ? (
+          <TrainDetails train={result.train} />
+        ) : (
+          <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+            Tren bilgisi hesaplanamadı.
           </p>
         )
       )}

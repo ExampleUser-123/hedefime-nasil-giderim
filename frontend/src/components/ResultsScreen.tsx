@@ -1,15 +1,18 @@
 import { useMemo, useState, type ReactElement } from 'react'
 import type { Mode, PlanResult } from '@/lib/api'
-import { CarDetails, FlightDetails, TransitList, WalkingDetails } from '@/components/RouteResults'
+import { isSaved, toggleSaved } from '@/lib/storage'
+import { CarDetails, FlightDetails, TrainDetails, TransitList, WalkingDetails } from '@/components/RouteResults'
 import {
   IconBus,
   IconCar,
   IconChevronRight,
   IconPlane,
+  IconStar,
+  IconTrain,
 } from '@/icons'
 
 type Candidate = {
-  id: 'transit' | 'ucak' | 'arac' | 'yuruyus'
+  id: 'transit' | 'ucak' | 'tren' | 'arac' | 'yuruyus'
   title: string
   icon: (props: { className?: string }) => ReactElement
   minutes: number
@@ -58,6 +61,18 @@ function buildCandidates(plan: PlanResult, people: number): Candidate[] {
       pricePerPerson: plan.flight.estimated_price_per_person ?? null,
       total: plan.flight.total_price ?? null,
       note: 'tahmini · havalimanı süreçleri dahil',
+    })
+  }
+
+  if (plan.train?.available && plan.train.duration_minutes != null) {
+    candidates.push({
+      id: 'tren',
+      title: 'Tren',
+      icon: IconTrain,
+      minutes: plan.train.duration_minutes,
+      pricePerPerson: plan.train.estimated_price_per_person ?? null,
+      total: plan.train.total_price ?? null,
+      note: `${plan.train.distance_km} km · tahmini`,
     })
   }
 
@@ -183,6 +198,9 @@ function ModeCard({
           {candidate.id === 'ucak' && plan.flight && (
             <FlightDetails flight={plan.flight} />
           )}
+          {candidate.id === 'tren' && plan.train && (
+            <TrainDetails train={plan.train} />
+          )}
           {candidate.id === 'arac' && plan.car && (
             <CarDetails car={plan.car} people={people} />
           )}
@@ -203,8 +221,6 @@ export default function ResultsScreen({
   people: number
   mode: Mode
   onBack: () => void
-  selectedIndex: number
-  onSelectIndex: (index: number) => void
 }) {
   const candidates = useMemo(
     () => buildCandidates(plan, people),
@@ -218,6 +234,18 @@ export default function ResultsScreen({
 
   const shortName = (place: string) =>
     place.split(',').slice(0, 1).join('').trim() || place
+
+  const [saved, setSaved] = useState(() => isSaved(plan.start, plan.destination))
+
+  function handleToggleSaved() {
+    const nowSaved = toggleSaved({
+      from: plan.start,
+      to: plan.destination,
+      people,
+      mode,
+    })
+    setSaved(nowSaved)
+  }
 
   return (
     <div className="fixed inset-0 z-30 overflow-y-auto bg-bg/97 backdrop-blur-md">
@@ -239,7 +267,19 @@ export default function ResultsScreen({
             </p>
             <p className="text-xs text-muted">{people} kişi</p>
           </div>
-          <span className="h-10 w-10 shrink-0" aria-hidden="true" />
+          <button
+            type="button"
+            onClick={handleToggleSaved}
+            aria-label={saved ? 'Kayıtlılardan çıkar' : 'Kayıtlılara ekle'}
+            aria-pressed={saved}
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border bg-surface-2 transition-colors ${
+              saved
+                ? 'border-accent text-accent'
+                : 'border-line text-muted hover:border-accent hover:text-accent'
+            }`}
+          >
+            <IconStar className={`h-4.5 w-4.5 ${saved ? 'fill-current' : ''}`} />
+          </button>
         </header>
 
         {best && (

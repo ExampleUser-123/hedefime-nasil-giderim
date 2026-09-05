@@ -16,6 +16,7 @@ from services.public_transport import find_transit_routes
 from services.location import find_province
 from services.weather import get_weather
 from services.flight import estimate_flight
+from services.train import estimate_train
 
 from services.gtfs import (
     search_stops,
@@ -846,11 +847,13 @@ def plan(
     # -----------------------------------------------------
 
     flight_result = None
+    train_result = None
 
     if route_result is not None:
         # Araç rotası mesafesi karayolu olduğu için kuş uçuşu ~%75 alıyoruz
         straight_km = route_result["distance_km"] * 0.75
         flight_result = estimate_flight(straight_km, people)
+        train_result = estimate_train(route_result["distance_km"], people)
 
     # -----------------------------------------------------
     # SONUÇ
@@ -882,6 +885,8 @@ def plan(
         "vehicle_selected": vehicle_data["name"],
 
         "flight": flight_result,
+
+        "train": train_result,
 
         "public_transport": public_result,
 

@@ -10,7 +10,7 @@ const TILE_URL =
 const TILE_ATTRIBUTION =
   'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ &mdash; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 
-export type MapMode = 'otobus' | 'metro' | 'yuruyus' | 'arac' | 'ucak' | 'deniz'
+export type MapMode = 'otobus' | 'metro' | 'yuruyus' | 'arac' | 'ucak' | 'tren' | 'deniz'
 
 type Path = {
   positions: LatLng[]
@@ -50,7 +50,7 @@ function buildPaths(plan: PlanResult, mode: MapMode, routeIndex: number): Path[]
       : [straight]
   }
 
-  if (mode === 'yuruyus' || mode === 'ucak') {
+  if (mode === 'yuruyus' || mode === 'ucak' || mode === 'tren') {
     return [straight]
   }
 

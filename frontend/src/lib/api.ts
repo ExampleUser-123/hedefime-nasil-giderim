@@ -1,7 +1,7 @@
 const API_BASE =
   import.meta.env.VITE_API_BASE ?? 'http://127.0.0.1:8000'
 
-export type Mode = 'otobus' | 'metro' | 'yuruyus' | 'arac' | 'ucak' | 'deniz'
+export type Mode = 'otobus' | 'metro' | 'yuruyus' | 'arac' | 'ucak' | 'tren' | 'deniz'
 
 export type Vehicle = {
   id: string
@@ -68,6 +68,8 @@ export type FlightEstimate = {
   note?: string
 }
 
+export type TrainEstimate = FlightEstimate
+
 export type PlanResult = {
   start: string
   destination: string
@@ -77,6 +79,7 @@ export type PlanResult = {
   car_error: string | null
   vehicle_selected: string
   flight: FlightEstimate | null
+  train: TrainEstimate | null
   public_transport: {
     status: string
     error?: string | null
