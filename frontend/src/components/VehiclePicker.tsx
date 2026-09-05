@@ -54,7 +54,10 @@ export default function VehiclePicker({
     const q = query.trim().toLocaleLowerCase('tr')
 
     return vehicles.filter((v) => {
-      if (v.vehicle_type !== typeTab) return false
+      // Eski backend cevaplarında vehicle_type yok; hepsi Otomobil sayılır
+      const vType = v.vehicle_type ?? 'arac'
+
+      if (vType !== typeTab) return false
 
       if (!q) return true
 
