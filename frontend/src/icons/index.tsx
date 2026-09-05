@@ -113,6 +113,18 @@ export function IconFerry({ className }: IconProps) {
   )
 }
 
+export function IconMoto({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <circle cx="5.5" cy="17.5" r="3.5" />
+      <circle cx="18.5" cy="17.5" r="3.5" />
+      <path d="M15 6a1 1 0 1 0 0-2 1 1 0 0 0 0 2zm0 0h-2l-3 5" />
+      <path d="M9 9 5.5 17.5h6L14 9h1.5L15 6" />
+      <path d="m11.5 17.5 3.5-6 3.5 6" />
+    </svg>
+  )
+}
+
 export function IconTrain({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">

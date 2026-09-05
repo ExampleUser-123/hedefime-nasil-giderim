@@ -1,4 +1,5 @@
-# Türk piyasasında yaygın araçlar (yaklaşık ortalama tüketimler, L/100 km)
+# Türk piyasasında yaygın araçlar ve motosikletler (yaklaşık ortalama tüketimler, L/100 km)
+# vehicle_type: "arac" (otomobil/ticari) veya "motosiklet"
 
 VEHICLES = {
     # ---------------- BENZİN ----------------
@@ -14,6 +15,30 @@ VEHICLES = {
         "fuel_type": "Benzin",
         "consumption": 5.5,
     },
+    "toyota_aygo": {
+        "name": "Toyota Aygo 1.0",
+        "brand": "Toyota",
+        "fuel_type": "Benzin",
+        "consumption": 4.8,
+    },
+    "toyota_corolla_hibrit": {
+        "name": "Toyota Corolla 1.8 Hybrid",
+        "brand": "Toyota",
+        "fuel_type": "Benzin",
+        "consumption": 4.5,
+    },
+    "toyota_c_hr": {
+        "name": "Toyota C-HR 1.8 Hybrid",
+        "brand": "Toyota",
+        "fuel_type": "Benzin",
+        "consumption": 5.0,
+    },
+    "toyota_rav4": {
+        "name": "Toyota RAV4 2.5 Hybrid",
+        "brand": "Toyota",
+        "fuel_type": "Benzin",
+        "consumption": 5.8,
+    },
     "fiat_egea_benzin": {
         "name": "Fiat Egea 1.6 (Benzin)",
         "brand": "Fiat",
@@ -25,6 +50,30 @@ VEHICLES = {
         "brand": "Fiat",
         "fuel_type": "Benzin",
         "consumption": 7.2,
+    },
+    "fiat_tipo_benzin": {
+        "name": "Fiat Tipo 1.4",
+        "brand": "Fiat",
+        "fuel_type": "Benzin",
+        "consumption": 6.5,
+    },
+    "fiat_panda": {
+        "name": "Fiat Panda 1.2",
+        "brand": "Fiat",
+        "fuel_type": "Benzin",
+        "consumption": 5.9,
+    },
+    "fiat_500": {
+        "name": "Fiat 500 1.2",
+        "brand": "Fiat",
+        "fuel_type": "Benzin",
+        "consumption": 5.5,
+    },
+    "fiat_500x": {
+        "name": "Fiat 500X 1.6 E-TorQ",
+        "brand": "Fiat",
+        "fuel_type": "Benzin",
+        "consumption": 7.0,
     },
     "renault_clio_benzin": {
         "name": "Renault Clio 1.0 TCe",
@@ -43,6 +92,18 @@ VEHICLES = {
         "brand": "Renault",
         "fuel_type": "Benzin",
         "consumption": 6.4,
+    },
+    "renault_captur_benzin": {
+        "name": "Renault Captur 1.3 TCe",
+        "brand": "Renault",
+        "fuel_type": "Benzin",
+        "consumption": 6.7,
+    },
+    "renault_arkana": {
+        "name": "Renault Arkana 1.3 TCe",
+        "brand": "Renault",
+        "fuel_type": "Benzin",
+        "consumption": 6.9,
     },
     "vw_golf": {
         "name": "Volkswagen Golf 1.5 TSI",
@@ -68,6 +129,18 @@ VEHICLES = {
         "fuel_type": "Benzin",
         "consumption": 7.4,
     },
+    "vw_up": {
+        "name": "Volkswagen Up 1.0",
+        "brand": "Volkswagen",
+        "fuel_type": "Benzin",
+        "consumption": 4.9,
+    },
+    "vw_t_roc": {
+        "name": "Volkswagen T-Roc 1.5 TSI",
+        "brand": "Volkswagen",
+        "fuel_type": "Benzin",
+        "consumption": 7.0,
+    },
     "opel_astra_benzin": {
         "name": "Opel Astra 1.4 Turbo",
         "brand": "Opel",
@@ -79,6 +152,24 @@ VEHICLES = {
         "brand": "Opel",
         "fuel_type": "Benzin",
         "consumption": 5.6,
+    },
+    "opel_grandland_benzin": {
+        "name": "Opel Grandland 1.2 Turbo",
+        "brand": "Opel",
+        "fuel_type": "Benzin",
+        "consumption": 6.9,
+    },
+    "opel_crossland_benzin": {
+        "name": "Opel Crossland 1.2 Turbo",
+        "brand": "Opel",
+        "fuel_type": "Benzin",
+        "consumption": 6.4,
+    },
+    "opel_mokka_benzin": {
+        "name": "Opel Mokka 1.2 Turbo",
+        "brand": "Opel",
+        "fuel_type": "Benzin",
+        "consumption": 6.5,
     },
     "ford_focus_benzin": {
         "name": "Ford Focus 1.5 EcoBoost",
@@ -92,11 +183,35 @@ VEHICLES = {
         "fuel_type": "Benzin",
         "consumption": 5.9,
     },
+    "ford_puma": {
+        "name": "Ford Puma 1.0 EcoBoost",
+        "brand": "Ford",
+        "fuel_type": "Benzin",
+        "consumption": 6.0,
+    },
+    "ford_kuga_benzin": {
+        "name": "Ford Kuga 1.5 EcoBoost",
+        "brand": "Ford",
+        "fuel_type": "Benzin",
+        "consumption": 7.3,
+    },
     "honda_civic_benzin": {
         "name": "Honda Civic 1.6 i-VTEC",
         "brand": "Honda",
         "fuel_type": "Benzin",
         "consumption": 6.8,
+    },
+    "honda_jazz": {
+        "name": "Honda Jazz 1.3 i-VTEC",
+        "brand": "Honda",
+        "fuel_type": "Benzin",
+        "consumption": 5.6,
+    },
+    "honda_hr_v": {
+        "name": "Honda HR-V 1.5 i-VTEC",
+        "brand": "Honda",
+        "fuel_type": "Benzin",
+        "consumption": 6.4,
     },
     "skoda_octavia_benzin": {
         "name": "Skoda Octavia 1.5 TSI",
@@ -104,11 +219,47 @@ VEHICLES = {
         "fuel_type": "Benzin",
         "consumption": 6.4,
     },
+    "skoda_fabia": {
+        "name": "Skoda Fabia 1.0 TSI",
+        "brand": "Skoda",
+        "fuel_type": "Benzin",
+        "consumption": 5.4,
+    },
+    "skoda_kamiq": {
+        "name": "Skoda Kamiq 1.0 TSI",
+        "brand": "Skoda",
+        "fuel_type": "Benzin",
+        "consumption": 6.0,
+    },
+    "skoda_kodiaq_benzin": {
+        "name": "Skoda Kodiaq 1.5 TSI",
+        "brand": "Skoda",
+        "fuel_type": "Benzin",
+        "consumption": 7.6,
+    },
     "seat_ibiza": {
         "name": "Seat Ibiza 1.0 TSI",
         "brand": "Seat",
         "fuel_type": "Benzin",
         "consumption": 5.8,
+    },
+    "seat_leon_benzin": {
+        "name": "Seat Leon 1.5 TSI",
+        "brand": "Seat",
+        "fuel_type": "Benzin",
+        "consumption": 6.2,
+    },
+    "seat_arona": {
+        "name": "Seat Arona 1.0 TSI",
+        "brand": "Seat",
+        "fuel_type": "Benzin",
+        "consumption": 5.9,
+    },
+    "seat_ateca_benzin": {
+        "name": "Seat Ateca 1.5 TSI",
+        "brand": "Seat",
+        "fuel_type": "Benzin",
+        "consumption": 6.9,
     },
     "peugeot_208_benzin": {
         "name": "Peugeot 208 1.2 PureTech",
@@ -122,6 +273,42 @@ VEHICLES = {
         "fuel_type": "Benzin",
         "consumption": 6.5,
     },
+    "peugeot_308_benzin": {
+        "name": "Peugeot 308 1.2 PureTech",
+        "brand": "Peugeot",
+        "fuel_type": "Benzin",
+        "consumption": 6.3,
+    },
+    "peugeot_2008_benzin": {
+        "name": "Peugeot 2008 1.2 PureTech",
+        "brand": "Peugeot",
+        "fuel_type": "Benzin",
+        "consumption": 6.1,
+    },
+    "peugeot_3008_benzin": {
+        "name": "Peugeot 3008 1.2 PureTech",
+        "brand": "Peugeot",
+        "fuel_type": "Benzin",
+        "consumption": 7.0,
+    },
+    "citroen_c3_benzin": {
+        "name": "Citroën C3 1.2 PureTech",
+        "brand": "Citroën",
+        "fuel_type": "Benzin",
+        "consumption": 5.8,
+    },
+    "citroen_c4_benzin": {
+        "name": "Citroën C4 1.2 PureTech",
+        "brand": "Citroën",
+        "fuel_type": "Benzin",
+        "consumption": 6.4,
+    },
+    "citroen_c5_aircross_benzin": {
+        "name": "Citroën C5 Aircross 1.2 PureTech",
+        "brand": "Citroën",
+        "fuel_type": "Benzin",
+        "consumption": 7.0,
+    },
     "dacia_sandero_benzin": {
         "name": "Dacia Sandero 1.0 SCe",
         "brand": "Dacia",
@@ -134,9 +321,63 @@ VEHICLES = {
         "fuel_type": "Benzin",
         "consumption": 6.9,
     },
+    "dacia_jogger": {
+        "name": "Dacia Jogger 1.0 TCe",
+        "brand": "Dacia",
+        "fuel_type": "Benzin",
+        "consumption": 6.2,
+    },
     "hyundai_i20_benzin": {
         "name": "Hyundai i20 1.4 MPI",
         "brand": "Hyundai",
+        "fuel_type": "Benzin",
+        "consumption": 6.2,
+    },
+    "hyundai_i10": {
+        "name": "Hyundai i10 1.0 MPI",
+        "brand": "Hyundai",
+        "fuel_type": "Benzin",
+        "consumption": 5.4,
+    },
+    "hyundai_bayon": {
+        "name": "Hyundai Bayon 1.2 MPI",
+        "brand": "Hyundai",
+        "fuel_type": "Benzin",
+        "consumption": 5.9,
+    },
+    "hyundai_elantra": {
+        "name": "Hyundai Elantra 1.6 MPI",
+        "brand": "Hyundai",
+        "fuel_type": "Benzin",
+        "consumption": 6.9,
+    },
+    "kia_picanto": {
+        "name": "Kia Picanto 1.0 MPI",
+        "brand": "Kia",
+        "fuel_type": "Benzin",
+        "consumption": 5.2,
+    },
+    "kia_rio": {
+        "name": "Kia Rio 1.4 MPI",
+        "brand": "Kia",
+        "fuel_type": "Benzin",
+        "consumption": 6.0,
+    },
+    "kia_ceed_benzin": {
+        "name": "Kia Ceed 1.4 T-GDI",
+        "brand": "Kia",
+        "fuel_type": "Benzin",
+        "consumption": 6.3,
+    },
+    "kia_sportage_benzin": {
+        "name": "Kia Sportage 1.6 T-GDI",
+        "brand": "Kia",
+        "fuel_type": "Benzin",
+        "consumption": 7.4,
+    },
+    "kia_stonic": {
+        "name": "Kia Stonic 1.4 MPI",
+        "brand": "Kia",
         "fuel_type": "Benzin",
         "consumption": 6.2,
     },
@@ -152,6 +393,120 @@ VEHICLES = {
         "fuel_type": "Benzin",
         "consumption": 6.9,
     },
+    "nissan_juke": {
+        "name": "Nissan Juke 1.0 DIG-T",
+        "brand": "Nissan",
+        "fuel_type": "Benzin",
+        "consumption": 6.5,
+    },
+    "suzuki_swift": {
+        "name": "Suzuki Swift 1.2 Dualjet",
+        "brand": "Suzuki",
+        "fuel_type": "Benzin",
+        "consumption": 4.6,
+    },
+    "suzuki_vitara_benzin": {
+        "name": "Suzuki Vitara 1.4 Boosterjet",
+        "brand": "Suzuki",
+        "fuel_type": "Benzin",
+        "consumption": 6.0,
+    },
+    "suzuki_s_cross": {
+        "name": "Suzuki S-Cross 1.4 Boosterjet",
+        "brand": "Suzuki",
+        "fuel_type": "Benzin",
+        "consumption": 6.2,
+    },
+    "suzuki_jimny": {
+        "name": "Suzuki Jimny 1.5",
+        "brand": "Suzuki",
+        "fuel_type": "Benzin",
+        "consumption": 7.0,
+    },
+    "mazda_2": {
+        "name": "Mazda 2 1.5 Skyactiv-G",
+        "brand": "Mazda",
+        "fuel_type": "Benzin",
+        "consumption": 5.4,
+    },
+    "mazda_3_benzin": {
+        "name": "Mazda 3 1.5 Skyactiv-G",
+        "brand": "Mazda",
+        "fuel_type": "Benzin",
+        "consumption": 6.1,
+    },
+    "mazda_cx_5_benzin": {
+        "name": "Mazda CX-5 2.0 Skyactiv-G",
+        "brand": "Mazda",
+        "fuel_type": "Benzin",
+        "consumption": 7.5,
+    },
+    "mitsubishi_asx": {
+        "name": "Mitsubishi ASX 1.6 MIVEC",
+        "brand": "Mitsubishi",
+        "fuel_type": "Benzin",
+        "consumption": 7.0,
+    },
+    "mitsubishi_eclipse_cross": {
+        "name": "Mitsubishi Eclipse Cross 1.5",
+        "brand": "Mitsubishi",
+        "fuel_type": "Benzin",
+        "consumption": 7.4,
+    },
+    "mini_cooper": {
+        "name": "Mini Cooper 1.5",
+        "brand": "Mini",
+        "fuel_type": "Benzin",
+        "consumption": 6.0,
+    },
+    "smart_fortwo": {
+        "name": "Smart ForTwo 0.9",
+        "brand": "Smart",
+        "fuel_type": "Benzin",
+        "consumption": 4.9,
+    },
+    "audi_a3_benzin": {
+        "name": "Audi A3 35 TFSI",
+        "brand": "Audi",
+        "fuel_type": "Benzin",
+        "consumption": 6.4,
+    },
+    "bmw_320i": {
+        "name": "BMW 320i",
+        "brand": "BMW",
+        "fuel_type": "Benzin",
+        "consumption": 7.0,
+    },
+    "mercedes_a200": {
+        "name": "Mercedes-Benz A 200",
+        "brand": "Mercedes-Benz",
+        "fuel_type": "Benzin",
+        "consumption": 6.8,
+    },
+    "mercedes_c180": {
+        "name": "Mercedes-Benz C 180",
+        "brand": "Mercedes-Benz",
+        "fuel_type": "Benzin",
+        "consumption": 7.2,
+    },
+    "volvo_xc40_benzin": {
+        "name": "Volvo XC40 T3",
+        "brand": "Volvo",
+        "fuel_type": "Benzin",
+        "consumption": 7.6,
+    },
+    "jeep_renegade_benzin": {
+        "name": "Jeep Renegade 1.3 Turbo",
+        "brand": "Jeep",
+        "fuel_type": "Benzin",
+        "consumption": 7.0,
+    },
+    "tofas_sahin": {
+        "name": "Tofaş Şahin 1.6",
+        "brand": "Tofaş",
+        "fuel_type": "Benzin",
+        "consumption": 8.5,
+    },
 
     # ---------------- MOTORİN ----------------
     "fiat_egea": {
@@ -159,6 +514,12 @@ VEHICLES = {
         "brand": "Fiat",
         "fuel_type": "Motorin",
         "consumption": 4.3,
+    },
+    "fiat_tipo_dizel": {
+        "name": "Fiat Tipo 1.6 Multijet",
+        "brand": "Fiat",
+        "fuel_type": "Motorin",
+        "consumption": 4.6,
     },
     "renault_clio_dizel": {
         "name": "Renault Clio 1.5 dCi",
@@ -172,6 +533,12 @@ VEHICLES = {
         "fuel_type": "Motorin",
         "consumption": 4.6,
     },
+    "renault_captur_dizel": {
+        "name": "Renault Captur 1.5 dCi",
+        "brand": "Renault",
+        "fuel_type": "Motorin",
+        "consumption": 4.7,
+    },
     "vw_passat": {
         "name": "Volkswagen Passat 2.0 TDI",
         "brand": "Volkswagen",
@@ -184,11 +551,35 @@ VEHICLES = {
         "fuel_type": "Motorin",
         "consumption": 5.0,
     },
+    "vw_jetta": {
+        "name": "Volkswagen Jetta 1.6 TDI",
+        "brand": "Volkswagen",
+        "fuel_type": "Motorin",
+        "consumption": 4.9,
+    },
+    "vw_touran": {
+        "name": "Volkswagen Touran 1.6 TDI",
+        "brand": "Volkswagen",
+        "fuel_type": "Motorin",
+        "consumption": 5.4,
+    },
     "skoda_octavia": {
         "name": "Skoda Octavia 2.0 TDI",
         "brand": "Skoda",
         "fuel_type": "Motorin",
         "consumption": 5.0,
+    },
+    "skoda_superb": {
+        "name": "Skoda Superb 2.0 TDI",
+        "brand": "Skoda",
+        "fuel_type": "Motorin",
+        "consumption": 5.3,
+    },
+    "skoda_karoq": {
+        "name": "Skoda Karoq 1.6 TDI",
+        "brand": "Skoda",
+        "fuel_type": "Motorin",
+        "consumption": 5.2,
     },
     "opel_astra_dizel": {
         "name": "Opel Astra 1.6 CDTi",
@@ -196,11 +587,35 @@ VEHICLES = {
         "fuel_type": "Motorin",
         "consumption": 4.8,
     },
+    "opel_insignia": {
+        "name": "Opel Insignia 1.6 CDTi",
+        "brand": "Opel",
+        "fuel_type": "Motorin",
+        "consumption": 5.4,
+    },
     "ford_focus_dizel": {
         "name": "Ford Focus 1.5 TDCi",
         "brand": "Ford",
         "fuel_type": "Motorin",
         "consumption": 4.8,
+    },
+    "ford_fiesta_dizel": {
+        "name": "Ford Fiesta 1.5 TDCi",
+        "brand": "Ford",
+        "fuel_type": "Motorin",
+        "consumption": 4.5,
+    },
+    "ford_mondeo": {
+        "name": "Ford Mondeo 2.0 TDCi",
+        "brand": "Ford",
+        "fuel_type": "Motorin",
+        "consumption": 5.6,
+    },
+    "ford_kuga_dizel": {
+        "name": "Ford Kuga 2.0 TDCi",
+        "brand": "Ford",
+        "fuel_type": "Motorin",
+        "consumption": 5.8,
     },
     "honda_civic_dizel": {
         "name": "Honda Civic 1.6 i-DTEC",
@@ -208,11 +623,47 @@ VEHICLES = {
         "fuel_type": "Motorin",
         "consumption": 4.9,
     },
+    "honda_cr_v": {
+        "name": "Honda CR-V 1.6 i-DTEC",
+        "brand": "Honda",
+        "fuel_type": "Motorin",
+        "consumption": 5.9,
+    },
+    "seat_leon_dizel": {
+        "name": "Seat Leon 1.6 TDI",
+        "brand": "Seat",
+        "fuel_type": "Motorin",
+        "consumption": 4.7,
+    },
+    "seat_toledo": {
+        "name": "Seat Toledo 1.6 TDI",
+        "brand": "Seat",
+        "fuel_type": "Motorin",
+        "consumption": 4.5,
+    },
     "peugeot_301": {
         "name": "Peugeot 301 1.6 BlueHDi",
         "brand": "Peugeot",
         "fuel_type": "Motorin",
         "consumption": 4.5,
+    },
+    "peugeot_308_dizel": {
+        "name": "Peugeot 308 1.5 BlueHDi",
+        "brand": "Peugeot",
+        "fuel_type": "Motorin",
+        "consumption": 4.4,
+    },
+    "peugeot_2008_dizel": {
+        "name": "Peugeot 2008 1.5 BlueHDi",
+        "brand": "Peugeot",
+        "fuel_type": "Motorin",
+        "consumption": 4.6,
+    },
+    "peugeot_3008_dizel": {
+        "name": "Peugeot 3008 1.6 BlueHDi",
+        "brand": "Peugeot",
+        "fuel_type": "Motorin",
+        "consumption": 5.3,
     },
     "citroen_cehlysee": {
         "name": "Citroën C-Elysée 1.6 BlueHDi",
@@ -220,11 +671,59 @@ VEHICLES = {
         "fuel_type": "Motorin",
         "consumption": 4.5,
     },
+    "citroen_c3_dizel": {
+        "name": "Citroën C3 1.5 BlueHDi",
+        "brand": "Citroën",
+        "fuel_type": "Motorin",
+        "consumption": 4.3,
+    },
+    "citroen_c4_cactus": {
+        "name": "Citroën C4 Cactus 1.6 BlueHDi",
+        "brand": "Citroën",
+        "fuel_type": "Motorin",
+        "consumption": 4.6,
+    },
     "dacia_duster_dizel": {
         "name": "Dacia Duster 1.5 dCi",
         "brand": "Dacia",
         "fuel_type": "Motorin",
         "consumption": 5.0,
+    },
+    "dacia_logan": {
+        "name": "Dacia Logan 1.5 dCi",
+        "brand": "Dacia",
+        "fuel_type": "Motorin",
+        "consumption": 4.5,
+    },
+    "dacia_lodgy": {
+        "name": "Dacia Lodgy 1.5 dCi",
+        "brand": "Dacia",
+        "fuel_type": "Motorin",
+        "consumption": 5.0,
+    },
+    "hyundai_accent_blue": {
+        "name": "Hyundai Accent Blue 1.6 CRDi",
+        "brand": "Hyundai",
+        "fuel_type": "Motorin",
+        "consumption": 4.6,
+    },
+    "hyundai_tucson_dizel": {
+        "name": "Hyundai Tucson 1.6 CRDi",
+        "brand": "Hyundai",
+        "fuel_type": "Motorin",
+        "consumption": 5.5,
+    },
+    "kia_ceed_dizel": {
+        "name": "Kia Ceed 1.6 CRDi",
+        "brand": "Kia",
+        "fuel_type": "Motorin",
+        "consumption": 4.7,
+    },
+    "kia_sportage_dizel": {
+        "name": "Kia Sportage 1.6 CRDi",
+        "brand": "Kia",
+        "fuel_type": "Motorin",
+        "consumption": 5.4,
     },
     "nissan_qashqai_dizel": {
         "name": "Nissan Qashqai 1.5 dCi",
@@ -232,11 +731,59 @@ VEHICLES = {
         "fuel_type": "Motorin",
         "consumption": 4.9,
     },
+    "nissan_x_trail": {
+        "name": "Nissan X-Trail 1.7 dCi",
+        "brand": "Nissan",
+        "fuel_type": "Motorin",
+        "consumption": 5.9,
+    },
+    "nissan_navara": {
+        "name": "Nissan Navara 2.3 dCi",
+        "brand": "Nissan",
+        "fuel_type": "Motorin",
+        "consumption": 7.4,
+    },
+    "toyota_hilux": {
+        "name": "Toyota Hilux 2.4 D-4D",
+        "brand": "Toyota",
+        "fuel_type": "Motorin",
+        "consumption": 8.0,
+    },
+    "mitsubishi_l200": {
+        "name": "Mitsubishi L200 2.4 DI-D",
+        "brand": "Mitsubishi",
+        "fuel_type": "Motorin",
+        "consumption": 7.8,
+    },
+    "mazda_3_dizel": {
+        "name": "Mazda 3 1.5 Skyactiv-D",
+        "brand": "Mazda",
+        "fuel_type": "Motorin",
+        "consumption": 4.5,
+    },
+    "mazda_cx_3": {
+        "name": "Mazda CX-3 1.5 Skyactiv-D",
+        "brand": "Mazda",
+        "fuel_type": "Motorin",
+        "consumption": 4.8,
+    },
     "audi_a3_dizel": {
         "name": "Audi A3 30 TDI",
         "brand": "Audi",
         "fuel_type": "Motorin",
         "consumption": 4.7,
+    },
+    "audi_a4": {
+        "name": "Audi A4 40 TDI",
+        "brand": "Audi",
+        "fuel_type": "Motorin",
+        "consumption": 5.4,
+    },
+    "audi_q3": {
+        "name": "Audi Q3 35 TDI",
+        "brand": "Audi",
+        "fuel_type": "Motorin",
+        "consumption": 5.6,
     },
     "bmw_320d": {
         "name": "BMW 320d",
@@ -244,11 +791,59 @@ VEHICLES = {
         "fuel_type": "Motorin",
         "consumption": 5.3,
     },
+    "bmw_520d": {
+        "name": "BMW 520d",
+        "brand": "BMW",
+        "fuel_type": "Motorin",
+        "consumption": 5.5,
+    },
+    "bmw_x1": {
+        "name": "BMW X1 sDrive16d",
+        "brand": "BMW",
+        "fuel_type": "Motorin",
+        "consumption": 5.2,
+    },
+    "bmw_x3": {
+        "name": "BMW X3 xDrive20d",
+        "brand": "BMW",
+        "fuel_type": "Motorin",
+        "consumption": 6.0,
+    },
     "mercedes_c200d": {
         "name": "Mercedes-Benz C 200 d",
         "brand": "Mercedes-Benz",
         "fuel_type": "Motorin",
         "consumption": 5.4,
+    },
+    "mercedes_a180d": {
+        "name": "Mercedes-Benz A 180 d",
+        "brand": "Mercedes-Benz",
+        "fuel_type": "Motorin",
+        "consumption": 4.9,
+    },
+    "mercedes_gla": {
+        "name": "Mercedes-Benz GLA 180 d",
+        "brand": "Mercedes-Benz",
+        "fuel_type": "Motorin",
+        "consumption": 5.3,
+    },
+    "volvo_xc40_dizel": {
+        "name": "Volvo XC40 B4",
+        "brand": "Volvo",
+        "fuel_type": "Motorin",
+        "consumption": 5.6,
+    },
+    "jeep_compass": {
+        "name": "Jeep Compass 1.6 MultiJet",
+        "brand": "Jeep",
+        "fuel_type": "Motorin",
+        "consumption": 5.4,
+    },
+    "jeep_renegade_dizel": {
+        "name": "Jeep Renegade 1.6 MultiJet",
+        "brand": "Jeep",
+        "fuel_type": "Motorin",
+        "consumption": 5.2,
     },
 
     # ---------------- LPG (fabrika çıkışlı) ----------------
@@ -282,6 +877,12 @@ VEHICLES = {
         "fuel_type": "LPG",
         "consumption": 7.6,
     },
+    "tofas_sahin_lpg": {
+        "name": "Tofaş Şahin 1.6 (LPG'li)",
+        "brand": "Tofaş",
+        "fuel_type": "LPG",
+        "consumption": 9.5,
+    },
 
     # ---------------- TİCARİ ----------------
     "fiat_doblo": {
@@ -314,6 +915,12 @@ VEHICLES = {
         "fuel_type": "Motorin",
         "consumption": 8.8,
     },
+    "ford_ranger": {
+        "name": "Ford Ranger 2.0 TDCi",
+        "brand": "Ford",
+        "fuel_type": "Motorin",
+        "consumption": 8.0,
+    },
     "mercedes_sprinter": {
         "name": "Mercedes-Benz Sprinter",
         "brand": "Mercedes-Benz",
@@ -326,12 +933,726 @@ VEHICLES = {
         "fuel_type": "Motorin",
         "consumption": 7.4,
     },
+    "renault_trafic": {
+        "name": "Renault Trafic 1.6 dCi",
+        "brand": "Renault",
+        "fuel_type": "Motorin",
+        "consumption": 7.2,
+    },
+    "renault_master": {
+        "name": "Renault Master 2.3 dCi",
+        "brand": "Renault",
+        "fuel_type": "Motorin",
+        "consumption": 9.0,
+    },
+    "peugeot_partner": {
+        "name": "Peugeot Partner 1.5 BlueHDi",
+        "brand": "Peugeot",
+        "fuel_type": "Motorin",
+        "consumption": 5.5,
+    },
+    "peugeot_expert": {
+        "name": "Peugeot Expert 1.6 BlueHDi",
+        "brand": "Peugeot",
+        "fuel_type": "Motorin",
+        "consumption": 6.8,
+    },
+    "citroen_berlingo": {
+        "name": "Citroën Berlingo 1.5 BlueHDi",
+        "brand": "Citroën",
+        "fuel_type": "Motorin",
+        "consumption": 5.5,
+    },
+    "opel_combo": {
+        "name": "Opel Combo 1.5 CDTi",
+        "brand": "Opel",
+        "fuel_type": "Motorin",
+        "consumption": 5.5,
+    },
+    "opel_vivaro": {
+        "name": "Opel Vivaro 1.6 CDTi",
+        "brand": "Opel",
+        "fuel_type": "Motorin",
+        "consumption": 7.2,
+    },
+    "hyundai_h1": {
+        "name": "Hyundai H-1 2.5 CRDi",
+        "brand": "Hyundai",
+        "fuel_type": "Motorin",
+        "consumption": 8.2,
+    },
+}
+
+# ---------------- MOTOSİKLETLER ----------------
+MOTORCYCLES = {
+    # --- Honda ---
+    "honda_vision": {
+        "name": "Honda Vision 110",
+        "brand": "Honda",
+        "fuel_type": "Benzin",
+        "consumption": 1.9,
+    },
+    "honda_dio": {
+        "name": "Honda Dio 110",
+        "brand": "Honda",
+        "fuel_type": "Benzin",
+        "consumption": 1.9,
+    },
+    "honda_pcx": {
+        "name": "Honda PCX 125",
+        "brand": "Honda",
+        "fuel_type": "Benzin",
+        "consumption": 2.1,
+    },
+    "honda_sh125": {
+        "name": "Honda SH 125i",
+        "brand": "Honda",
+        "fuel_type": "Benzin",
+        "consumption": 2.3,
+    },
+    "honda_sh150": {
+        "name": "Honda SH 150i",
+        "brand": "Honda",
+        "fuel_type": "Benzin",
+        "consumption": 2.4,
+    },
+    "honda_cb125r": {
+        "name": "Honda CB 125R",
+        "brand": "Honda",
+        "fuel_type": "Benzin",
+        "consumption": 2.3,
+    },
+    "honda_cb300r": {
+        "name": "Honda CB 300R",
+        "brand": "Honda",
+        "fuel_type": "Benzin",
+        "consumption": 3.0,
+    },
+    "honda_cb500f": {
+        "name": "Honda CB 500F",
+        "brand": "Honda",
+        "fuel_type": "Benzin",
+        "consumption": 3.4,
+    },
+    "honda_cbr500r": {
+        "name": "Honda CBR 500R",
+        "brand": "Honda",
+        "fuel_type": "Benzin",
+        "consumption": 3.4,
+    },
+    "honda_cb650r": {
+        "name": "Honda CB 650R",
+        "brand": "Honda",
+        "fuel_type": "Benzin",
+        "consumption": 4.4,
+    },
+    "honda_nc750x": {
+        "name": "Honda NC750X",
+        "brand": "Honda",
+        "fuel_type": "Benzin",
+        "consumption": 3.4,
+    },
+    "honda_africa_twin": {
+        "name": "Honda Africa Twin 1100",
+        "brand": "Honda",
+        "fuel_type": "Benzin",
+        "consumption": 5.0,
+    },
+    "honda_gold_wing": {
+        "name": "Honda Gold Wing 1800",
+        "brand": "Honda",
+        "fuel_type": "Benzin",
+        "consumption": 6.0,
+    },
+
+    # --- Yamaha ---
+    "yamaha_ray_zr": {
+        "name": "Yamaha Ray ZR 125",
+        "brand": "Yamaha",
+        "fuel_type": "Benzin",
+        "consumption": 1.9,
+    },
+    "yamaha_cygnus": {
+        "name": "Yamaha Cygnus Gryphus 125",
+        "brand": "Yamaha",
+        "fuel_type": "Benzin",
+        "consumption": 2.0,
+    },
+    "yamaha_nmax125": {
+        "name": "Yamaha NMAX 125",
+        "brand": "Yamaha",
+        "fuel_type": "Benzin",
+        "consumption": 2.1,
+    },
+    "yamaha_nmax155": {
+        "name": "Yamaha NMAX 155",
+        "brand": "Yamaha",
+        "fuel_type": "Benzin",
+        "consumption": 2.3,
+    },
+    "yamaha_xmax": {
+        "name": "Yamaha XMAX 300",
+        "brand": "Yamaha",
+        "fuel_type": "Benzin",
+        "consumption": 3.0,
+    },
+    "yamaha_tmax": {
+        "name": "Yamaha TMAX 560",
+        "brand": "Yamaha",
+        "fuel_type": "Benzin",
+        "consumption": 4.5,
+    },
+    "yamaha_mt03": {
+        "name": "Yamaha MT-03",
+        "brand": "Yamaha",
+        "fuel_type": "Benzin",
+        "consumption": 3.3,
+    },
+    "yamaha_mt07": {
+        "name": "Yamaha MT-07",
+        "brand": "Yamaha",
+        "fuel_type": "Benzin",
+        "consumption": 4.0,
+    },
+    "yamaha_mt09": {
+        "name": "Yamaha MT-09",
+        "brand": "Yamaha",
+        "fuel_type": "Benzin",
+        "consumption": 4.8,
+    },
+    "yamaha_mt10": {
+        "name": "Yamaha MT-10",
+        "brand": "Yamaha",
+        "fuel_type": "Benzin",
+        "consumption": 6.0,
+    },
+    "yamaha_r25": {
+        "name": "Yamaha YZF-R25",
+        "brand": "Yamaha",
+        "fuel_type": "Benzin",
+        "consumption": 3.0,
+    },
+    "yamaha_r3": {
+        "name": "Yamaha YZF-R3",
+        "brand": "Yamaha",
+        "fuel_type": "Benzin",
+        "consumption": 3.3,
+    },
+    "yamaha_r6": {
+        "name": "Yamaha YZF-R6",
+        "brand": "Yamaha",
+        "fuel_type": "Benzin",
+        "consumption": 5.5,
+    },
+    "yamaha_r1": {
+        "name": "Yamaha YZF-R1",
+        "brand": "Yamaha",
+        "fuel_type": "Benzin",
+        "consumption": 6.5,
+    },
+    "yamaha_tracer_700": {
+        "name": "Yamaha Tracer 700",
+        "brand": "Yamaha",
+        "fuel_type": "Benzin",
+        "consumption": 4.2,
+    },
+    "yamaha_tenere_700": {
+        "name": "Yamaha Ténéré 700",
+        "brand": "Yamaha",
+        "fuel_type": "Benzin",
+        "consumption": 4.5,
+    },
+
+    # --- Suzuki ---
+    "suzuki_address": {
+        "name": "Suzuki Address 110",
+        "brand": "Suzuki",
+        "fuel_type": "Benzin",
+        "consumption": 1.8,
+    },
+    "suzuki_burgman_125": {
+        "name": "Suzuki Burgman Street 125",
+        "brand": "Suzuki",
+        "fuel_type": "Benzin",
+        "consumption": 2.0,
+    },
+    "suzuki_burgman_400": {
+        "name": "Suzuki Burgman 400",
+        "brand": "Suzuki",
+        "fuel_type": "Benzin",
+        "consumption": 3.5,
+    },
+    "suzuki_gixxer_150": {
+        "name": "Suzuki Gixxer 150",
+        "brand": "Suzuki",
+        "fuel_type": "Benzin",
+        "consumption": 2.4,
+    },
+    "suzuki_gixxer_250": {
+        "name": "Suzuki Gixxer 250",
+        "brand": "Suzuki",
+        "fuel_type": "Benzin",
+        "consumption": 3.0,
+    },
+    "suzuki_gsx_s750": {
+        "name": "Suzuki GSX-S750",
+        "brand": "Suzuki",
+        "fuel_type": "Benzin",
+        "consumption": 5.0,
+    },
+    "suzuki_v_strom_650": {
+        "name": "Suzuki V-Strom 650",
+        "brand": "Suzuki",
+        "fuel_type": "Benzin",
+        "consumption": 4.5,
+    },
+    "suzuki_hayabusa": {
+        "name": "Suzuki Hayabusa 1340",
+        "brand": "Suzuki",
+        "fuel_type": "Benzin",
+        "consumption": 6.5,
+    },
+
+    # --- Kawasaki ---
+    "kawasaki_z400": {
+        "name": "Kawasaki Z400",
+        "brand": "Kawasaki",
+        "fuel_type": "Benzin",
+        "consumption": 3.5,
+    },
+    "kawasaki_ninja_400": {
+        "name": "Kawasaki Ninja 400",
+        "brand": "Kawasaki",
+        "fuel_type": "Benzin",
+        "consumption": 3.5,
+    },
+    "kawasaki_z650": {
+        "name": "Kawasaki Z650",
+        "brand": "Kawasaki",
+        "fuel_type": "Benzin",
+        "consumption": 4.3,
+    },
+    "kawasaki_ninja_650": {
+        "name": "Kawasaki Ninja 650",
+        "brand": "Kawasaki",
+        "fuel_type": "Benzin",
+        "consumption": 4.3,
+    },
+    "kawasaki_versys_650": {
+        "name": "Kawasaki Versys 650",
+        "brand": "Kawasaki",
+        "fuel_type": "Benzin",
+        "consumption": 4.5,
+    },
+    "kawasaki_z900": {
+        "name": "Kawasaki Z900",
+        "brand": "Kawasaki",
+        "fuel_type": "Benzin",
+        "consumption": 5.3,
+    },
+    "kawasaki_ninja_zx10r": {
+        "name": "Kawasaki Ninja ZX-10R",
+        "brand": "Kawasaki",
+        "fuel_type": "Benzin",
+        "consumption": 6.2,
+    },
+
+    # --- KTM ---
+    "ktm_duke_125": {
+        "name": "KTM Duke 125",
+        "brand": "KTM",
+        "fuel_type": "Benzin",
+        "consumption": 2.5,
+    },
+    "ktm_duke_200": {
+        "name": "KTM Duke 200",
+        "brand": "KTM",
+        "fuel_type": "Benzin",
+        "consumption": 2.8,
+    },
+    "ktm_duke_390": {
+        "name": "KTM Duke 390",
+        "brand": "KTM",
+        "fuel_type": "Benzin",
+        "consumption": 3.3,
+    },
+    "ktm_rc_390": {
+        "name": "KTM RC 390",
+        "brand": "KTM",
+        "fuel_type": "Benzin",
+        "consumption": 3.4,
+    },
+    "ktm_adventure_390": {
+        "name": "KTM 390 Adventure",
+        "brand": "KTM",
+        "fuel_type": "Benzin",
+        "consumption": 3.5,
+    },
+    "ktm_duke_790": {
+        "name": "KTM Duke 790",
+        "brand": "KTM",
+        "fuel_type": "Benzin",
+        "consumption": 4.5,
+    },
+    "ktm_duke_890": {
+        "name": "KTM Duke 890 R",
+        "brand": "KTM",
+        "fuel_type": "Benzin",
+        "consumption": 4.8,
+    },
+
+    # --- Ducati ---
+    "ducati_scrambler_800": {
+        "name": "Ducati Scrambler 800",
+        "brand": "Ducati",
+        "fuel_type": "Benzin",
+        "consumption": 4.7,
+    },
+    "ducati_monster": {
+        "name": "Ducati Monster 937",
+        "brand": "Ducati",
+        "fuel_type": "Benzin",
+        "consumption": 5.0,
+    },
+    "ducati_multistrada_v2": {
+        "name": "Ducati Multistrada V2",
+        "brand": "Ducati",
+        "fuel_type": "Benzin",
+        "consumption": 5.5,
+    },
+    "ducati_panigale_v2": {
+        "name": "Ducati Panigale V2",
+        "brand": "Ducati",
+        "fuel_type": "Benzin",
+        "consumption": 5.8,
+    },
+
+    # --- BMW Motorrad ---
+    "bmw_g310r": {
+        "name": "BMW G 310 R",
+        "brand": "BMW",
+        "fuel_type": "Benzin",
+        "consumption": 3.3,
+    },
+    "bmw_g310gs": {
+        "name": "BMW G 310 GS",
+        "brand": "BMW",
+        "fuel_type": "Benzin",
+        "consumption": 3.4,
+    },
+    "bmw_f850gs": {
+        "name": "BMW F 850 GS",
+        "brand": "BMW",
+        "fuel_type": "Benzin",
+        "consumption": 4.8,
+    },
+    "bmw_r1250gs": {
+        "name": "BMW R 1250 GS",
+        "brand": "BMW",
+        "fuel_type": "Benzin",
+        "consumption": 5.0,
+    },
+    "bmw_s1000rr": {
+        "name": "BMW S 1000 RR",
+        "brand": "BMW",
+        "fuel_type": "Benzin",
+        "consumption": 6.5,
+    },
+
+    # --- Harley-Davidson ---
+    "harley_iron_883": {
+        "name": "Harley-Davidson Iron 883",
+        "brand": "Harley-Davidson",
+        "fuel_type": "Benzin",
+        "consumption": 5.0,
+    },
+    "harley_street_bob": {
+        "name": "Harley-Davidson Street Bob 114",
+        "brand": "Harley-Davidson",
+        "fuel_type": "Benzin",
+        "consumption": 5.5,
+    },
+    "harley_pan_america": {
+        "name": "Harley-Davidson Pan America 1250",
+        "brand": "Harley-Davidson",
+        "fuel_type": "Benzin",
+        "consumption": 5.8,
+    },
+
+    # --- Royal Enfield ---
+    "re_classic_350": {
+        "name": "Royal Enfield Classic 350",
+        "brand": "Royal Enfield",
+        "fuel_type": "Benzin",
+        "consumption": 3.0,
+    },
+    "re_hunter_350": {
+        "name": "Royal Enfield Hunter 350",
+        "brand": "Royal Enfield",
+        "fuel_type": "Benzin",
+        "consumption": 3.0,
+    },
+    "re_himalayan": {
+        "name": "Royal Enfield Himalayan 410",
+        "brand": "Royal Enfield",
+        "fuel_type": "Benzin",
+        "consumption": 3.3,
+    },
+    "re_interceptor_650": {
+        "name": "Royal Enfield Interceptor 650",
+        "brand": "Royal Enfield",
+        "fuel_type": "Benzin",
+        "consumption": 4.5,
+    },
+
+    # --- Vespa / Piaggio ---
+    "vespa_primavera_50": {
+        "name": "Vespa Primavera 50",
+        "brand": "Vespa",
+        "fuel_type": "Benzin",
+        "consumption": 2.0,
+    },
+    "vespa_primavera_125": {
+        "name": "Vespa Primavera 125",
+        "brand": "Vespa",
+        "fuel_type": "Benzin",
+        "consumption": 2.2,
+    },
+    "vespa_sprint_150": {
+        "name": "Vespa Sprint 150",
+        "brand": "Vespa",
+        "fuel_type": "Benzin",
+        "consumption": 2.3,
+    },
+    "vespa_gts_300": {
+        "name": "Vespa GTS 300",
+        "brand": "Vespa",
+        "fuel_type": "Benzin",
+        "consumption": 3.3,
+    },
+    "piaggio_zip": {
+        "name": "Piaggio Zip 50",
+        "brand": "Piaggio",
+        "fuel_type": "Benzin",
+        "consumption": 1.8,
+    },
+    "piaggio_beverly": {
+        "name": "Piaggio Beverly 400",
+        "brand": "Piaggio",
+        "fuel_type": "Benzin",
+        "consumption": 4.0,
+    },
+
+    # --- Sym ---
+    "sym_symphony": {
+        "name": "Symphony ST 125",
+        "brand": "Sym",
+        "fuel_type": "Benzin",
+        "consumption": 2.1,
+    },
+    "sym_jet_x": {
+        "name": "Sym Jet X 125",
+        "brand": "Sym",
+        "fuel_type": "Benzin",
+        "consumption": 2.2,
+    },
+    "sym_cruisym": {
+        "name": "Sym Cruisym 300",
+        "brand": "Sym",
+        "fuel_type": "Benzin",
+        "consumption": 3.0,
+    },
+
+    # --- Keeway ---
+    "keeway_rkf": {
+        "name": "Keeway RKF 125",
+        "brand": "Keeway",
+        "fuel_type": "Benzin",
+        "consumption": 2.2,
+    },
+    "keeway_klight": {
+        "name": "Keeway K-Light 202",
+        "brand": "Keeway",
+        "fuel_type": "Benzin",
+        "consumption": 2.5,
+    },
+    "keeway_vieste": {
+        "name": "Keeway Vieste 300",
+        "brand": "Keeway",
+        "fuel_type": "Benzin",
+        "consumption": 3.0,
+    },
+
+    # --- Yerli: Mondial, RKS, Kuba, Arora, Monster ---
+    "mondial_smx": {
+        "name": "Mondial SMX 125",
+        "brand": "Mondial",
+        "fuel_type": "Benzin",
+        "consumption": 2.2,
+    },
+    "mondial_rally": {
+        "name": "Mondial Rally 125",
+        "brand": "Mondial",
+        "fuel_type": "Benzin",
+        "consumption": 2.3,
+    },
+    "rks_gs": {
+        "name": "RKS GS 125",
+        "brand": "RKS",
+        "fuel_type": "Benzin",
+        "consumption": 2.2,
+    },
+    "rks_trex": {
+        "name": "RKS T-REX 150",
+        "brand": "RKS",
+        "fuel_type": "Benzin",
+        "consumption": 2.4,
+    },
+    "kuba_arrow": {
+        "name": "Kuba Arrow 125",
+        "brand": "Kuba",
+        "fuel_type": "Benzin",
+        "consumption": 2.2,
+    },
+    "kuba_xtown": {
+        "name": "Kuba X-Town 125",
+        "brand": "Kuba",
+        "fuel_type": "Benzin",
+        "consumption": 2.3,
+    },
+    "arora_sf": {
+        "name": "Arora SF 125",
+        "brand": "Arora",
+        "fuel_type": "Benzin",
+        "consumption": 2.2,
+    },
+    "arora_xdv": {
+        "name": "Arora XDV 125",
+        "brand": "Arora",
+        "fuel_type": "Benzin",
+        "consumption": 2.3,
+    },
+    "monster_a1": {
+        "name": "Monster A1 125",
+        "brand": "Monster",
+        "fuel_type": "Benzin",
+        "consumption": 2.2,
+    },
+
+    # --- Bajaj, Hero, TVS ---
+    "bajaj_pulsar_150": {
+        "name": "Bajaj Pulsar 150",
+        "brand": "Bajaj",
+        "fuel_type": "Benzin",
+        "consumption": 2.5,
+    },
+    "bajaj_pulsar_ns200": {
+        "name": "Bajaj Pulsar NS 200",
+        "brand": "Bajaj",
+        "fuel_type": "Benzin",
+        "consumption": 2.8,
+    },
+    "bajaj_rs200": {
+        "name": "Bajaj Pulsar RS 200",
+        "brand": "Bajaj",
+        "fuel_type": "Benzin",
+        "consumption": 2.9,
+    },
+    "hero_destini": {
+        "name": "Hero Destini 125",
+        "brand": "Hero",
+        "fuel_type": "Benzin",
+        "consumption": 2.0,
+    },
+    "hero_xpulse": {
+        "name": "Hero Xpulse 200",
+        "brand": "Hero",
+        "fuel_type": "Benzin",
+        "consumption": 2.7,
+    },
+    "hero_thriller": {
+        "name": "Hero Thriller 200R",
+        "brand": "Hero",
+        "fuel_type": "Benzin",
+        "consumption": 2.6,
+    },
+    "tvs_ntorq": {
+        "name": "TVS Ntorq 125",
+        "brand": "TVS",
+        "fuel_type": "Benzin",
+        "consumption": 2.0,
+    },
+    "tvs_apache_160": {
+        "name": "TVS Apache RTR 160",
+        "brand": "TVS",
+        "fuel_type": "Benzin",
+        "consumption": 2.5,
+    },
+    "tvs_apache_rr310": {
+        "name": "TVS Apache RR 310",
+        "brand": "TVS",
+        "fuel_type": "Benzin",
+        "consumption": 3.2,
+    },
+
+    # --- Zontes, Voge, CFMoto ---
+    "zontes_zt125": {
+        "name": "Zontes ZT 125-G1",
+        "brand": "Zontes",
+        "fuel_type": "Benzin",
+        "consumption": 2.2,
+    },
+    "zontes_zt155": {
+        "name": "Zontes ZT 155 U",
+        "brand": "Zontes",
+        "fuel_type": "Benzin",
+        "consumption": 2.4,
+    },
+    "zontes_zt310": {
+        "name": "Zontes ZT 310-X",
+        "brand": "Zontes",
+        "fuel_type": "Benzin",
+        "consumption": 3.2,
+    },
+    "voge_300_rally": {
+        "name": "Voge 300 Rally",
+        "brand": "Voge",
+        "fuel_type": "Benzin",
+        "consumption": 3.5,
+    },
+    "cfmoto_300nk": {
+        "name": "CFMoto 300 NK",
+        "brand": "CFMoto",
+        "fuel_type": "Benzin",
+        "consumption": 3.4,
+    },
+    "cfmoto_650mt": {
+        "name": "CFMoto 650 MT",
+        "brand": "CFMoto",
+        "fuel_type": "Benzin",
+        "consumption": 4.8,
+    },
 }
 
 
 def get_vehicles():
-    return VEHICLES
+    """Tüm araçlar; motorlu iki tekerliler 'motosiklet' tipiyle işaretlenir."""
+    result = {}
+
+    for vehicle_id, data in VEHICLES.items():
+        result[vehicle_id] = {**data, "vehicle_type": "arac"}
+
+    for vehicle_id, data in MOTORCYCLES.items():
+        result[vehicle_id] = {**data, "vehicle_type": "motosiklet"}
+
+    return result
 
 
 def get_vehicle(vehicle_id: str):
-    return VEHICLES.get(vehicle_id)
+    if vehicle_id in VEHICLES:
+        return {**VEHICLES[vehicle_id], "vehicle_type": "arac"}
+
+    if vehicle_id in MOTORCYCLES:
+        return {**MOTORCYCLES[vehicle_id], "vehicle_type": "motosiklet"}
+
+    return None

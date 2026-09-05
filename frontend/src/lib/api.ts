@@ -3,12 +3,15 @@ const API_BASE =
 
 export type Mode = 'otobus' | 'metro' | 'yuruyus' | 'arac' | 'ucak' | 'tren' | 'deniz'
 
+export type VehicleType = 'arac' | 'motosiklet'
+
 export type Vehicle = {
   id: string
   name: string
   brand: string
   fuel_type: 'Benzin' | 'Motorin' | 'LPG'
   consumption: number
+  vehicle_type: VehicleType
 }
 
 export type Place = {

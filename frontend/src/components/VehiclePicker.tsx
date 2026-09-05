@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { fetchVehicles, type Vehicle } from '@/lib/api'
-import { IconCar, IconClose } from '@/icons'
+import { fetchVehicles, type Vehicle, type VehicleType } from '@/lib/api'
+import { IconCar, IconClose, IconMoto } from '@/icons'
 
 const STORAGE_KEY = 'hng-vehicle-id'
 
@@ -12,19 +12,27 @@ export function loadRememberedVehicle(): string | null {
   }
 }
 
+const TYPE_TABS: { id: VehicleType; label: string; icon: typeof IconCar }[] = [
+  { id: 'arac', label: 'Otomobil', icon: IconCar },
+  { id: 'motosiklet', label: 'Motosiklet', icon: IconMoto },
+]
+
 export default function VehiclePicker({
   open,
   selectedId,
+  initialType = 'arac',
   onClose,
   onSelect,
 }: {
   open: boolean
   selectedId: string
+  initialType?: VehicleType
   onClose: () => void
   onSelect: (vehicle: Vehicle, remember: boolean) => void
 }) {
   const [vehicles, setVehicles] = useState<Vehicle[] | null>(null)
   const [query, setQuery] = useState('')
+  const [typeTab, setTypeTab] = useState<VehicleType>(initialType)
   const [remember, setRemember] = useState(() => loadRememberedVehicle() !== null)
   const [error, setError] = useState<string | null>(null)
 
@@ -36,19 +44,26 @@ export default function VehiclePicker({
       .catch((e) => setError(e instanceof Error ? e.message : 'Araç listesi alınamadı.'))
   }, [open, vehicles])
 
+  useEffect(() => {
+    if (open) setTypeTab(initialType)
+  }, [open, initialType])
+
   const filtered = useMemo(() => {
     if (!vehicles) return []
 
     const q = query.trim().toLocaleLowerCase('tr')
 
-    if (!q) return vehicles
+    return vehicles.filter((v) => {
+      if (v.vehicle_type !== typeTab) return false
 
-    return vehicles.filter(
-      (v) =>
+      if (!q) return true
+
+      return (
         v.name.toLocaleLowerCase('tr').includes(q) ||
-        v.brand.toLocaleLowerCase('tr').includes(q),
-    )
-  }, [vehicles, query])
+        v.brand.toLocaleLowerCase('tr').includes(q)
+      )
+    })
+  }, [vehicles, query, typeTab])
 
   if (!open) return null
 
@@ -77,6 +92,26 @@ export default function VehiclePicker({
           >
             <IconClose className="h-4 w-4" />
           </button>
+        </div>
+
+        <div className="flex gap-1.5 border-b border-line px-4 py-2.5" role="tablist" aria-label="Araç tipi">
+          {TYPE_TABS.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={typeTab === id}
+              onClick={() => setTypeTab(id)}
+              className={`flex min-h-[38px] flex-1 items-center justify-center gap-1.5 rounded-xl border text-sm font-medium transition-colors ${
+                typeTab === id
+                  ? 'border-accent bg-accent/10 text-accent'
+                  : 'border-line bg-bg/40 text-muted hover:text-fg'
+              }`}
+            >
+              <Icon className="h-4 w-4" />
+              {label}
+            </button>
+          ))}
         </div>
 
         <div className="border-b border-line px-4 py-3">

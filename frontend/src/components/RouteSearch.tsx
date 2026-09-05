@@ -3,12 +3,14 @@ import { fetchPlan, reverseGeocode, type Mode, type PlanResult, type Vehicle } f
 import { addHistory } from '@/lib/storage'
 import ResultsScreen from '@/components/ResultsScreen'
 import VehiclePicker, { loadRememberedVehicle } from '@/components/VehiclePicker'
+import type { VehicleType } from '@/lib/api'
 import {
   IconBus,
   IconCar,
   IconFerry,
   IconLocate,
   IconMetro,
+  IconMoto,
   IconPin,
   IconPlane,
   IconSwap,
@@ -112,9 +114,11 @@ export default function RouteSearch({
       if (remember) {
         localStorage.setItem('hng-vehicle-id', nextVehicle.id)
         localStorage.setItem('hng-vehicle-name', nextVehicle.name)
+        localStorage.setItem('hng-vehicle-type', nextVehicle.vehicle_type)
       } else {
         localStorage.removeItem('hng-vehicle-id')
         localStorage.removeItem('hng-vehicle-name')
+        localStorage.removeItem('hng-vehicle-type')
       }
     } catch {
       // localStorage kapalıysa sessizce devam
@@ -130,6 +134,17 @@ export default function RouteSearch({
       return null
     }
   })()
+
+  const rememberedType = (() => {
+    try {
+      return (localStorage.getItem('hng-vehicle-type') as VehicleType | null) ?? 'arac'
+    } catch {
+      return 'arac' as VehicleType
+    }
+  })()
+
+  const selectedType: VehicleType = vehicle?.vehicle_type ?? rememberedType
+  const RowVehicleIcon = selectedType === 'motosiklet' ? IconMoto : IconCar
 
   function detectLocation() {
     if (locating) return
@@ -250,7 +265,7 @@ export default function RouteSearch({
             className="mt-3 flex w-full items-center justify-between rounded-xl bg-bg/60 px-3 py-2.5 text-left transition-colors hover:bg-bg"
           >
             <span className="flex items-center gap-2 text-sm text-muted">
-              <IconCar className="h-4 w-4" />
+              <RowVehicleIcon className="h-4 w-4" />
               <span className="truncate">
                 {vehicle?.name ?? rememberedName ?? 'Toyota Corolla 1.6 (varsayılan)'}
               </span>
@@ -320,6 +335,7 @@ export default function RouteSearch({
       <VehiclePicker
         open={pickerOpen}
         selectedId={vehicle?.id ?? rememberedId ?? ''}
+        initialType={selectedType}
         onClose={() => setPickerOpen(false)}
         onSelect={handleVehicleSelect}
       />
