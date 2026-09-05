@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { fetchPlan, parseRouteIntent, reverseGeocode, type Mode, type PlanResult, type Vehicle } from '@/lib/api'
+import { fetchPlan, reverseGeocode, type Mode, type PlanResult, type Vehicle } from '@/lib/api'
 import { addHistory } from '@/lib/storage'
 import ResultsScreen from '@/components/ResultsScreen'
 import VehiclePicker, { loadRememberedVehicle } from '@/components/VehiclePicker'
@@ -11,8 +11,6 @@ import {
   IconMetro,
   IconPin,
   IconPlane,
-  IconSend,
-  IconSparkle,
   IconSwap,
   IconTrain,
   IconUsers,
@@ -43,14 +41,12 @@ export default function RouteSearch({
   plan,
   onPlanChange,
   preset,
-  onOpenChat,
 }: {
   mode: Mode
   onModeChange: (mode: Mode) => void
   plan: PlanResult | null
   onPlanChange: (plan: PlanResult | null) => void
   preset: SearchPreset | null
-  onOpenChat: () => void
 }) {
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
@@ -60,8 +56,6 @@ export default function RouteSearch({
   const [vehicle, setVehicle] = useState<Vehicle | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [aiText, setAiText] = useState('')
-  const [aiLoading, setAiLoading] = useState(false)
 
   const rememberedId = loadRememberedVehicle()
 
@@ -110,37 +104,6 @@ export default function RouteSearch({
     search(preset.from, preset.to)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preset])
-
-  async function applyAiIntent() {
-    const text = aiText.trim()
-
-    if (!text || aiLoading) return
-
-    setAiLoading(true)
-    setError(null)
-
-    try {
-      const intent = await parseRouteIntent(text)
-
-      if (!intent.start || !intent.end) {
-        setError('AI nereden/nereye çıkaramadı. İkisini de elle yazıp deneyebilirsin.')
-        return
-      }
-
-      setFrom(intent.start)
-      setTo(intent.end)
-
-      if (intent.people !== people) setPeople(intent.people)
-      if (intent.mode && intent.mode !== mode) onModeChange(intent.mode)
-
-      setAiText('')
-      await search(intent.start, intent.end)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'AI isteği başarısız oldu.')
-    } finally {
-      setAiLoading(false)
-    }
-  }
 
   function handleVehicleSelect(nextVehicle: Vehicle, remember: boolean) {
     setVehicle(nextVehicle)
@@ -338,39 +301,6 @@ export default function RouteSearch({
           'Rota Bul'
         )}
       </button>
-
-      <div className="mt-3 flex items-center gap-2 rounded-xl border border-accent/30 bg-accent/5 px-3 py-2">
-        <IconSparkle className="h-4 w-4 shrink-0 text-accent" />
-        <input
-          value={aiText}
-          onChange={(e) => setAiText(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && applyAiIntent()}
-          placeholder={'AI\'ye sor: "4 kişi İzmit\'ten İzmir\'e en ucuz?"'}
-          aria-label="AI ile doğal dilde rota ara"
-          className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted/70"
-        />
-        <button
-          type="button"
-          onClick={applyAiIntent}
-          disabled={aiLoading || !aiText.trim()}
-          aria-label="AI ile formu doldur ve ara"
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent transition-colors hover:bg-accent/25 disabled:opacity-40"
-        >
-          {aiLoading ? (
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-accent/30 border-t-accent" aria-hidden="true" />
-          ) : (
-            <IconSend className="h-4 w-4" />
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={onOpenChat}
-          aria-label="AI sohbetini aç"
-          className="shrink-0 rounded-full border border-line px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-muted transition-colors hover:border-accent hover:text-accent"
-        >
-          Sohbet
-        </button>
-      </div>
 
       {error && (
         <p role="alert" className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">

@@ -11,7 +11,7 @@ import {
   ProfileScreen,
   SavedScreen,
 } from '@/components/TabScreens'
-import { IconLogo, IconSparkle } from '@/icons'
+import { IconLogo } from '@/icons'
 import type { PlanResult } from '@/lib/api'
 
 function defaultVehicleName(): string | null {
@@ -95,13 +95,8 @@ export default function App() {
                   plan={plan}
                   onPlanChange={handlePlanChange}
                   preset={preset}
-                  onOpenChat={() => setChatOpen(true)}
                 />
               </div>
-
-              <p className="mt-4 text-center text-xs text-muted">
-                Rotalar OSRM ve İETT verileriyle hesaplanır · Hava durumu Open-Meteo
-              </p>
             </motion.section>
           </>
         )}
@@ -111,16 +106,11 @@ export default function App() {
         {tab === 'alerts' && <NotificationsScreen />}
         {tab === 'profile' && <ProfileScreen defaultVehicle={defaultVehicleName()} />}
 
-        <button
-          type="button"
-          onClick={() => setChatOpen(true)}
-          aria-label="AI asistan sohbetini aç"
-          className="fixed bottom-20 right-4 z-20 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-accent-ink shadow-xl shadow-black/40 transition-transform hover:brightness-110 active:scale-95"
-        >
-          <IconSparkle className="h-6 w-6" />
-        </button>
-
-        <BottomNav active={tab} onChange={setTab} />
+        <BottomNav
+          active={tab}
+          onChange={setTab}
+          onAi={() => setChatOpen(true)}
+        />
 
         <ChatDrawer open={chatOpen} onClose={() => setChatOpen(false)} />
       </main>
