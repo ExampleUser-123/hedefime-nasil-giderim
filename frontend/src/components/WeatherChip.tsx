@@ -18,14 +18,14 @@ function WeatherIcon({ condition, className }: { condition: string | null; class
   return <IconCloud className={className} />
 }
 
-export default function WeatherChip() {
+export default function WeatherChip({ city = 'İstanbul' }: { city?: string }) {
   const [weather, setWeather] = useState<Weather | null>(null)
   const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     let cancelled = false
 
-    fetchWeather('İstanbul')
+    fetchWeather(city)
       .then((data) => {
         if (!cancelled) setWeather(data)
       })
@@ -36,7 +36,7 @@ export default function WeatherChip() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [city])
 
   if (failed || !weather) {
     return null

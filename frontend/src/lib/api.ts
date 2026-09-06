@@ -1,6 +1,8 @@
 const API_BASE =
   import.meta.env.VITE_API_BASE ?? 'http://127.0.0.1:8000'
 
+export { API_BASE }
+
 export type Mode = 'otobus' | 'metro' | 'tramvay' | 'yuruyus' | 'arac' | 'motosiklet' | 'ucak' | 'tren' | 'deniz'
 
 export type VehicleType = 'arac' | 'motosiklet'

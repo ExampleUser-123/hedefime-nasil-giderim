@@ -33,6 +33,7 @@ export default function App() {
   const [routeIndex, setRouteIndex] = useState(0)
   const [preset, setPreset] = useState<SearchPreset | null>(null)
   const [bootSplash, setBootSplash] = useState(true)
+  const [weatherCity, setWeatherCity] = useState('İstanbul')
 
   useEffect(() => {
     const timer = setTimeout(() => setBootSplash(false), 1400)
@@ -72,6 +73,13 @@ export default function App() {
   function handlePlanChange(nextPlan: PlanResult | null) {
     setPlan(nextPlan)
     setRouteIndex(0)
+
+    if (nextPlan?.start) {
+      // "Taksim, Beyoğlu, İstanbul" -> "İstanbul"; zaten şehirse aynen kullan
+      const parts = nextPlan.start.split(',')
+      const city = parts[parts.length - 1].trim()
+      if (city) setWeatherCity(city)
+    }
   }
 
   function openRoute(entry: { from: string; to: string; people: number; mode: string }) {
@@ -115,7 +123,7 @@ export default function App() {
                 </span>
               </div>
 
-              <WeatherChip />
+              <WeatherChip city={weatherCity} />
             </header>
 
             <div className="relative z-10 flex-1" aria-hidden="true" />

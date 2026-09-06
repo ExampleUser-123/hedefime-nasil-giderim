@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { API_BASE } from '@/lib/api'
 import {
   clearHistory,
   getHistory,
@@ -123,9 +124,58 @@ export function HistoryScreen({ onOpenRoute }: { onOpenRoute: (entry: SavedRoute
 }
 
 export function NotificationsScreen() {
+  const [serverUp, setServerUp] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    fetch(`${API_BASE}/`)
+      .then((res) => {
+        if (!cancelled) setServerUp(res.ok)
+      })
+      .catch(() => {
+        if (!cancelled) setServerUp(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   return (
     <ScreenShell title="Bildirimler" icon={<IconBell className="h-5 w-5" />}>
-      <EmptyState text="Bildirimler yakında! Fiyat düşüşleri ve sefer hatırlatıcıları burada olacak." />
+      <div className="rounded-2xl border border-line bg-surface-2/90 p-4">
+        <p className="text-xs uppercase tracking-wide text-muted">Sunucu durumu</p>
+        <div className="mt-2 flex items-center gap-2">
+          <span
+            className={`h-2.5 w-2.5 rounded-full ${
+              serverUp === null
+                ? 'bg-amber-400 animate-pulse'
+                : serverUp
+                  ? 'bg-emerald-400'
+                  : 'bg-red-400'
+            }`}
+          />
+          <p className="text-sm font-bold">
+            {serverUp === null
+              ? 'Kontrol ediliyor…'
+              : serverUp
+                ? 'Sunucu çalışıyor, rota araması hazır'
+                : 'Sunucuya ulaşılamıyor — internet bağlantını kontrol et'}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-3 rounded-2xl border border-line bg-surface-2/90 p-4">
+        <p className="text-xs uppercase tracking-wide text-muted">İpuçları</p>
+        <ul className="mt-2 space-y-2 text-xs text-muted">
+          <li>· Rota sonuçlarındaki yıldıza dokunarak rotanı kaydedebilirsin.</li>
+          <li>· Araba/Motosiklet modunda "Hatırla" işaretlersen aracın her seferinde seçilir.</li>
+          <li>· Metro, Tramvay ve Deniz modlarında sadece o türde rotalar listelenir; "Tümünü göster" ile hepsini görebilirsin.</li>
+          <li>· 16 ilde şehir içi toplu taşıma, tüm Türkiye'de araç/uçak/tren hesaplaması mevcut.</li>
+          <li>· AI asistanına "Yarın 4 kişi İzmit'ten İzmir'e en ucuz nasıl gideriz?" gibi doğal sorular sorabilirsin.</li>
+        </ul>
+      </div>
     </ScreenShell>
   )
 }
