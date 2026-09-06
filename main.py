@@ -61,15 +61,8 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        # Android uygulaması (Capacitor WebView)
-        "http://localhost",
-        "https://localhost",
-        # Aynı Wi-Fi'daki telefonlar
-        "http://192.168.1.123:5173",
-    ],
+    # Genel API: Capacitor uygulaması ve web ön yüzü her yerden erişebilir
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
