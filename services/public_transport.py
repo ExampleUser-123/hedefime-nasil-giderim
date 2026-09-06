@@ -401,6 +401,41 @@ def find_transit_routes(
 
         return find_izmir_route(start_lat, start_lon, end_lat, end_lon)
 
+    if start_city == "İstanbul":
+        # İETT (otobüs/vapur/dolmuş) + OSM raylı ağ (metro/Marmaray/tramvay)
+        from concurrent.futures import ThreadPoolExecutor
+        from services.istanbul_rail import find_rail_route
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            iett_future = pool.submit(
+                find_public_transport_route,
+                start_lat, start_lon, end_lat, end_lon,
+            )
+            rail_future = pool.submit(
+                find_rail_route,
+                start_lat, start_lon, end_lat, end_lon,
+            )
+            iett_result = iett_future.result()
+            rail_result = rail_future.result()
+
+        iett_ok = iett_result.get("status") == "success"
+        rail_ok = rail_result.get("status") == "success"
+
+        if iett_ok and rail_ok:
+            merged = iett_result["routes"] + rail_result["routes"]
+            merged.sort(key=lambda r: r.get("duration_minutes") or 9999)
+            iett_result["routes"] = merged
+            iett_result["source"] = "İETT + Metro İstanbul"
+            return iett_result
+
+        if rail_ok:
+            return rail_result
+
+        if iett_ok:
+            return iett_result
+
+        return rail_result if rail_result.get("error") else iett_result
+
     direct_providers = {
         "Kocaeli": ("services.kocaeli", "find_kocaeli_route"),
         "Konya": ("services.konya", "find_konya_route"),
