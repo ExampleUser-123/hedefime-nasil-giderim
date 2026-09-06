@@ -4,6 +4,7 @@ import { addHistory } from '@/lib/storage'
 import ResultsScreen from '@/components/ResultsScreen'
 import VehiclePicker, { loadRememberedVehicle } from '@/components/VehiclePicker'
 import type { VehicleType } from '@/lib/api'
+import PlaceInput from '@/components/PlaceInput'
 import {
   IconBus,
   IconCar,
@@ -11,7 +12,6 @@ import {
   IconLocate,
   IconMetro,
   IconMoto,
-  IconPin,
   IconPlane,
   IconSparkle,
   IconSwap,
@@ -218,43 +218,40 @@ export default function RouteSearch({
         <div className="relative">
           <span className="absolute left-4 top-8 -bottom-8 w-px border-l border-dashed border-line" aria-hidden="true" />
 
-          <label className="relative flex items-center gap-3 rounded-xl bg-bg/60 px-4 py-3">
-            <IconPin className="h-5 w-5 shrink-0 text-accent" />
-            <input
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-              placeholder="Nereden"
-              className="w-full bg-transparent pr-11 text-[17px] font-medium outline-none"
-              onKeyDown={(e) => e.key === 'Enter' && search()}
-            />
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault()
-                detectLocation()
-              }}
-              aria-label="Konumumu kullan"
-              disabled={locating}
-              className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-muted transition-colors hover:text-accent disabled:opacity-40"
-            >
-              {locating ? (
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-muted/30 border-t-accent" aria-hidden="true" />
-              ) : (
-                <IconLocate className="h-4.5 w-4.5" />
-              )}
-            </button>
-          </label>
+          <PlaceInput
+            value={from}
+            onChange={setFrom}
+            placeholder="Nereden"
+            accent
+            onSubmit={search}
+            endSlot={
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  detectLocation()
+                }}
+                aria-label="Konumumu kullan"
+                disabled={locating}
+                className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-muted transition-colors hover:text-accent disabled:opacity-40"
+              >
+                {locating ? (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-muted/30 border-t-accent" aria-hidden="true" />
+                ) : (
+                  <IconLocate className="h-4.5 w-4.5" />
+                )}
+              </button>
+            }
+          />
 
-          <label className="mt-3 flex items-center gap-3 rounded-xl bg-bg/60 px-4 py-3">
-            <IconPin className="h-5 w-5 shrink-0 text-fg" />
-            <input
+          <div className="mt-3">
+            <PlaceInput
               value={to}
-              onChange={(e) => setTo(e.target.value)}
+              onChange={setTo}
               placeholder="Nereye"
-              className="w-full bg-transparent text-[17px] font-medium outline-none"
-              onKeyDown={(e) => e.key === 'Enter' && search()}
+              onSubmit={search}
             />
-          </label>
+          </div>
 
           <button
             type="button"

@@ -154,6 +154,23 @@ async function request<T>(path: string, init?: RequestInit, timeoutMs = 30000): 
   return data as T
 }
 
+export type PlaceSuggestion = {
+  name: string
+  detail: string
+  display_name: string
+  lat: number
+  lon: number
+}
+
+export function fetchSuggestions(q: string, timeoutMs = 6000): Promise<PlaceSuggestion[]> {
+  const params = new URLSearchParams({ q })
+  return request<{ suggestions: PlaceSuggestion[] }>(
+    `/suggest-places?${params}`,
+    { method: 'GET' },
+    timeoutMs,
+  ).then((data) => data.suggestions ?? [])
+}
+
 export function fetchPlan(start: string, end: string, people = 1, vehicleId?: string) {
   const params = new URLSearchParams({
     start,

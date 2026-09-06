@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from datetime import datetime
 
-from services.geocoding import search_place, reverse_geocode
+from services.geocoding import search_place, reverse_geocode, suggest_places
 from services.routing import calculate_route
 from services.fuel import get_fuel_prices, calculate_fuel_cost
 from services.vehicles import get_vehicles, get_vehicle
@@ -271,6 +271,23 @@ def search_place_endpoint(q: str):
     return {
         "query": q,
         "result": result
+    }
+
+
+@app.get("/suggest-places")
+def suggest_places_endpoint(q: str):
+    """Yazarken öneri listesi (autocomplete)."""
+
+    try:
+        suggestions = suggest_places(q)
+    except Exception:
+        # Öneri servisi kritik degil; hata durumunda bos liste
+        # donup arama akisini bozmayalim.
+        suggestions = []
+
+    return {
+        "query": q,
+        "suggestions": suggestions
     }
 
 
