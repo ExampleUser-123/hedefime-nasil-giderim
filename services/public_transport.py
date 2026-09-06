@@ -406,6 +406,16 @@ def find_transit_routes(
         "Konya": ("services.konya", "find_konya_route"),
         "Antalya": ("services.antalya", "find_antalya_route"),
         "Adana": ("services.adana", "find_adana_route"),
+        "Gaziantep": ("services.kentkart_cities", "find_gaziantep_route"),
+        "Muğla": ("services.kentkart_cities", "find_mugla_route"),
+        "Sivas": ("services.kentkart_cities", "find_sivas_route"),
+        "Düzce": ("services.kentkart_cities", "find_duzce_route"),
+        "Erzurum": ("services.kentkart_cities", "find_erzurum_route"),
+        "Ordu": ("services.kentkart_cities", "find_ordu_route"),
+        "Zonguldak": ("services.kentkart_cities", "find_zonguldak_route"),
+        "Çanakkale": ("services.kentkart_cities", "find_canakkale_route"),
+        "Samsun": ("services.kentkart_cities", "find_samsun_route"),
+        "Edirne": ("services.kentkart_cities", "find_edirne_route"),
     }
 
     provider = direct_providers.get(start_city)

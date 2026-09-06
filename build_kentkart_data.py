@@ -16,6 +16,16 @@ API = 'https://service.kentkart.com/rl1'
 CITIES = {
     'antalya': '026',
     'adana': '003',
+    'gaziantep': '028',
+    'mugla': '010',
+    'sivas': '005',
+    'duzce': '036',
+    'erzurum': '038',
+    'ordu': '031',
+    'zonguldak': '020',
+    'canakkale': '007',
+    'samsun': '025',
+    'edirne': '013',
 }
 
 GTFS_TYPES = {

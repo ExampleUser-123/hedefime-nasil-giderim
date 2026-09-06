@@ -144,7 +144,10 @@ export function ProfileScreen({ defaultVehicle }: { defaultVehicle: string | nul
         <p className="text-xs uppercase tracking-wide text-muted">Veri kaynakları</p>
         <ul className="mt-2 space-y-1 text-xs text-muted">
           <li>· İstanbul İETT (canlı rota) · İzmir ESHOT · İzdeniz</li>
-          <li>· Kocaeli, Konya, Antalya, Adana belediye verileri</li>
+          <li>· Kocaeli, Konya belediye GTFS verileri</li>
+          <li>· Antalya, Adana, Gaziantep, Muğla, Sivas</li>
+          <li>· Düzce, Erzurum, Ordu, Zonguldak, Samsun</li>
+          <li>· Çanakkale, Edirne (KentKart)</li>
           <li>· OSRM rota · Open-Meteo hava durumu</li>
           <li>· Uçak ve tren fiyatları mesafe bazlı tahminidir</li>
         </ul>
