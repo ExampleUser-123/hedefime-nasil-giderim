@@ -1,7 +1,17 @@
-import { useMemo, useState, type ReactElement } from 'react'
+import { useEffect, useMemo, useState, type ReactElement } from 'react'
 import type { Mode, PlanResult } from '@/lib/api'
 import { isSaved, toggleSaved } from '@/lib/storage'
-import { CarDetails, FlightDetails, TrainDetails, TransitList, WalkingDetails } from '@/components/RouteResults'
+import {
+  CarDetails,
+  FlightDetails,
+  isFerryRoute,
+  isMetroRoute,
+  isTramRoute,
+  straightLineKm,
+  TrainDetails,
+  TransitList,
+  WalkingDetails,
+} from '@/components/RouteResults'
 import {
   IconBus,
   IconCar,
@@ -10,7 +20,20 @@ import {
   IconPlane,
   IconStar,
   IconTrain,
+  IconWalk,
 } from '@/icons'
+
+const MODE_LABELS: Record<Mode, string> = {
+  otobus: 'Otobüs',
+  metro: 'Metro',
+  tramvay: 'Tramvay',
+  deniz: 'Deniz',
+  arac: 'Araba',
+  motosiklet: 'Motosiklet',
+  ucak: 'Uçak',
+  tren: 'Tren',
+  yuruyus: 'Yürüyüş',
+}
 
 type Candidate = {
   id: 'transit' | 'ucak' | 'tren' | 'arac' | 'yuruyus'
@@ -34,6 +57,22 @@ function formatDuration(minutes: number): string {
 function buildCandidates(plan: PlanResult, people: number, mode: Mode): Candidate[] {
   const candidates: Candidate[] = []
   const pt = plan.public_transport
+
+  if (mode === 'yuruyus') {
+    const distanceKm = plan.car?.distance_km ?? straightLineKm(plan) * 1.3
+
+    candidates.push({
+      id: 'yuruyus',
+      title: 'Yürüyüş',
+      icon: IconWalk,
+      minutes: Math.round((distanceKm / 4.8) * 60),
+      pricePerPerson: 0,
+      total: 0,
+      note: `~${distanceKm.toFixed(1)} km · tahmini`,
+    })
+
+    return candidates
+  }
 
   if (pt.status === 'success' && pt.routes.length > 0) {
     const best =
@@ -229,7 +268,72 @@ export default function ResultsScreen({
     () => buildCandidates(plan, people, mode),
     [plan, people, mode],
   )
-  const best = useMemo(() => pickBest(candidates), [candidates])
+
+  // Seçili moda göre daralt: kullanıcı belirli bir tür seçtiyse
+  // sonuç ekranı yalnızca o türü göstersin
+  const modeCandidates = useMemo(() => {
+    const routes = plan.public_transport.routes
+
+    switch (mode) {
+      case 'otobus':
+        return candidates.filter((candidate) => candidate.id === 'transit')
+      case 'metro':
+        return routes.some(isMetroRoute)
+          ? candidates.filter((candidate) => candidate.id === 'transit')
+          : []
+      case 'tramvay':
+        return routes.some(isTramRoute)
+          ? candidates.filter((candidate) => candidate.id === 'transit')
+          : []
+      case 'deniz':
+        return routes.some(isFerryRoute)
+          ? candidates.filter((candidate) => candidate.id === 'transit')
+          : []
+      case 'motosiklet':
+      case 'arac':
+        return candidates.filter((candidate) => candidate.id === 'arac')
+      case 'ucak':
+        return candidates.filter((candidate) => candidate.id === 'ucak')
+      case 'tren':
+        return candidates.filter((candidate) => candidate.id === 'tren')
+      case 'yuruyus':
+        return candidates.filter((candidate) => candidate.id === 'yuruyus')
+      default:
+        return candidates
+    }
+  }, [candidates, mode, plan])
+
+  const [showAll, setShowAll] = useState(false)
+  useEffect(() => setShowAll(false), [plan, mode])
+
+  const visibleCandidates = showAll ? candidates : modeCandidates
+  const best = useMemo(() => pickBest(visibleCandidates), [visibleCandidates])
+
+  // Seçili modda sonuç yoksa net mesaj
+  const modeEmptyMessage = (() => {
+    if (visibleCandidates.length > 0) return null
+
+    switch (mode) {
+      case 'metro':
+        return 'Bu iki nokta arasında metro ulaşımı bulunamadı.'
+      case 'tramvay':
+        return 'Bu iki nokta arasında tramvay hattı bulunamadı.'
+      case 'deniz':
+        return 'Bu iki nokta arasında deniz ulaşımı (vapur) bulunamadı.'
+      case 'motosiklet':
+        return plan.car_error ?? 'Motosiklet rotası hesaplanamadı.'
+      case 'arac':
+        return plan.car_error ?? 'Araba rotası hesaplanamadı.'
+      case 'ucak':
+        return plan.flight?.reason ?? 'Bu güzergah için uçak önerilmiyor.'
+      case 'tren':
+        return plan.train?.reason ?? 'Bu güzergah için tren önerilmiyor.'
+      case 'yuruyus':
+        return 'Yürüyüş mesafesi hesaplanamadı.'
+      default:
+        return plan.public_transport.error ?? 'Bu iki nokta arasında toplu taşıma rotası bulunamadı.'
+    }
+  })()
 
   // Seçili moda göre liste detay modu
   const listMode: Mode =
@@ -319,17 +423,36 @@ export default function ResultsScreen({
           </p>
         )}
 
-        {plan.public_transport.status !== 'success' &&
-          plan.public_transport.routes.length === 0 &&
-          !plan.car &&
-          !plan.flight?.available && (
-            <p className="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-              {plan.public_transport.error ?? 'Bu güzergah için hesaplama yapılamadı.'}
-            </p>
-          )}
+        {modeEmptyMessage && (
+          <div className="mt-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-4">
+            <p className="text-sm text-amber-200">{modeEmptyMessage}</p>
+            {candidates.length > 0 && !showAll && (
+              <button
+                type="button"
+                onClick={() => setShowAll(true)}
+                className="mt-2 text-xs font-bold text-accent underline-offset-2 hover:underline"
+              >
+                Tüm seçenekleri göster →
+              </button>
+            )}
+          </div>
+        )}
+
+        {!modeEmptyMessage && visibleCandidates.length < candidates.length && (
+          <p className="mt-4 flex items-center justify-between px-1 text-xs text-muted">
+            <span>{MODE_LABELS[mode]} modunda sonuçlar</span>
+            <button
+              type="button"
+              onClick={() => setShowAll((current) => !current)}
+              className="font-bold text-accent underline-offset-2 hover:underline"
+            >
+              {showAll ? 'Sadece seçili mod' : 'Tümünü göster'}
+            </button>
+          </p>
+        )}
 
         <div className="mt-4 space-y-3">
-          {candidates.map((candidate) => (
+          {visibleCandidates.map((candidate) => (
             <ModeCard
               key={candidate.id}
               candidate={candidate}

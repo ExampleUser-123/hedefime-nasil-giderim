@@ -65,6 +65,8 @@ function straightLineKm(result: PlanResult): number {
   return 2 * R * Math.asin(Math.sqrt(a))
 }
 
+export { straightLineKm }
+
 export function CarDetails({ car, people }: { car: CarResult; people: number }) {
   return (
     <div>
@@ -263,7 +265,15 @@ function isRailRoute(route: TransitRoute): boolean {
   )
 }
 
-function isTramRoute(route: TransitRoute): boolean {
+const METRO_TYPE_PATTERN = /METRO|MARMARAY|FUNICULAR|FUNIKULAR|SUBWAY|RAIL/
+
+export function isMetroRoute(route: TransitRoute): boolean {
+  return route.legs.some(
+    (leg) => leg.type !== 'walking' && METRO_TYPE_PATTERN.test(leg.type.toUpperCase()),
+  )
+}
+
+export function isTramRoute(route: TransitRoute): boolean {
   return route.legs.some((leg) => {
     if (leg.type === 'walking') return false
 
@@ -305,7 +315,7 @@ function routeVehicleIcons(route: TransitRoute) {
 
 const FERRY_TYPE_PATTERN = /FERRY|VAPUR|TURYOL|SHAT|SEHIR_HATLARI/
 
-function isFerryRoute(route: TransitRoute): boolean {
+export function isFerryRoute(route: TransitRoute): boolean {
   return route.legs.some(
     (leg) => leg.type !== 'walking' && FERRY_TYPE_PATTERN.test(leg.type.toUpperCase()),
   )
