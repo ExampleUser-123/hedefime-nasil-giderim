@@ -275,11 +275,14 @@ def search_place_endpoint(q: str):
 
 
 @app.get("/suggest-places")
-def suggest_places_endpoint(q: str):
-    """Yazarken öneri listesi (autocomplete)."""
+def suggest_places_endpoint(q: str, lat: float | None = None, lon: float | None = None):
+    """Yazarken öneri listesi (autocomplete).
+
+    lat/lon verilirse (cihaz konumu) sonuclar o bolgeye onceliklendirilir.
+    """
 
     try:
-        suggestions = suggest_places(q)
+        suggestions = suggest_places(q, lat=lat, lon=lon)
     except Exception:
         # Öneri servisi kritik degil; hata durumunda bos liste
         # donup arama akisini bozmayalim.

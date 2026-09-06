@@ -162,8 +162,14 @@ export type PlaceSuggestion = {
   lon: number
 }
 
-export function fetchSuggestions(q: string, timeoutMs = 6000): Promise<PlaceSuggestion[]> {
+export function fetchSuggestions(q: string, coords?: { lat: number; lon: number }, timeoutMs = 6000): Promise<PlaceSuggestion[]> {
   const params = new URLSearchParams({ q })
+
+  if (coords) {
+    params.set('lat', String(coords.lat))
+    params.set('lon', String(coords.lon))
+  }
+
   return request<{ suggestions: PlaceSuggestion[] }>(
     `/suggest-places?${params}`,
     { method: 'GET' },

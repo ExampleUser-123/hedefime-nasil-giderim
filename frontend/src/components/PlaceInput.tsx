@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { fetchSuggestions, type PlaceSuggestion } from '@/lib/api'
+import { getLastCoords, saveLastCoords } from '@/lib/storage'
 import { IconPin } from '@/icons'
 
 /**
@@ -29,6 +30,7 @@ export default function PlaceInput({
   const boxRef = useRef<HTMLDivElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null)
   const lastSyncedRef = useRef(value)
+  const locationTriedRef = useRef(false)
 
   // Dis degisiklik (preset, swap, konum) -> metni esitle
   useEffect(() => {
@@ -56,6 +58,21 @@ export default function PlaceInput({
     lastSyncedRef.current = next
     onChange(next)
 
+    // Konum izni onceden verildiyse sessizce koordinat kaydet; bir
+    // kez denenir, basarisizsa kullaniciya dokunulmaz.
+    if (!locationTriedRef.current) {
+      locationTriedRef.current = true
+
+      if (!getLastCoords() && 'geolocation' in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) =>
+            saveLastCoords(position.coords.latitude, position.coords.longitude),
+          () => {},
+          { enableHighAccuracy: false, timeout: 4000, maximumAge: 300000 },
+        )
+      }
+    }
+
     if (debounceRef.current) clearTimeout(debounceRef.current)
 
     const trimmed = next.trim()
@@ -66,7 +83,9 @@ export default function PlaceInput({
     }
 
     debounceRef.current = setTimeout(() => {
-      fetchSuggestions(trimmed)
+      // Kayitli cihaz konumu varsa onerileri o bolgeye bicimlendir
+      // ("fatih mahallesi" -> kullaniciya en yakin Fatih Mahallesi)
+      fetchSuggestions(trimmed, getLastCoords() ?? undefined)
         .then((suggestions) => {
           setItems(suggestions)
         })

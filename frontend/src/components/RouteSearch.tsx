@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { fetchPlan, reverseGeocode, type Mode, type PlanResult, type Vehicle } from '@/lib/api'
-import { addHistory } from '@/lib/storage'
+import { addHistory, saveLastCoords } from '@/lib/storage'
 import ResultsScreen from '@/components/ResultsScreen'
 import VehiclePicker, { loadRememberedVehicle } from '@/components/VehiclePicker'
 import type { VehicleType } from '@/lib/api'
@@ -188,6 +188,8 @@ export default function RouteSearch({
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         try {
+          saveLastCoords(position.coords.latitude, position.coords.longitude)
+
           const place = await reverseGeocode(
             position.coords.latitude,
             position.coords.longitude,

@@ -42,12 +42,14 @@ def search_place(query: str):
 
 
 @cached(ttl_seconds=24 * 3600)
-def suggest_places(query: str):
+def suggest_places(query: str, lat: float | None = None, lon: float | None = None):
     """Yazarken öneri: sorguya uyan yer listesi (autocomplete).
 
     Birincil kaynak Photon (OSM tabanli, yazim hatasina toleransli,
     POI sonuclarini on planda tutar: "adnan men" -> Adnan Menderes
-    Havalimani). Cevap gelmezse Nominatim'e dener.
+    Havalimani). lat/lon verilirse sonuclar o noktanin cevresine
+    onceliklendirilir (mahalle/ilce dogru bolgeden cikar).
+    Cevap gelmezse Nominatim'e dener.
     """
 
     q = query.strip()
@@ -59,11 +61,18 @@ def suggest_places(query: str):
         "User-Agent": "hedefime-nasil-giderim/1.0 (rota uygulamasi)"
     }
 
-    # --- 1) Photon ---
+    # --- 1) Photon (konum bicimi yapilabilir) ---
     try:
+        photon_params = {"q": q, "limit": 6, "lang": "default"}
+
+        if lat is not None and lon is not None:
+            photon_params["lat"] = str(lat)
+            photon_params["lon"] = str(lon)
+            photon_params["zoom"] = "13"
+
         response = requests.get(
             "https://photon.komoot.io/api/",
-            params={"q": q, "limit": 6, "lang": "default"},
+            params=photon_params,
             headers=headers,
             timeout=8
         )
@@ -101,16 +110,23 @@ def suggest_places(query: str):
     except Exception:
         pass
 
-    # --- 2) Nominatim yedegi ---
+    # --- 2) Nominatim yedegi (konum varsa yakin bolgeye oncelik) ---
+    nominatim_params = {
+        "q": q,
+        "format": "json",
+        "limit": 6,
+        "countrycodes": "tr",
+        "accept-language": "tr"
+    }
+
+    if lat is not None and lon is not None:
+        # Kullanici etrafinda ~50 km'lik pencere; bounded=0 varsayilani
+        # ile disindaki sonuclar da donebilir ama yakinlar one cikar.
+        nominatim_params["viewbox"] = f"{lon - 0.5},{lat + 0.5},{lon + 0.5},{lat - 0.5}"
+
     response = requests.get(
         "https://nominatim.openstreetmap.org/search",
-        params={
-            "q": q,
-            "format": "json",
-            "limit": 6,
-            "countrycodes": "tr",
-            "accept-language": "tr"
-        },
+        params=nominatim_params,
         headers=headers,
         timeout=10
     )

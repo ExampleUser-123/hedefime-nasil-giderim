@@ -10,7 +10,32 @@ export type HistoryEntry = SavedRoute
 
 const HISTORY_KEY = 'hng-history'
 const SAVED_KEY = 'hng-saved'
+const COORDS_KEY = 'hng-last-coords'
 const MAX_ITEMS = 20
+
+export type LastCoords = { lat: number; lon: number }
+
+export function saveLastCoords(lat: number, lon: number) {
+  try {
+    localStorage.setItem(COORDS_KEY, JSON.stringify({ lat, lon, at: Date.now() }))
+  } catch {
+    // localStorage kapaliysa sessizce devam
+  }
+}
+
+export function getLastCoords(): LastCoords | null {
+  try {
+    const raw = localStorage.getItem(COORDS_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as LastCoords & { at: number }
+    if (typeof parsed.lat !== 'number' || typeof parsed.lon !== 'number') return null
+    // 24 saatten eski konum guncel olmayabilir
+    if (Date.now() - parsed.at > 24 * 3600 * 1000) return null
+    return { lat: parsed.lat, lon: parsed.lon }
+  } catch {
+    return null
+  }
+}
 
 function readList(key: string): SavedRoute[] {
   try {
