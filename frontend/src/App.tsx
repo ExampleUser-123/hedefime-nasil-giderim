@@ -29,7 +29,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('home')
   const [chatOpen, setChatOpen] = useState(false)
   const [plan, setPlan] = useState<PlanResult | null>(null)
-  const [mode, setMode] = useState<SearchPreset['mode']>('otobus')
+  const [mode, setMode] = useState<SearchPreset['mode']>('tumu')
   const [routeIndex, setRouteIndex] = useState(0)
   const [preset, setPreset] = useState<SearchPreset | null>(null)
   const [bootSplash, setBootSplash] = useState(true)

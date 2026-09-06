@@ -11,7 +11,7 @@ const TILE_URL =
 const TILE_ATTRIBUTION =
   'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ &mdash; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 
-export type MapMode = 'otobus' | 'metro' | 'tramvay' | 'yuruyus' | 'arac' | 'motosiklet' | 'ucak' | 'tren' | 'deniz'
+export type MapMode = 'tumu' | 'otobus' | 'metro' | 'tramvay' | 'yuruyus' | 'arac' | 'motosiklet' | 'ucak' | 'tren' | 'deniz'
 
 type Path = {
   positions: LatLng[]

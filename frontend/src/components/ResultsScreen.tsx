@@ -24,6 +24,7 @@ import {
 } from '@/icons'
 
 const MODE_LABELS: Record<Mode, string> = {
+  tumu: 'Tümü',
   otobus: 'Otobüs',
   metro: 'Metro',
   tramvay: 'Tramvay',
@@ -195,7 +196,7 @@ function ModeCard({
               )}
             </p>
             {candidate.note && (
-              <p className="truncate text-xs text-muted">{candidate.note}</p>
+              <p className="break-words text-xs text-muted">{candidate.note}</p>
             )}
           </div>
         </div>
@@ -283,6 +284,9 @@ export default function ResultsScreen({
     const routes = plan.public_transport.routes
 
     switch (mode) {
+      case 'tumu':
+        // Varsayilan: ozel arac haric butun secenekler
+        return candidates.filter((candidate) => candidate.id !== 'arac')
       case 'otobus':
         return candidates.filter((candidate) => candidate.id === 'transit')
       case 'metro':
@@ -375,7 +379,7 @@ export default function ResultsScreen({
   }
 
   return (
-    <div className="fixed inset-0 z-30 overflow-y-auto bg-bg/97 backdrop-blur-md">
+    <div className="fixed inset-0 z-40 overflow-y-auto bg-bg">
       <div className="mx-auto w-full max-w-xl px-4 pb-10 pt-5 sm:px-6">
         <header className="flex items-center gap-3">
           <button
@@ -387,7 +391,7 @@ export default function ResultsScreen({
             ←
           </button>
           <div className="min-w-0 flex-1 text-center">
-            <p className="truncate text-sm font-bold">
+            <p className="break-words text-sm font-bold">
               {shortName(plan.start)}
               <span className="mx-1.5 text-accent">→</span>
               {shortName(plan.destination)}

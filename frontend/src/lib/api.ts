@@ -3,7 +3,7 @@ const API_BASE =
 
 export { API_BASE }
 
-export type Mode = 'otobus' | 'metro' | 'tramvay' | 'yuruyus' | 'arac' | 'motosiklet' | 'ucak' | 'tren' | 'deniz'
+export type Mode = 'tumu' | 'otobus' | 'metro' | 'tramvay' | 'yuruyus' | 'arac' | 'motosiklet' | 'ucak' | 'tren' | 'deniz'
 
 export type VehicleType = 'arac' | 'motosiklet'
 

@@ -13,6 +13,7 @@ import {
   IconMoto,
   IconPin,
   IconPlane,
+  IconSparkle,
   IconSwap,
   IconTram,
   IconTrain,
@@ -21,6 +22,7 @@ import {
 } from '@/icons'
 
 const MODES = [
+  { id: 'tumu', label: 'Tümü', icon: IconSparkle },
   { id: 'otobus', label: 'Otobüs', icon: IconBus },
   { id: 'metro', label: 'Metro', icon: IconMetro },
   { id: 'tramvay', label: 'Tramvay', icon: IconTram },

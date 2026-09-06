@@ -10,6 +10,7 @@ import {
 import { IconBell, IconClock, IconStar, IconUser } from '@/icons'
 
 const MODE_LABELS: Record<string, string> = {
+  tumu: 'Tümü',
   otobus: 'Otobüs',
   metro: 'Metro',
   tramvay: 'Tramvay',

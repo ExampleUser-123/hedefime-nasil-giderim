@@ -163,7 +163,7 @@ function LegRow({ leg }: { leg: TransitLeg }) {
             <span className="text-xs font-normal text-muted">(+{leg.alternate_lines.length} alternatif)</span>
           )}
         </p>
-        <p className="mt-0.5 truncate text-xs text-muted">
+        <p className="mt-0.5 break-words text-xs text-muted">
           {leg.from_stop} → {leg.to_stop}
           {leg.departure_time && ` · ${leg.departure_time}`}
           {leg.arrival_time && ` – ${leg.arrival_time}`}
@@ -214,7 +214,7 @@ function TransitRouteCard({
               </span>
             ))}
           </div>
-          <p className="mt-1 truncate text-xs text-muted">
+          <p className="mt-1 break-words text-xs text-muted">
             {route.departure_time} – {route.arrival_time}
             {route.walking_distance_m > 0 && ` · ${Math.round(route.walking_distance_m)} m yürüyüş`}
             {' · '}
@@ -607,7 +607,7 @@ export default function RouteResults({
           </p>
         )
       )}
-      {(mode === 'otobus' || mode === 'metro' || mode === 'deniz') && (
+      {(mode === 'otobus' || mode === 'metro' || mode === 'deniz' || mode === 'tramvay' || mode === 'tumu') && (
         <TransitList
           result={{ ...result, recommendations }}
           mode={mode}
@@ -619,9 +619,9 @@ export default function RouteResults({
 
       <div className="flex items-center gap-2 border-t border-line pt-3 text-xs text-muted">
         <IconRoute className="h-4 w-4 shrink-0" />
-        <span className="truncate">{result.start}</span>
-        <span aria-hidden="true">→</span>
-        <span className="truncate">{result.destination}</span>
+        <span className="min-w-0 flex-1 break-words">{result.start}</span>
+        <span aria-hidden="true" className="shrink-0">→</span>
+        <span className="min-w-0 flex-1 break-words text-right">{result.destination}</span>
       </div>
 
       <div className="flex items-center gap-3 text-xs text-muted">
