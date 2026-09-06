@@ -233,7 +233,19 @@ export default function ResultsScreen({
 
   // Seçili moda göre liste detay modu
   const listMode: Mode =
-    mode === 'deniz' || mode === 'metro' ? mode : 'otobus'
+    mode === 'deniz' || mode === 'metro' || mode === 'tramvay' ? mode : 'otobus'
+
+  const hasRailLeg = plan.public_transport.routes.some((route) =>
+    route.legs.some(
+      (leg) => leg.type !== 'walking' && /METRO|MARMARAY|TRAM|FUNIC|RAIL|NOSTAL/.test(leg.type.toUpperCase()),
+    ),
+  )
+
+  // İETT verisi metro/tramvay/Marmaray içermez; kullanıcıya dürüstçe söyle
+  const iettNote =
+    plan.public_transport.status === 'success' &&
+    (plan.public_transport.source ?? '').includes('İETT') &&
+    !hasRailLeg
 
   const shortName = (place: string) =>
     place.split(',').slice(0, 1).join('').trim() || place
@@ -298,6 +310,13 @@ export default function ResultsScreen({
               . Fiyat/zaman açısından en dengeli seçenek.
             </p>
           </div>
+        )}
+
+        {iettNote && (
+          <p className="mt-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-200">
+            ℹ️ Bu sonuç İETT verisidir: otobüs, vapur ve dolmuş seçenekleri tamdır;
+            metro, tramvay ve Marmaray hatları bu kaynakta yer almaz.
+          </p>
         )}
 
         {plan.public_transport.status !== 'success' &&

@@ -14,6 +14,7 @@ import {
   IconPin,
   IconPlane,
   IconSwap,
+  IconTram,
   IconTrain,
   IconUsers,
   IconWalk,
@@ -22,6 +23,7 @@ import {
 const MODES = [
   { id: 'otobus', label: 'Otobüs', icon: IconBus },
   { id: 'metro', label: 'Metro', icon: IconMetro },
+  { id: 'tramvay', label: 'Tramvay', icon: IconTram },
   { id: 'motosiklet', label: 'Motosiklet', icon: IconMoto },
   { id: 'deniz', label: 'Deniz', icon: IconFerry },
   { id: 'tren', label: 'Tren', icon: IconTrain },

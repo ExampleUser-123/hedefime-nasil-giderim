@@ -10,7 +10,7 @@ const TILE_URL =
 const TILE_ATTRIBUTION =
   'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ &mdash; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 
-export type MapMode = 'otobus' | 'metro' | 'yuruyus' | 'arac' | 'motosiklet' | 'ucak' | 'tren' | 'deniz'
+export type MapMode = 'otobus' | 'metro' | 'tramvay' | 'yuruyus' | 'arac' | 'motosiklet' | 'ucak' | 'tren' | 'deniz'
 
 type Path = {
   positions: LatLng[]
@@ -64,6 +64,19 @@ function buildPaths(plan: PlanResult, mode: MapMode, routeIndex: number): Path[]
       r.legs.some((leg) => leg.type !== 'walking' && /FERRY|VAPUR|TURYOL|SHAT/.test(leg.type.toUpperCase())),
     )
     if (ferry.length) routes = ferry
+  }
+
+  if (mode === 'tramvay') {
+    const tram = allRoutes.filter((r) =>
+      r.legs.some((leg) => {
+        if (leg.type === 'walking') return false
+
+        const type = leg.type.toUpperCase()
+
+        return type === 'TRAM' || type === 'TRAMVAY' || /NOSTAL|TRAMWAY/.test(type)
+      }),
+    )
+    if (tram.length) routes = tram
   }
 
   const route = routes[routeIndex] ?? routes[0]

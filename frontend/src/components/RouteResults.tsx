@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react'
 import type { CarResult, FlightEstimate, Mode, PlanResult, TrainEstimate, TransitLeg, TransitRoute } from '@/lib/api'
 import {
   IconBus,
@@ -222,9 +223,14 @@ function TransitRouteCard({
               .join(', ')}
           </p>
         </div>
-        <IconChevronRight
-          className={`h-4 w-4 shrink-0 text-muted transition-transform ${selected ? 'rotate-90' : ''}`}
-        />
+        <div className="flex shrink-0 items-center gap-1">
+          {routeVehicleIcons(route).map((Icon, index) => (
+            <Icon key={index} className="h-4 w-4 text-muted" />
+          ))}
+          <IconChevronRight
+            className={`h-4 w-4 shrink-0 text-muted transition-transform ${selected ? 'rotate-90' : ''}`}
+          />
+        </div>
       </button>
 
       {selected && (
@@ -255,6 +261,46 @@ function isRailRoute(route: TransitRoute): boolean {
   return route.legs.some(
     (leg) => leg.type !== 'walking' && RAIL_TYPES.has(leg.type.toLowerCase()),
   )
+}
+
+function isTramRoute(route: TransitRoute): boolean {
+  return route.legs.some((leg) => {
+    if (leg.type === 'walking') return false
+
+    const type = leg.type.toUpperCase()
+
+    return type === 'TRAM' || type === 'TRAMVAY' || /NOSTAL|TRAMWAY/.test(type)
+  })
+}
+
+// Rotada kullanilan arac tiplerinin ikon listesi (tekrarsiz, sirali)
+const VEHICLE_ICON_ORDER: { test: (type: string) => boolean; icon: typeof IconBus }[] = [
+  { test: (t) => /FERRY|VAPUR|TURYOL|SHAT|SEHIR_HATLARI/.test(t), icon: IconFerry },
+  { test: (t) => /METRO|MARMARAY|TRAM|FUNIC|CABLE|NOSTAL|RAIL/.test(t), icon: IconMetro },
+  { test: (t) => /TAKSI|DOLMUS|MINIBUS/.test(t), icon: IconCar },
+]
+
+function routeVehicleIcons(route: TransitRoute) {
+  const types = route.legs
+    .filter((leg) => leg.type !== 'walking')
+    .map((leg) => leg.type.toUpperCase())
+
+  const icons: ((props: { className?: string }) => ReactElement)[] = []
+  const seen = new Set<string>()
+
+  for (const { test, icon } of VEHICLE_ICON_ORDER) {
+    for (const type of types) {
+      if (!seen.has(icon.name) && test(type)) {
+        seen.add(icon.name)
+        icons.push(icon)
+        break
+      }
+    }
+  }
+
+  if (icons.length === 0 && types.length > 0) icons.push(IconBus)
+
+  return icons
 }
 
 const FERRY_TYPE_PATTERN = /FERRY|VAPUR|TURYOL|SHAT|SEHIR_HATLARI/
@@ -315,6 +361,39 @@ export function TransitList({
 
         <p className="pt-1 text-center text-xs text-muted">
           {ferryRoutes.length} deniz rotası · {source ?? 'İETT'} verileriyle
+        </p>
+      </div>
+    )
+  }
+
+  // Tramvay modu: tramvay içeren rota yoksa net mesaj ver
+  if (mode === 'tramvay') {
+    const tramRoutes = routes.filter(isTramRoute)
+
+    if (tramRoutes.length === 0) {
+      return (
+        <div className="rounded-2xl border border-line bg-bg/50 px-4 py-5 text-center text-sm text-muted">
+          Bu güzergahta tramvay hattı bulunamadı. Bu şehirde tramvay verimiz yok
+          olabilir; Otobüs moduna göz at.
+        </div>
+      )
+    }
+
+    return (
+      <div className="space-y-2.5">
+        {tramRoutes.slice(0, 4).map((route, index) => (
+          <TransitRouteCard
+            key={index}
+            route={route}
+            people={people}
+            badges={getBadges(route, recommendations)}
+            selected={index === selectedIndex}
+            onSelect={() => onSelect(index)}
+          />
+        ))}
+
+        <p className="pt-1 text-center text-xs text-muted">
+          {tramRoutes.length} tramvay rotası · {source ?? 'İETT'} verileriyle
         </p>
       </div>
     )

@@ -382,7 +382,7 @@ def parse_route_intent(text: str) -> dict:
 Cümle: "{text}"
 
 SADECE şu JSON formatında cevap ver, başka hiçbir şey yazma:
-{{"start": "başlangıç yeri", "end": "hedef yeri", "people": <1-8 arası sayı>, "mode": "<otobus|metro|deniz|arac|ucak|tren|yuruyus|null>"}}
+{{"start": "başlangıç yeri", "end": "hedef yeri", "people": <1-8 arası sayı>, "mode": "<otobus|metro|tramvay|deniz|arac|motosiklet|ucak|tren|yuruyus|null>"}}
 
 Kurallar:
 - start veya end cümlede belirtilmemişse null yaz.
@@ -423,7 +423,7 @@ Kurallar:
         "end": data.get("end"),
         "people": max(1, min(8, int(data.get("people") or 1))),
         "mode": data.get("mode") if data.get("mode") in (
-            "otobus", "metro", "deniz", "arac", "motosiklet", "ucak", "tren", "yuruyus"
+            "otobus", "metro", "tramvay", "deniz", "arac", "motosiklet", "ucak", "tren", "yuruyus"
         ) else None,
     }
 
