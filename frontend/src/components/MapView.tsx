@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { LatLng, PlanResult } from '@/lib/api'
+import { isFerryRoute, isRailRoute, isTramRoute } from '@/components/RouteResults'
 
 const ACCENT = '#2dd4bf'
 
@@ -56,27 +57,23 @@ function buildPaths(plan: PlanResult, mode: MapMode, routeIndex: number): Path[]
 
   const allRoutes = plan.public_transport.routes
 
-  // Deniz/metro modlarında listeyle aynı filtre haritada da uygulanır
+  // Liste (TransitList) ile harita ayni filtre uygular; boylece
+  // listede secilen rota indeksi haritada da ayni rotayi cizer.
   let routes = allRoutes
 
   if (mode === 'deniz') {
-    const ferry = allRoutes.filter((r) =>
-      r.legs.some((leg) => leg.type !== 'walking' && /FERRY|VAPUR|TURYOL|SHAT/.test(leg.type.toUpperCase())),
-    )
+    const ferry = allRoutes.filter(isFerryRoute)
     if (ferry.length) routes = ferry
   }
 
   if (mode === 'tramvay') {
-    const tram = allRoutes.filter((r) =>
-      r.legs.some((leg) => {
-        if (leg.type === 'walking') return false
-
-        const type = leg.type.toUpperCase()
-
-        return type === 'TRAM' || type === 'TRAMVAY' || /NOSTAL|TRAMWAY/.test(type)
-      }),
-    )
+    const tram = allRoutes.filter(isTramRoute)
     if (tram.length) routes = tram
+  }
+
+  if (mode === 'metro') {
+    const rail = allRoutes.filter(isRailRoute)
+    if (rail.length) routes = rail
   }
 
   const route = routes[routeIndex] ?? routes[0]

@@ -389,12 +389,18 @@ def find_transit_routes(
     end_city = _province_name(end_province)
 
     if start_city != end_city or start_city is None:
-        return find_public_transport_route(
-            start_lat,
-            start_lon,
-            end_lat,
-            end_lon
-        )
+        # Bilinmeyen/iliskisiz guzergahlar icin IETT'ye (Istanbul verisi)
+        # istek atmak anlamsiz sonuc uretir; durust sekilde bildir.
+        return {
+            "status": "no_route",
+            "routes": [],
+            "error": (
+                "Bu iki nokta arasında şehir içi toplu taşıma rotası "
+                "bulunamadı. Şehirler arası yolculuk için Uçak, Tren veya "
+                "Araç modunu deneyebilirsin."
+            ),
+            "source": "Hedefime Nasıl Giderim",
+        }
 
     if start_city == "İzmir":
         from services.izmir import find_izmir_route
@@ -456,12 +462,17 @@ def find_transit_routes(
     provider = direct_providers.get(start_city)
 
     if provider is None:
-        return find_public_transport_route(
-            start_lat,
-            start_lon,
-            end_lat,
-            end_lon
-        )
+        # Saglayici olmayan il (orn. Bursa) -> IETT verisi baska
+        # sehirde anlamsiz; durust "yok" cevabi dondur.
+        return {
+            "status": "no_route",
+            "routes": [],
+            "error": (
+                f"{start_city} için şehir içi toplu taşıma verimiz henüz "
+                "yok. Araç veya Uçak modunu deneyebilirsin."
+            ),
+            "source": "Hedefime Nasıl Giderim",
+        }
 
     import importlib
 

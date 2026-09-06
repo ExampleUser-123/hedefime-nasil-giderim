@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { Capacitor, type PluginListenerHandle } from '@capacitor/core'
+import { App as CapacitorApp } from '@capacitor/app'
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion'
 import splashArtwork from '@/assets/splash.png'
 import WeatherChip from '@/components/WeatherChip'
@@ -36,6 +38,36 @@ export default function App() {
     const timer = setTimeout(() => setBootSplash(false), 1400)
     return () => clearTimeout(timer)
   }, [])
+
+  // Android geri tusu: once acik ekrani kapat, ana sayfadaysa uygulamadan cik
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+
+    let handler: PluginListenerHandle | null = null
+
+    CapacitorApp.addListener('backButton', () => {
+      if (chatOpen) {
+        setChatOpen(false)
+        return
+      }
+      if (plan) {
+        setPlan(null)
+        setRouteIndex(0)
+        return
+      }
+      if (tab !== 'home') {
+        setTab('home')
+        return
+      }
+      CapacitorApp.exitApp()
+    }).then((h) => {
+      handler = h
+    })
+
+    return () => {
+      handler?.remove()
+    }
+  }, [chatOpen, plan, tab])
 
   function handlePlanChange(nextPlan: PlanResult | null) {
     setPlan(nextPlan)
@@ -102,6 +134,8 @@ export default function App() {
                   plan={plan}
                   onPlanChange={handlePlanChange}
                   preset={preset}
+                  routeIndex={routeIndex}
+                  onRouteIndexChange={setRouteIndex}
                 />
               </div>
             </motion.section>

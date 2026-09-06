@@ -1,4 +1,5 @@
 import logging
+import os
 
 from concurrent.futures import ThreadPoolExecutor
 
@@ -443,15 +444,8 @@ def plan_trip(
 
 
 # =========================================================
-# ARAÇLAR
+# ARAÇLAR (tek tanım: /vehicles yukarida liste donduruyor)
 # =========================================================
-
-@app.get("/vehicles")
-def vehicles():
-    return {
-        "vehicles": get_vehicles()
-    }
-
 
 # =========================================================
 # BELİRLİ ARAÇLA ROTA
@@ -548,14 +542,16 @@ def public_transport(
     if time is None:
         time = datetime.now().strftime("%H:%M")
 
-    result = find_public_transport_route(
+    start_province = find_province(start_place["lat"], start_place["lon"])
+    end_province = find_province(end_place["lat"], end_place["lon"])
+
+    result = find_transit_routes(
         start_place["lat"],
         start_place["lon"],
         end_place["lat"],
         end_place["lon"],
-        time=time,
-        date=date,
-        optimizefor=optimizefor
+        start_province=start_province,
+        end_province=end_province
     )
 
     result = clean_public_transport_result(
@@ -780,6 +776,16 @@ def plan(
         "Konya",
         "Antalya",
         "Adana",
+        "Gaziantep",
+        "Muğla",
+        "Sivas",
+        "Düzce",
+        "Erzurum",
+        "Ordu",
+        "Zonguldak",
+        "Çanakkale",
+        "Samsun",
+        "Edirne",
     }
 
     start_city = start_province.get("name") if start_province else None
@@ -795,10 +801,11 @@ def plan(
         and not has_provider
     ):
         public_result["error"] = (
-            "Toplu taşıma verisi şu an İstanbul, İzmir, Kocaeli, Konya, "
-            "Antalya ve Adana için mevcut. Diğer illerde Araç veya Uçak "
-            "modunu kullanabilirsin; şehir içi toplu taşıma desteği "
-            "il il eklenecek."
+            "Şehir içi toplu taşıma verisi şu an İstanbul, İzmir, Kocaeli, "
+            "Konya, Antalya, Adana, Gaziantep, Muğla, Sivas, Düzce, Erzurum, "
+            "Ordu, Zonguldak, Çanakkale, Samsun ve Edirne için mevcut. "
+            "Diğer illerde Araç veya Uçak modunu kullanabilirsin; şehir içi "
+            "toplu taşıma desteği il il eklenecek."
         )
 
     # -----------------------------------------------------
@@ -1103,7 +1110,18 @@ def cache_statistics():
 
 
 @app.post("/cache-clear")
-def clear_cache():
+def clear_cache(x_admin_key: str | None = None):
+    # Bu endpoint onbellegi temizleyip tum dis API cagrilariini
+    # sifirladigi icin acik bir tehdit: sadece ADMIN_KEY env'i
+    # tanimliysa ve dogru anahtar gonderilirse calisir.
+    admin_key = os.getenv("ADMIN_KEY")
+
+    if not admin_key or x_admin_key != admin_key:
+        return JSONResponse(
+            status_code=403,
+            content={"error": "Bu işlem için yetkiniz yok."},
+        )
+
     cache_clear()
 
     return {

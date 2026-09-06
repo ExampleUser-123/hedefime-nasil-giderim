@@ -10,7 +10,7 @@ from services.geocoding import search_place as _search_place
 from services.routing import calculate_route
 from services.fuel import calculate_fuel_cost
 from services.vehicles import get_vehicle
-from services.public_transport import find_public_transport_route
+from services.public_transport import find_transit_routes
 from services.location import find_province
 from services.weather import get_weather
 
@@ -188,13 +188,12 @@ def toplu_tasima_rota(
 ) -> dict:
     """İki nokta arasındaki toplu taşıma rotalarını bulur.
 
-    Şu anda yalnızca İstanbul için çalışır (İETT verisi).
+    Desteklenen illerde ilgili saglayiciyi (IETT, ESHOT, KentKart vb.)
+    sehir bazli secen find_transit_routes kullanilir.
 
     Args:
         start: Başlangıç noktası.
         end: Hedef noktası.
-        time: Kalkış saati (HH:MM). Verilmezse şimdi kullanılır.
-        date: Tarih (DD-MM-YYYY). Verilmezse bugün kullanılır.
 
     Returns:
         Toplu taşıma rota listesi (hatlar, duraklar, süre, ücret).
@@ -209,13 +208,13 @@ def toplu_tasima_rota(
     if end_place is None:
         return {"error": f"Hedef noktası bulunamadı: {end}"}
 
-    result = find_public_transport_route(
+    result = find_transit_routes(
         start_place["lat"],
         start_place["lon"],
         end_place["lat"],
         end_place["lon"],
-        time=time or "now",
-        date=date
+        start_province=find_province(start_place["lat"], start_place["lon"]),
+        end_province=find_province(end_place["lat"], end_place["lon"]),
     )
 
     if result.get("status") != "success":

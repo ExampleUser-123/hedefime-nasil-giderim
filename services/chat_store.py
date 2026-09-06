@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import uuid
 from datetime import datetime
@@ -11,12 +12,19 @@ CHAT_DIR = os.path.join(
 
 MAX_HISTORY_FOR_AI = 20
 
+# Oturum kimlikleri create_session icinde uretilen 12 haneli hex dizgileri.
+# Bunu dayatmak path traversal'i (../../.env gibi) engeller.
+_SESSION_ID_RE = re.compile(r"^[a-f0-9]{12}$")
+
 
 def _ensure_dir():
     os.makedirs(CHAT_DIR, exist_ok=True)
 
 
-def _session_path(session_id: str):
+def _session_path(session_id: str) -> str | None:
+    """Guvenli oturum yolu; kimlik gecersizse None doner."""
+    if not isinstance(session_id, str) or not _SESSION_ID_RE.fullmatch(session_id):
+        return None
     return os.path.join(CHAT_DIR, f"{session_id}.json")
 
 
@@ -59,11 +67,11 @@ def _save(session: dict):
 
 
 def get_session(session_id: str):
-    """Oturumu döndürür; yoksa None döner."""
+    """Oturumu döndürür; yoksa veya kimlik geçersizse None döner."""
 
     path = _session_path(session_id)
 
-    if not os.path.exists(path):
+    if path is None or not os.path.exists(path):
         return None
 
     with open(path, "r", encoding="utf-8") as file:
@@ -155,7 +163,7 @@ def delete_session(session_id: str) -> bool:
 
     path = _session_path(session_id)
 
-    if not os.path.exists(path):
+    if path is None or not os.path.exists(path):
         return False
 
     os.remove(path)

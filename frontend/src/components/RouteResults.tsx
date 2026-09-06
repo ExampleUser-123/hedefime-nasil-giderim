@@ -259,7 +259,7 @@ const RAIL_TYPES = new Set([
   'nostalgic',
 ])
 
-function isRailRoute(route: TransitRoute): boolean {
+export function isRailRoute(route: TransitRoute): boolean {
   return route.legs.some(
     (leg) => leg.type !== 'walking' && RAIL_TYPES.has(leg.type.toLowerCase()),
   )

@@ -159,12 +159,16 @@ function ModeCard({
   plan,
   people,
   listMode,
+  routeIndex,
+  onRouteIndexChange,
 }: {
   candidate: Candidate
   best: Candidate | null
   plan: PlanResult
   people: number
   listMode: Mode
+  routeIndex: number
+  onRouteIndexChange: (index: number) => void
 }) {
   const [open, setOpen] = useState(false)
   const Icon = candidate.icon
@@ -233,8 +237,8 @@ function ModeCard({
               result={plan}
               mode={listMode}
               people={people}
-              selectedIndex={0}
-              onSelect={() => {}}
+              selectedIndex={routeIndex}
+              onSelect={onRouteIndexChange}
             />
           )}
           {candidate.id === 'ucak' && plan.flight && (
@@ -258,11 +262,15 @@ export default function ResultsScreen({
   people,
   mode,
   onBack,
+  routeIndex,
+  onRouteIndexChange,
 }: {
   plan: PlanResult
   people: number
   mode: Mode
   onBack: () => void
+  routeIndex: number
+  onRouteIndexChange: (index: number) => void
 }) {
   const candidates = useMemo(
     () => buildCandidates(plan, people, mode),
@@ -460,6 +468,8 @@ export default function ResultsScreen({
               plan={plan}
               people={people}
               listMode={listMode}
+              routeIndex={routeIndex}
+              onRouteIndexChange={onRouteIndexChange}
             />
           ))}
         </div>

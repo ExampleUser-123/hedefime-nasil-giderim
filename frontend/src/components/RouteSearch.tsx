@@ -46,12 +46,16 @@ export default function RouteSearch({
   plan,
   onPlanChange,
   preset,
+  routeIndex,
+  onRouteIndexChange,
 }: {
   mode: Mode
   onModeChange: (mode: Mode) => void
   plan: PlanResult | null
   onPlanChange: (plan: PlanResult | null) => void
   preset: SearchPreset | null
+  routeIndex: number
+  onRouteIndexChange: (index: number) => void
 }) {
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
@@ -351,6 +355,8 @@ export default function RouteSearch({
           people={people}
           mode={mode}
           onBack={() => onPlanChange(null)}
+          routeIndex={routeIndex}
+          onRouteIndexChange={onRouteIndexChange}
         />
       )}
 

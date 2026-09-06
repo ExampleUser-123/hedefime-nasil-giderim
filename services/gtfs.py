@@ -1,10 +1,26 @@
 import pandas as pd
 from pathlib import Path
 from datetime import date
+from functools import lru_cache
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 STOPS_FILE = BASE_DIR / "stops.csv"
+
+
+@lru_cache(maxsize=None)
+def _csv(path_str: str) -> pd.DataFrame:
+    """
+    CSV'yi bir kez okuyup proses omrunda cache'ler.
+    stop_times.csv ~26 MB oldugu icin her istekte yeniden okumak
+    Render free tier'da saniyeler alir; bu yuzden tum okumalar
+    bu yardimcidan gecer.
+    """
+    return pd.read_csv(Path(path_str), sep=";", dtype=str)
+
+
+def _cached(name: str) -> pd.DataFrame:
+    return _csv(str(BASE_DIR / name))
 
 
 def convert_coordinate(value):
@@ -22,12 +38,7 @@ def convert_coordinate(value):
 
 
 def load_stops():
-    df = pd.read_csv(
-        STOPS_FILE,
-        sep=";",
-        dtype=str
-)
-    
+    df = _cached("stops.csv")
 
     df["lat"] = df["stop_lat"].apply(convert_coordinate)
     df["lon"] = df["stop_lon"].apply(convert_coordinate)
@@ -136,29 +147,9 @@ def find_nearest_stops(lat: float, lon: float, limit: int = 5):
     return results
 
 def get_routes_at_stop(stop_id: str):
-    base_dir = Path(__file__).resolve().parent.parent
-
-    stop_times_file = base_dir / "stop_times.csv"
-    trips_file = base_dir / "trips.csv"
-    routes_file = base_dir / "routes.csv"
-
-    stop_times = pd.read_csv(
-        stop_times_file,
-        sep=";",
-        dtype=str
-    )
-
-    trips = pd.read_csv(
-        trips_file,
-        sep=";",
-        dtype=str
-    )
-
-    routes = pd.read_csv(
-    routes_file,
-    sep=";",
-    dtype=str
-)
+    stop_times = _cached("stop_times.csv")
+    trips = _cached("trips.csv")
+    routes = _cached("routes.csv")
 
     routes["route_long_name"] = routes["route_long_name"].apply(fix_encoding)
     routes["route_long_name"] = (
@@ -211,29 +202,9 @@ def get_routes_at_stop(stop_id: str):
     return results.to_dict(orient="records")
 
 def get_stops_at_route(route_id: str, direction_id: str | None = None):
-    base_dir = Path(__file__).resolve().parent.parent
-
-    stop_times_file = base_dir / "stop_times.csv"
-    stops_file = base_dir / "stops.csv"
-    trips_file = base_dir / "trips.csv"
-
-    stop_times = pd.read_csv(
-        stop_times_file,
-        sep=";",
-        dtype=str
-    )
-
-    trips = pd.read_csv(
-        trips_file,
-        sep=";",
-        dtype=str
-    )
-
-    stops = pd.read_csv(
-        stops_file,
-        sep=";",
-        dtype=str
-    )
+    stop_times = _cached("stop_times.csv")
+    stops = _cached("stops.csv")
+    trips = _cached("trips.csv")
 
     trips = trips[
         trips["route_id"] == str(route_id)
@@ -296,27 +267,20 @@ def get_stops_at_route(route_id: str, direction_id: str | None = None):
     ].to_dict(orient="records")
 
 def get_trips_at_route(route_id: str, direction_id: str | None = None):
-    base_dir = Path(__file__).resolve().parent.parent
-
-    trips_file = base_dir / "trips.csv"
-
-    trips = pd.read_csv(
-        trips_file,
-        sep=";",
-        dtype=str
-    )
+    trips = _cached("trips.csv").copy()
 
     trips = trips[
         trips["route_id"] == str(route_id)
     ]
 
+    # Bugun aktif olan servisleri goster (direction_id verilmeseydi
+    # active_service_ids tanimsiz kaliyordu -> UnboundLocalError)
+    active_service_ids = []
+
     if direction_id is not None:
         trips = trips[
             trips["direction_id"] == str(direction_id)
         ]
-
-        # Sadece bugün aktif olan servisleri göster
-        active_service_ids = []
 
     for service_id in trips["service_id"].dropna().unique():
         if is_service_active(service_id):
@@ -339,22 +303,8 @@ def get_trips_at_route(route_id: str, direction_id: str | None = None):
     ].drop_duplicates().to_dict(orient="records")
 
 def get_trip_stop_times(trip_id: str):
-    base_dir = Path(__file__).resolve().parent.parent
-
-    stop_times_file = base_dir / "stop_times.csv"
-    stops_file = base_dir / "stops.csv"
-
-    stop_times = pd.read_csv(
-        stop_times_file,
-        sep=";",
-        dtype=str
-    )
-
-    stops = pd.read_csv(
-        stops_file,
-        sep=";",
-        dtype=str
-    )
+    stop_times = _cached("stop_times.csv")
+    stops = _cached("stops.csv")
 
     trip_times = stop_times[
         stop_times["trip_id"] == str(trip_id)
@@ -395,61 +345,13 @@ def get_trip_stop_times(trip_id: str):
         ]
     ].to_dict(orient="records")
 
-def is_service_active(service_id: str, check_date=None):
-    base_dir = Path(__file__).resolve().parent.parent
+@lru_cache(maxsize=None)
+def _calendar() -> pd.DataFrame:
+    return _cached("calendar.csv")
 
-    calendar_file = base_dir / "calendar.csv"
-
-    calendar = pd.read_csv(
-        calendar_file,
-        sep=";",
-        dtype=str
-    )
-
-    service = calendar[
-        calendar["service_id"] == str(service_id)
-    ]
-
-    if service.empty:
-        return False
-
-    service = service.iloc[0]
-
-    if check_date is None:
-        check_date = date.today()
-
-    date_number = check_date.strftime("%Y%m%d")
-
-    if date_number < service["start_date"]:
-        return False
-
-    if date_number > service["end_date"]:
-        return False
-
-    weekday_names = [
-        "monday",
-        "tuesday",
-        "wednesday",
-        "thursday",
-        "friday",
-        "saturday",
-        "sunday"
-    ]
-
-    weekday = weekday_names[check_date.weekday()]
-
-    return service[weekday] == "1"
 
 def is_service_active(service_id: str, check_date=None):
-    base_dir = Path(__file__).resolve().parent.parent
-
-    calendar_file = base_dir / "calendar.csv"
-
-    calendar = pd.read_csv(
-        calendar_file,
-        sep=";",
-        dtype=str
-    )
+    calendar = _calendar()
 
     service = calendar[
         calendar["service_id"] == str(service_id)
@@ -486,22 +388,8 @@ def is_service_active(service_id: str, check_date=None):
     return service[weekday] == "1"
 
 def find_direct_route(start_stop_id: str, end_stop_id: str):
-    base_dir = Path(__file__).resolve().parent.parent
-
-    stop_times_file = base_dir / "stop_times.csv"
-    trips_file = base_dir / "trips.csv"
-
-    stop_times = pd.read_csv(
-        stop_times_file,
-        sep=";",
-        dtype=str
-    )
-
-    trips = pd.read_csv(
-        trips_file,
-        sep=";",
-        dtype=str
-    )
+    stop_times = _cached("stop_times.csv")
+    trips = _cached("trips.csv")
 
     # Başlangıç ve hedef duraklardan geçen seferleri bul
     start_trips = stop_times[
@@ -646,30 +534,10 @@ def find_path(graph, start_stop_id: str, end_stop_id: str):
     return []
 
 def build_full_transit_graph():
-    base_dir = Path(__file__).resolve().parent.parent
-
-    stop_times_file = base_dir / "stop_times.csv"
-    trips_file = base_dir / "trips.csv"
-    stops_file = base_dir / "stops.csv"
-
-    # Dosyaları sadece bir kez oku
-    stop_times = pd.read_csv(
-        stop_times_file,
-        sep=";",
-        dtype=str
-    )
-
-    trips = pd.read_csv(
-        trips_file,
-        sep=";",
-        dtype=str
-    )
-
-    stops = pd.read_csv(
-        stops_file,
-        sep=";",
-        dtype=str
-    )
+    # Dosyaları sadece bir kez oku (modül seviyesinde cache)
+    stop_times = _cached("stop_times.csv")
+    trips = _cached("trips.csv")
+    stops = _cached("stops.csv")
 
     # Sadece bugün aktif olan servisleri bul
     active_service_ids = []
