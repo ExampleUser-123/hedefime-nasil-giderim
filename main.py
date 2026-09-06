@@ -235,7 +235,7 @@ def add_public_transport_recommendations(result):
 # ANA API
 # =========================================================
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 def home():
     return {
         "message": "HEDEFİME NASIL GİDERİM API çalışıyor!"
