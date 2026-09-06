@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { motion, MotionConfig } from 'framer-motion'
+import { useEffect, useState } from 'react'
+import { AnimatePresence, motion, MotionConfig } from 'framer-motion'
+import splashArtwork from '@/assets/splash.png'
 import WeatherChip from '@/components/WeatherChip'
 import RouteSearch, { type SearchPreset } from '@/components/RouteSearch'
 import ChatDrawer from '@/components/ChatDrawer'
@@ -29,6 +30,12 @@ export default function App() {
   const [mode, setMode] = useState<SearchPreset['mode']>('otobus')
   const [routeIndex, setRouteIndex] = useState(0)
   const [preset, setPreset] = useState<SearchPreset | null>(null)
+  const [bootSplash, setBootSplash] = useState(true)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setBootSplash(false), 1400)
+    return () => clearTimeout(timer)
+  }, [])
 
   function handlePlanChange(nextPlan: PlanResult | null) {
     setPlan(nextPlan)
@@ -113,6 +120,27 @@ export default function App() {
         />
 
         <ChatDrawer open={chatOpen} onClose={() => setChatOpen(false)} />
+
+        <AnimatePresence>
+          {bootSplash && (
+            <motion.div
+              key="boot-splash"
+              className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#00091B]"
+              initial={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.45, ease: 'easeOut' }}
+            >
+              <motion.img
+                src={splashArtwork}
+                alt="Hedefime Nasıl Giderim"
+                className="w-[72%] max-w-sm"
+                initial={{ scale: 0.94, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
     </MotionConfig>
   )
