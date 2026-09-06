@@ -116,7 +116,7 @@ export default function PlaceInput({
         <ul
           role="listbox"
           aria-label={placeholder}
-          className="absolute inset-x-0 top-full z-50 max-h-64 overflow-y-auto rounded-b-xl border border-t-0 border-line bg-surface shadow-lg shadow-black/30"
+          className="absolute inset-x-0 top-full z-[60] max-h-[21rem] overflow-y-auto overscroll-contain rounded-b-xl border border-t-0 border-line bg-surface shadow-lg shadow-black/30"
         >
           {items.map((item, index) => (
             <li key={`${item.lat}-${item.lon}-${index}`} role="option" aria-selected="false">

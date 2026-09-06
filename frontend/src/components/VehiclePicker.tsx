@@ -99,6 +99,16 @@ export default function VehiclePicker({
           />
         </div>
 
+        <label className="flex items-center gap-2.5 border-b border-line bg-accent/5 px-4 py-3 text-sm font-medium">
+          <input
+            type="checkbox"
+            checked={remember}
+            onChange={(e) => setRemember(e.target.checked)}
+            className="h-4 w-4 accent-[var(--color-accent)]"
+          />
+          Bu aracı hatırla (her seferinde sorma)
+        </label>
+
         <div className="max-h-[55vh] overflow-y-auto">
           {error && (
             <p className="px-4 py-4 text-sm text-red-300">{error}</p>
@@ -138,16 +148,6 @@ export default function VehiclePicker({
             ))}
           </ul>
         </div>
-
-        <label className="flex items-center gap-2.5 border-t border-line px-4 py-3 text-sm text-muted">
-          <input
-            type="checkbox"
-            checked={remember}
-            onChange={(e) => setRemember(e.target.checked)}
-            className="h-4 w-4 accent-[var(--color-accent)]"
-          />
-          Bu aracı hatırla (her seferinde sorma)
-        </label>
       </div>
     </div>
   )
