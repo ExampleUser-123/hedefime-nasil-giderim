@@ -1,6 +1,8 @@
 import logging
 import os
+import time
 
+from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor
 
 from fastapi import FastAPI, Request
@@ -45,6 +47,68 @@ from services.chat_store import (
 app = FastAPI(title="HEDEFİME NASIL GİDERİM")
 
 logger = logging.getLogger("hng")
+
+
+# --- Hız sınırı (rate limiting) -------------------------------------------
+# IP bazlı kayan pencere; Render tek instance çalıştırdığı için bellek içi
+# sayaç yeterli. AI/chat gibi pahalı uçlar daha sıkı sınırlanır.
+
+DEFAULT_RATE = (90, 60)  # dakikada 90 istek
+
+# Önek: (limit, pencere_saniye)
+RATE_LIMITS = {
+    "/ai-assistant": (15, 60),
+    "/parse-intent": (15, 60),
+    "/chat": (30, 60),
+    "/suggest-places": (40, 60),
+    "/search-place": (40, 60),
+    "/search-stops": (40, 60),
+}
+
+_rate_buckets: dict[tuple[str, str], deque] = defaultdict(deque)
+
+
+def _client_ip(request: Request) -> str:
+    """Render proxy arkasında çalıştığı için gerçek IP X-Forwarded-For'tan alınır."""
+    fwd = request.headers.get("x-forwarded-for")
+    if fwd:
+        return fwd.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+@app.middleware("http")
+async def rate_limit_middleware(request: Request, call_next):
+    path = request.url.path
+    rule_key = "default"
+    limit, window = DEFAULT_RATE
+    for prefix, (p_limit, p_window) in RATE_LIMITS.items():
+        if path.startswith(prefix):
+            rule_key, limit, window = prefix, p_limit, p_window
+            break
+
+    key = (_client_ip(request), rule_key)
+    now = time.monotonic()
+    bucket = _rate_buckets[key]
+    while bucket and bucket[0] <= now - window:
+        bucket.popleft()
+
+    if len(bucket) >= limit:
+        retry_after = max(1, int(window - (now - bucket[0])))
+        logger.warning("Hız sınırı aşıldı: %s %s", key[0], path)
+        return JSONResponse(
+            status_code=429,
+            headers={"Retry-After": str(retry_after)},
+            content={"error": "Çok fazla istek gönderildi. Lütfen biraz bekle ve tekrar dene."},
+        )
+
+    bucket.append(now)
+    if len(bucket) == 1:
+        # Boş kalan kovaları temizleyerek bellek şişmesini engelle
+        if len(_rate_buckets) > 10_000:
+            for k in [k for k, v in _rate_buckets.items() if not v or v[0] <= now - 300]:
+                _rate_buckets.pop(k, None)
+
+    return await call_next(request)
 
 
 @app.exception_handler(Exception)
