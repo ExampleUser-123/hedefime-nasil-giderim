@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import { createChatSession, sendAssistantMessage, type ChatMessage } from '@/lib/api'
+import { showRewardedAd } from '@/lib/ads'
 import { IconClose, IconGlobe, IconSend, IconSparkle } from '@/icons'
 
 const SESSION_KEY = 'hng-session-id'
@@ -10,6 +11,8 @@ export default function ChatDrawer({ open, onClose }: { open: boolean; onClose: 
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [quotaBlocked, setQuotaBlocked] = useState(false)
+  const lastTextRef = useRef<string | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -29,17 +32,60 @@ export default function ChatDrawer({ open, onClose }: { open: boolean; onClose: 
     return session.id
   }
 
-  async function send() {
-    const text = input.trim()
+  async function send(textArg?: string, opts?: { skipUserBubble?: boolean }) {
+    const text = (textArg ?? input).trim()
 
     if (!text || sending) return
 
-    setInput('')
+    if (!textArg) setInput('')
     setError(null)
+    setQuotaBlocked(false)
+    setSending(true)
+    if (!opts?.skipUserBubble) {
+      setMessages((prev) => [...prev, { role: 'user', text }])
+    }
+
+    try {
+      const sessionId = await ensureSession()
+      const reply = await sendAssistantMessage(sessionId, text)
+
+      setMessages((prev) => [
+        ...prev,
+        { role: 'model', text: reply.reply, searchUsed: reply.search_used },
+      ])
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Cevap alınamadı.'
+
+      if (msg.includes('limiti doldu')) {
+        // Kota doldu: reklam izleyip tekrar dene secenegi sun
+        lastTextRef.current = text
+        setQuotaBlocked(true)
+      } else {
+        setError(msg)
+      }
+    } finally {
+      setSending(false)
+    }
+  }
+
+  async function watchAdAndRetry() {
+    const text = lastTextRef.current
+
+    if (!text || sending) return
+
+    setQuotaBlocked(false)
     setSending(true)
     setMessages((prev) => [...prev, { role: 'user', text }])
 
     try {
+      const rewarded = await showRewardedAd()
+
+      if (!rewarded) {
+        setError('Reklam gösterilemedi, birazdan tekrar deneyebilirsin.')
+        return
+      }
+
+      // Reklam izlenirken dakikalık kota penceresi kapandi; simdi tekrar dene
       const sessionId = await ensureSession()
       const reply = await sendAssistantMessage(sessionId, text)
 
@@ -141,6 +187,20 @@ export default function ChatDrawer({ open, onClose }: { open: boolean; onClose: 
               {error}
             </p>
           )}
+
+          {quotaBlocked && (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">
+              <p className="text-amber-200">AI'ın dakikalık kullanım limiti doldu.</p>
+              <button
+                type="button"
+                onClick={watchAdAndRetry}
+                disabled={sending}
+                className="mt-2 flex min-h-[40px] w-full items-center justify-center gap-2 rounded-lg bg-accent font-bold text-accent-ink transition-opacity disabled:opacity-40"
+              >
+                ▶ Reklam izle, tekrar dene
+              </button>
+            </div>
+          )}
         </div>
 
         <footer className="border-t border-line p-4">
@@ -154,7 +214,7 @@ export default function ChatDrawer({ open, onClose }: { open: boolean; onClose: 
             />
             <button
               type="button"
-              onClick={send}
+              onClick={() => send()}
               disabled={!input.trim() || sending}
               aria-label="Gönder"
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-ink transition-opacity disabled:opacity-40"

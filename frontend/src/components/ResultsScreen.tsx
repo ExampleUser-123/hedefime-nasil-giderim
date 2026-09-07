@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react'
 import type { Mode, PlanResult } from '@/lib/api'
 import { isSaved, toggleSaved } from '@/lib/storage'
+import { adsAvailable, removeBanner, showBottomBanner } from '@/lib/ads'
 import {
   CarDetails,
   FlightDetails,
@@ -318,6 +319,17 @@ export default function ResultsScreen({
   const [showAll, setShowAll] = useState(false)
   useEffect(() => setShowAll(false), [plan, mode])
 
+  // Sonuc ekraninda banner reklam: acilirken goster, kapanirken kaldir
+  const withAds = useMemo(() => adsAvailable(), [])
+  useEffect(() => {
+    if (!withAds) return
+
+    showBottomBanner()
+    return () => {
+      removeBanner()
+    }
+  }, [withAds])
+
   const visibleCandidates = showAll ? candidates : modeCandidates
   const best = useMemo(() => pickBest(visibleCandidates), [visibleCandidates])
 
@@ -380,7 +392,7 @@ export default function ResultsScreen({
 
   return (
     <div className="fixed inset-0 z-40 overflow-y-auto bg-bg">
-      <div className="mx-auto w-full max-w-xl px-4 pb-10 pt-5 sm:px-6">
+      <div className={`mx-auto w-full max-w-xl px-4 pt-5 sm:px-6 ${withAds ? 'pb-32' : 'pb-10'}`}>
         <header className="flex items-center gap-3">
           <button
             type="button"
