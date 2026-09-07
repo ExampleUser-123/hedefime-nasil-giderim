@@ -1787,6 +1787,12 @@ MOTORCYCLES = {
 }
 
 
+from services.vehicle_data_extra import NEW_CARS, NEW_MOTORCYCLES
+
+VEHICLES.update(NEW_CARS)
+MOTORCYCLES.update(NEW_MOTORCYCLES)
+
+
 def get_vehicles():
     """Tüm araçlar; motorlu iki tekerliler 'motosiklet' tipiyle işaretlenir."""
     result = {}
