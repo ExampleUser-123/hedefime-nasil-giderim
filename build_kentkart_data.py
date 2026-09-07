@@ -26,6 +26,10 @@ CITIES = {
     'canakkale': '007',
     'samsun': '025',
     'edirne': '013',
+    'burdur': '017',
+    'osmaniye': '033',
+    'karabuk': '037',
+    'bartin': '040',
 }
 
 GTFS_TYPES = {

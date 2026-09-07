@@ -42,8 +42,21 @@ def load_stop_data(filename):
     except (OSError, ValueError):
         return None
 
-    for stop in stops:
+    for idx, stop in enumerate(stops):
         stop["line_keys"] = {line["n"] for line in stop["lines"]}
+
+        # OSM'ten derlenen verilerde id bos olabilir; bos/tekrarli id'ler
+        # "ayni durak" diye elenmesin diye garanti benzersiz id uret.
+        if not stop.get("id"):
+            stop["id"] = f"osm_{idx}_{stop.get('lat')}_{stop.get('lon')}"
+
+    seen_ids = set()
+    for idx, stop in enumerate(stops):
+        sid = str(stop["id"])
+        if sid in seen_ids:
+            sid = f"{sid}_d{idx}"
+            stop["id"] = sid
+        seen_ids.add(sid)
 
     return stops
 

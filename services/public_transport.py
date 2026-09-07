@@ -465,6 +465,17 @@ def find_transit_routes(
         "Manisa": ("services.extra_transit", "find_manisa_route"),
         "Tekirdağ": ("services.extra_transit", "find_tekirdag_route"),
         "Balıkesir": ("services.extra_transit", "find_balikesir_route"),
+        "Kırklareli": ("services.extra_transit", "find_kirklareli_route"),
+        "Tokat": ("services.extra_transit", "find_tokat_route"),
+        "Malatya": ("services.extra_transit", "find_malatya_route"),
+        "Isparta": ("services.extra_transit", "find_isparta_route"),
+        "Rize": ("services.extra_transit", "find_rize_route"),
+        "Mardin": ("services.extra_transit", "find_mardin_route"),
+        "Niğde": ("services.extra_transit", "find_nigde_route"),
+        "Burdur": ("services.extra_transit", "find_burdur_route"),
+        "Osmaniye": ("services.extra_transit", "find_osmaniye_route"),
+        "Karabük": ("services.extra_transit", "find_karabuk_route"),
+        "Bartın": ("services.extra_transit", "find_bartin_route"),
     }
 
     provider = direct_providers.get(start_city)

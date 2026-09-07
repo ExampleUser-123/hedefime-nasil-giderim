@@ -929,6 +929,17 @@ def plan(
         "Manisa",
         "Tekirdağ",
         "Balıkesir",
+        "Kırklareli",
+        "Tokat",
+        "Malatya",
+        "Isparta",
+        "Rize",
+        "Mardin",
+        "Niğde",
+        "Burdur",
+        "Osmaniye",
+        "Karabük",
+        "Bartın",
     }
 
     start_city = start_province.get("name") if start_province else None
