@@ -1,0 +1,142 @@
+"""Google Sign-In dogrulama + kendi JWT'mizin uretimi.
+
+Akis:
+1. Uygulama Google'dan ID Token alir (@capawesome/capacitor-google-sign-in).
+2. Backend token'i Google'in JWKS anahtarlariyla dogrular
+   (imza + audience + issuer + exp).
+3. Dogrulanirsa kendi JWT'mizi uretiriz (HS256, 7 gun) —
+   sonraki istekler "Authorization: Bearer <jwt>" ile gelir.
+
+Sifre hicbir yerde saklanmaz; hesap guvenligini Google tasir.
+"""
+
+import os
+import time
+
+import jwt
+from jwt import PyJWKClient
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
+GOOGLE_JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs"
+GOOGLE_ISSUERS = ("accounts.google.com", "https://accounts.google.com")
+
+TOKEN_TTL_SECONDS = 7 * 24 * 3600  # 7 gun
+
+# Google JWKS anahtarlari surekli degismedigi icin surekli cekmemek adina
+# PyJWKClient kendi icinde onbellekler (lifespan: 1 saat).
+_jwk_client = PyJWKClient(GOOGLE_JWKS_URL, cache_jwk_set=True, lifespan=3600)
+
+_bearer_scheme = HTTPBearer(auto_error=False)
+
+
+class AuthError(Exception):
+    """Kimlik dogrulama hatalari icin tek tip istisna."""
+
+
+def _google_client_id() -> str | None:
+    """Token'in kime kesildigini dogrulayacagimiz OAuth client ID (env)."""
+    return os.getenv("GOOGLE_CLIENT_ID")
+
+
+def _jwt_secret() -> str:
+    secret = os.getenv("JWT_SECRET")
+
+    if secret:
+        return secret
+
+    # Render'da JWT_SECRET tanimli olacak. Tanimli degilse (lokal hizli
+    # deneme) surec icinde uretilir — deploy'lar arasi gecersiz olur,
+    # bu yuzden log'la uyariyoruz.
+    import logging
+    import secrets as _secrets
+
+    logging.getLogger("hng").warning(
+        "JWT_SECRET tanimli degil! Gecici anahtar uretildi; "
+        "deploy/restart sonrasi oturumlar sifirlanir."
+    )
+
+    return _secrets.token_hex(32)
+
+
+def verify_google_token(id_token: str) -> dict:
+    """Google ID Token'i dogrular; payload (sub, email, name, picture) doner."""
+
+    client_id = _google_client_id()
+
+    if not client_id:
+        raise AuthError("Sunucu tarafinda GOOGLE_CLIENT_ID tanimli degil.")
+
+    if not id_token or len(id_token) > 5000:
+        raise AuthError("Gecersiz kimlik bilgisi.")
+
+    try:
+        signing_key = _jwk_client.get_signing_key_from_jwt(id_token)
+
+        payload = jwt.decode(
+            id_token,
+            signing_key.key,
+            algorithms=["RS256"],
+            audience=client_id,
+            options={"require": ["exp", "iat", "aud", "sub"]},
+        )
+
+    except jwt.PyJWTError as exc:
+        raise AuthError("Google kimlik dogrulamasi basarisiz.") from exc
+
+    issuer = payload.get("iss") or ""
+
+    if issuer not in GOOGLE_ISSUERS:
+        raise AuthError("Google kimlik dogrulamasi basarisiz.")
+
+    # email_verified olmayan hesaplar ve tek seferlik token'lar kabul edilmez
+    if payload.get("email_verified") is False:
+        raise AuthError("Google hesabinin e-postasi dogrulanmamis.")
+
+    return payload
+
+
+def issue_app_token(user: dict) -> str:
+    """Dogrulanmis kullanici icin kendi JWT'mizi uretir."""
+
+    now = int(time.time())
+
+    return jwt.encode(
+        {
+            "sub": user["id"],
+            "email": user.get("email"),
+            "name": user.get("name"),
+            "iat": now,
+            "exp": now + TOKEN_TTL_SECONDS,
+        },
+        _jwt_secret(),
+        algorithm="HS256",
+    )
+
+
+def decode_app_token(token: str) -> dict:
+    """Kendi JWT'mizi dogrular; payload doner. Gecersizse AuthError."""
+
+    try:
+        payload = jwt.decode(
+            token,
+            _jwt_secret(),
+            algorithms=["HS256"],
+            options={"require": ["exp", "iat", "sub"]},
+        )
+
+    except jwt.PyJWTError as exc:
+        raise AuthError("Oturum gecersiz veya suresi dolmus.") from exc
+
+    if not isinstance(payload.get("sub"), str) or not payload["sub"]:
+        raise AuthError("Oturum gecersiz.")
+
+    return payload
+
+
+def extract_bearer_token(
+    credentials: HTTPAuthorizationCredentials | None,
+) -> str:
+    if credentials is None or not credentials.credentials:
+        raise AuthError("Bu islem icin giris yapmalisin.")
+
+    return credentials.credentials

@@ -5,10 +5,11 @@ import time
 from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from fastapi.security import HTTPAuthorizationCredentials
+from pydantic import BaseModel, Field
 from datetime import datetime
 
 from services.geocoding import search_place, reverse_geocode, suggest_places
@@ -20,6 +21,16 @@ from services.location import find_province
 from services.weather import get_weather
 from services.flight import estimate_flight
 from services.train import estimate_train
+
+from services.auth import (
+    AuthError,
+    verify_google_token,
+    issue_app_token,
+    decode_app_token,
+    extract_bearer_token,
+    _bearer_scheme,
+)
+from services import user_store
 
 from services.gtfs import (
     search_stops,
@@ -122,6 +133,46 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={"error": "Sunucuda beklenmeyen bir hata oluştu. Lütfen tekrar dene."},
     )
+
+
+# --- Kimlik doğrulama ------------------------------------------------------
+
+_user_ai_buckets: dict[str, deque] = defaultdict(deque)
+
+USER_AI_RATE = (15, 60)  # kullanıcı başına dakikada 15 AI isteği
+
+
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
+) -> dict:
+    """Korumalı uçlar için dependency: Bearer JWT doğrular, kullanıcıyı döner."""
+
+    try:
+        token = extract_bearer_token(credentials)
+        payload = decode_app_token(token)
+
+    except AuthError as exc:
+        raise HTTPException(status_code=401, detail=str(exc))
+
+    user = user_store.get_user(payload["sub"])
+
+    if user is None:
+        raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı.")
+
+    return user
+
+
+class GoogleAuthBody(BaseModel):
+    credential: str
+
+
+class FavoriteBody(BaseModel):
+    fr: str = Field(alias="from")
+    to: str
+    people: int = 1
+    mode: str = "tumu"
+
+    model_config = {"populate_by_name": True}
 
 
 app.add_middleware(
@@ -1032,6 +1083,81 @@ def weather(
 
 
 # =========================================================
+# KİMLİK DOĞRULAMA + FAVORİLER
+# =========================================================
+
+@app.post("/auth/google")
+def auth_google(body: GoogleAuthBody):
+    """Google ID Token doğrular, kullanıcıyı kaydeder, uygulama JWT'si üretir."""
+
+    try:
+        payload = verify_google_token(body.credential)
+
+    except AuthError as exc:
+        return JSONResponse(status_code=401, content={"error": str(exc)})
+
+    user = user_store.upsert_google_user(payload)
+
+    return {
+        "token": issue_app_token(user),
+        "user": user_store.public_user(user),
+    }
+
+
+@app.get("/auth/me")
+def auth_me(user: dict = Depends(get_current_user)):
+    return {"user": user_store.public_user(user)}
+
+
+@app.get("/favorites")
+def get_favorites(user: dict = Depends(get_current_user)):
+    return {"favorites": user_store.list_favorites(user["id"])}
+
+
+@app.post("/favorites")
+def add_favorite(body: FavoriteBody, user: dict = Depends(get_current_user)):
+    favorites = user_store.add_favorite(user["id"], {
+        "from": body.fr.strip(),
+        "to": body.to.strip(),
+        "people": max(1, min(body.people, 10)),
+        "mode": body.mode,
+    })
+
+    if favorites is None:
+        return JSONResponse(
+            status_code=400,
+            content={"error": f"Favori listen dolu (en fazla {user_store.MAX_FAVORITES})."},
+        )
+
+    return {"favorites": favorites}
+
+
+@app.delete("/favorites/{favorite_id}")
+def delete_favorite(favorite_id: str, user: dict = Depends(get_current_user)):
+    favorites = user_store.remove_favorite(user["id"], favorite_id)
+
+    if favorites is None:
+        return JSONResponse(status_code=401, content={"error": "Kullanıcı bulunamadı."})
+
+    return {"favorites": favorites}
+
+
+@app.get("/admin/users")
+def admin_users(x_admin_key: str | None = None):
+    """Kötüye kullanım incelemesi: kullanıcı listesi + AI kullanım sayaçları."""
+
+    admin_key = os.getenv("ADMIN_KEY")
+
+    if not admin_key or x_admin_key != admin_key:
+        return JSONResponse(
+            status_code=403,
+            content={"error": "Bu işlem için yetkiniz yok."},
+        )
+
+    return {"users": user_store.admin_user_overview()}
+
+
+# =========================================================
 # AI ASİSTAN
 # =========================================================
 
@@ -1070,7 +1196,7 @@ def parse_intent(body: IntentMessage):
 
 
 @app.post("/ai-assistant")
-def ai_assistant(body: AssistantMessage):
+def ai_assistant(body: AssistantMessage, user: dict = Depends(get_current_user)):
 
     message = body.message.strip()
 
@@ -1078,6 +1204,25 @@ def ai_assistant(body: AssistantMessage):
         return {
             "error": "Mesaj boş olamaz."
         }
+
+    # -----------------------------------------------------
+    # KULLANICI BAZLI HIZ SINIRI
+    # -----------------------------------------------------
+
+    now = time.monotonic()
+    bucket = _user_ai_buckets[user["id"]]
+
+    while bucket and bucket[0] <= now - USER_AI_RATE[1]:
+        bucket.popleft()
+
+    if len(bucket) >= USER_AI_RATE[0]:
+        return {
+            "error": "AI asistanının dakikalık kullanım limiti doldu. "
+            "Reklam izleyip tekrar deneyebilirsin."
+        }
+
+    bucket.append(now)
+    user_store.count_ai_request(user["id"])
 
     # -----------------------------------------------------
     # OTURUM: session_id verildiyse geçmişi oradan al
@@ -1092,6 +1237,12 @@ def ai_assistant(body: AssistantMessage):
         if session is None:
             return {
                 "error": f"Sohbet oturumu bulunamadı: {body.session_id}"
+            }
+
+        # Oturum sahipliği: başkasının oturumuna yazılamaz/okunamaz
+        if session.get("user_id") != user["id"]:
+            return {
+                "error": "Bu sohbet oturumu sana ait değil."
             }
 
         history = get_ai_history(session)
@@ -1140,25 +1291,26 @@ def ai_assistant(body: AssistantMessage):
 # =========================================================
 
 @app.post("/chat/sessions")
-def create_chat_session(title: str | None = None):
+def create_chat_session(title: str | None = None, user: dict = Depends(get_current_user)):
 
     session = create_session(
-        title or "Yeni sohbet"
+        title or "Yeni sohbet",
+        user_id=user["id"],
     )
 
     return session
 
 
 @app.get("/chat/sessions")
-def list_chat_sessions():
+def list_chat_sessions(user: dict = Depends(get_current_user)):
 
     return {
-        "sessions": list_sessions()
+        "sessions": list_sessions(user_id=user["id"])
     }
 
 
 @app.get("/chat/sessions/{session_id}")
-def get_chat_session(session_id: str):
+def get_chat_session(session_id: str, user: dict = Depends(get_current_user)):
 
     session = get_session(session_id)
 
@@ -1167,16 +1319,26 @@ def get_chat_session(session_id: str):
             "error": f"Sohbet oturumu bulunamadı: {session_id}"
         }
 
+    if session.get("user_id") != user["id"]:
+        return JSONResponse(status_code=403, content={"error": "Bu sohbet oturumu sana ait değil."})
+
     return session
 
 
 @app.delete("/chat/sessions/{session_id}")
-def delete_chat_session(session_id: str):
+def delete_chat_session(session_id: str, user: dict = Depends(get_current_user)):
 
-    if not delete_session(session_id):
+    session = get_session(session_id)
+
+    if session is None:
         return {
             "error": f"Sohbet oturumu bulunamadı: {session_id}"
         }
+
+    if session.get("user_id") != user["id"]:
+        return JSONResponse(status_code=403, content={"error": "Bu sohbet oturumu sana ait değil."})
+
+    delete_session(session_id)
 
     return {
         "message": "Sohbet oturumu silindi.",

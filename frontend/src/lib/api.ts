@@ -123,14 +123,40 @@ export type ChatMessage = {
   searchUsed?: boolean
 }
 
+const TOKEN_KEY = 'hng-auth-token'
+
+export function getAuthToken(): string | null {
+  try {
+    return localStorage.getItem(TOKEN_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function setAuthToken(token: string | null) {
+  try {
+    if (token) localStorage.setItem(TOKEN_KEY, token)
+    else localStorage.removeItem(TOKEN_KEY)
+  } catch {
+    // localStorage kapaliysa sessizce devam
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit, timeoutMs = 30000): Promise<T> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
 
+  const headers = new Headers(init?.headers)
+  const token = getAuthToken()
+
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`)
+  }
+
   let response: Response
 
   try {
-    response = await fetch(`${API_BASE}${path}`, { ...init, signal: controller.signal })
+    response = await fetch(`${API_BASE}${path}`, { ...init, headers, signal: controller.signal })
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw new Error('İstek çok uzun sürdü. İnternet bağlantını kontrol edip tekrar dene.')
@@ -144,7 +170,7 @@ async function request<T>(path: string, init?: RequestInit, timeoutMs = 30000): 
   const data = await response.json().catch(() => null)
 
   if (!response.ok) {
-    throw new Error(data?.error ?? 'Sunucu bir hata verdi. Lütfen tekrar dene.')
+    throw new Error(data?.error ?? data?.detail ?? 'Sunucu bir hata verdi. Lütfen tekrar dene.')
   }
 
   if (data?.error) {
@@ -236,4 +262,53 @@ export function parseRouteIntent(text: string) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ message: text }),
   }, 30000)
+}
+
+// --- Hesap (auth) + favoriler ----------------------------------------------
+
+export type AuthUser = {
+  id: string
+  email: string | null
+  name: string | null
+  picture: string | null
+  created_at?: string
+}
+
+export type ServerFavorite = {
+  id: string
+  from: string
+  to: string
+  people: number
+  mode: string
+  created_at: string
+}
+
+export function authWithGoogle(idToken: string) {
+  return request<{ token: string; user: AuthUser }>('/auth/google', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ credential: idToken }),
+  }, 20000)
+}
+
+export function fetchAuthMe() {
+  return request<{ user: AuthUser }>('/auth/me', undefined, 15000)
+}
+
+export function fetchFavorites() {
+  return request<{ favorites: ServerFavorite[] }>('/favorites', undefined, 15000)
+}
+
+export function addFavorite(entry: { from: string; to: string; people: number; mode: string }) {
+  return request<{ favorites: ServerFavorite[] }>('/favorites', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from: entry.from, to: entry.to, people: entry.people, mode: entry.mode }),
+  }, 15000)
+}
+
+export function deleteFavorite(id: string) {
+  return request<{ favorites: ServerFavorite[] }>(`/favorites/${id}`, {
+    method: 'DELETE',
+  }, 15000)
 }

@@ -12,6 +12,7 @@ dependencies {
     implementation project(':capacitor-community-admob')
     implementation project(':capacitor-app')
     implementation project(':capacitor-geolocation')
+    implementation project(':capawesome-capacitor-google-sign-in')
 
 }
 

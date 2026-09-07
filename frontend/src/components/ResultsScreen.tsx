@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react'
 import type { Mode, PlanResult } from '@/lib/api'
-import { isSaved, toggleSaved } from '@/lib/storage'
+import { loadFavorites, toggleFavorite } from '@/lib/favorites'
 import { adsAvailable, removeBanner, showBottomBanner } from '@/lib/ads'
 import {
   CarDetails,
@@ -266,6 +266,7 @@ export default function ResultsScreen({
   onBack,
   routeIndex,
   onRouteIndexChange,
+  onRequireLogin,
 }: {
   plan: PlanResult
   people: number
@@ -273,6 +274,7 @@ export default function ResultsScreen({
   onBack: () => void
   routeIndex: number
   onRouteIndexChange: (index: number) => void
+  onRequireLogin: () => void
 }) {
   const candidates = useMemo(
     () => buildCandidates(plan, people, mode),
@@ -378,16 +380,51 @@ export default function ResultsScreen({
   const shortName = (place: string) =>
     place.split(',').slice(0, 1).join('').trim() || place
 
-  const [saved, setSaved] = useState(() => isSaved(plan.start, plan.destination))
+  const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
 
-  function handleToggleSaved() {
-    const nowSaved = toggleSaved({
-      from: plan.start,
-      to: plan.destination,
-      people,
-      mode,
-    })
-    setSaved(nowSaved)
+  // Bu guzergah hesap favorilerinde var mi?
+  useEffect(() => {
+    let cancelled = false
+
+    loadFavorites()
+      .then(({ items }) => {
+        if (cancelled) return
+        setSaved(items.some((item) => item.from === plan.start && item.to === plan.destination))
+      })
+      .catch(() => {
+        // sunucu yoksa yildiz kapali kalir
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [plan.start, plan.destination])
+
+  async function handleToggleSaved() {
+    if (saving) return
+
+    setSaving(true)
+
+    try {
+      const result = await toggleFavorite({
+        from: plan.start,
+        to: plan.destination,
+        people,
+        mode,
+      })
+
+      if (result.needsLogin) {
+        onRequireLogin()
+        return
+      }
+
+      setSaved(result.saved)
+    } catch {
+      // hata durumunda yildiz durumunu dokunma
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (

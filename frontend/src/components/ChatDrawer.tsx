@@ -2,11 +2,22 @@ import { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
 import { createChatSession, sendAssistantMessage, type ChatMessage } from '@/lib/api'
 import { showRewardedAd } from '@/lib/ads'
+import { isAuthed } from '@/lib/auth'
 import { IconClose, IconGlobe, IconSend, IconSparkle } from '@/icons'
 
 const SESSION_KEY = 'hng-session-id'
 
-export default function ChatDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+export default function ChatDrawer({
+  open,
+  onClose,
+  onRequireLogin,
+  authOk,
+}: {
+  open: boolean
+  onClose: () => void
+  onRequireLogin: () => void
+  authOk: boolean
+}) {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
@@ -14,6 +25,19 @@ export default function ChatDrawer({ open, onClose }: { open: boolean; onClose: 
   const [quotaBlocked, setQuotaBlocked] = useState(false)
   const lastTextRef = useRef<string | null>(null)
   const listRef = useRef<HTMLDivElement>(null)
+
+  // Giris yapildiginda eski anonim oturumu birak; kullaniciya ait oturum acilir
+  useEffect(() => {
+    if (open && authOk) {
+      const stored = localStorage.getItem(SESSION_KEY)
+
+      if (stored) {
+        // oturum sahipligi sunucuda kontrol edilir; gecersizse hata mesaji
+        // gorebilir — en temizi giristen sonra her zaman yeni oturum
+        localStorage.removeItem(SESSION_KEY)
+      }
+    }
+  }, [open, authOk])
 
   useEffect(() => {
     if (listRef.current) {
@@ -36,6 +60,12 @@ export default function ChatDrawer({ open, onClose }: { open: boolean; onClose: 
     const text = (textArg ?? input).trim()
 
     if (!text || sending) return
+
+    // AI sohbet hesap istiyor: giris yapilmamissa giris akisini ac
+    if (!isAuthed()) {
+      onRequireLogin()
+      return
+    }
 
     if (!textArg) setInput('')
     setError(null)
@@ -126,7 +156,24 @@ export default function ChatDrawer({ open, onClose }: { open: boolean; onClose: 
         </header>
 
         <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
-          {messages.length === 0 && !error && (
+          {!authOk && (
+            <div className="rounded-2xl border border-accent/40 bg-accent/10 p-4 text-sm">
+              <p className="font-bold">AI asistanı hesapla kullanılıyor</p>
+              <p className="mt-1 leading-relaxed text-muted">
+                Giriş yaptığında soruların hesabına kaydedilir ve limit dolduğunda
+                reklam izleyerek devam edebilirsin.
+              </p>
+              <button
+                type="button"
+                onClick={onRequireLogin}
+                className="mt-3 flex min-h-[42px] w-full items-center justify-center rounded-xl bg-accent font-bold text-accent-ink"
+              >
+                Google ile giriş yap
+              </button>
+            </div>
+          )}
+
+          {messages.length === 0 && !error && authOk && (
             <div className="mt-6 rounded-2xl border border-line bg-surface-2 p-4 text-sm leading-relaxed text-muted">
               Merhaba! Bana nereye gitmek istediğini yaz, rota, maliyet ve hava durumu bilgisiyle
               senin için en uygun yolu bulayım. Örneğin: <span className="text-fg">"Yarın Kadıköy'den İzmir'e iki kişi gideceğim, en ucuz yol hangisi?"</span>

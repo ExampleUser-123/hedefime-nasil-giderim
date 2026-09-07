@@ -50,6 +50,7 @@ export default function RouteSearch({
   preset,
   routeIndex,
   onRouteIndexChange,
+  onRequireLogin,
 }: {
   mode: Mode
   onModeChange: (mode: Mode) => void
@@ -58,6 +59,7 @@ export default function RouteSearch({
   preset: SearchPreset | null
   routeIndex: number
   onRouteIndexChange: (index: number) => void
+  onRequireLogin: () => void
 }) {
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
@@ -358,6 +360,7 @@ export default function RouteSearch({
           onBack={() => onPlanChange(null)}
           routeIndex={routeIndex}
           onRouteIndexChange={onRouteIndexChange}
+          onRequireLogin={onRequireLogin}
         />
       )}
 

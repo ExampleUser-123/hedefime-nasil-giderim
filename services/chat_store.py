@@ -28,7 +28,7 @@ def _session_path(session_id: str) -> str | None:
     return os.path.join(CHAT_DIR, f"{session_id}.json")
 
 
-def create_session(title: str = "Yeni sohbet") -> dict:
+def create_session(title: str = "Yeni sohbet", user_id: str | None = None) -> dict:
     """Yeni bir sohbet oturumu oluşturur."""
 
     _ensure_dir()
@@ -42,6 +42,7 @@ def create_session(title: str = "Yeni sohbet") -> dict:
         "title": title,
         "created_at": now,
         "updated_at": now,
+        "user_id": user_id,
         "messages": []
     }
 
@@ -78,8 +79,11 @@ def get_session(session_id: str):
         return json.load(file)
 
 
-def list_sessions() -> list:
-    """Tüm oturumları en son güncellenenden itibaren listeler."""
+def list_sessions(user_id: str | None = None) -> list:
+    """Oturumları en son güncellenenden itibaren listeler.
+
+    user_id verilirse yalnızca o kullanıcının oturumları döner.
+    """
 
     _ensure_dir()
 
@@ -97,11 +101,15 @@ def list_sessions() -> list:
             ) as file:
                 session = json.load(file)
 
+            if user_id is not None and session.get("user_id") != user_id:
+                continue
+
             sessions.append({
                 "id": session["id"],
                 "title": session.get("title"),
                 "created_at": session.get("created_at"),
                 "updated_at": session.get("updated_at"),
+                "user_id": session.get("user_id"),
                 "message_count": len(session.get("messages", []))
             })
 

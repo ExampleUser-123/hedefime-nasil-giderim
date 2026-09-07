@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react'
-import { API_BASE } from '@/lib/api'
+import { API_BASE, type AuthUser } from '@/lib/api'
 import {
   clearHistory,
   getHistory,
-  getSaved,
-  removeSaved,
   type SavedRoute,
 } from '@/lib/storage'
+import {
+  loadFavorites,
+  toggleFavorite,
+  type FavoriteView,
+} from '@/lib/favorites'
+import { signOut } from '@/lib/auth'
 import { IconBell, IconClock, IconStar, IconUser } from '@/icons'
 
 const MODE_LABELS: Record<string, string> = {
@@ -27,7 +31,7 @@ export function RouteListRow({
   onOpen,
   onRemove,
 }: {
-  entry: SavedRoute
+  entry: { from: string; to: string; people: number; mode: string }
   onOpen: () => void
   onRemove?: () => void
 }) {
@@ -64,23 +68,51 @@ export function RouteListRow({
   )
 }
 
-export function SavedScreen({ onOpenRoute }: { onOpenRoute: (entry: SavedRoute) => void }) {
-  const [saved, setSaved] = useState(() => getSaved())
+export function SavedScreen({
+  onOpenRoute,
+}: {
+  onOpenRoute: (entry: { from: string; to: string; people: number; mode: string }) => void
+}) {
+  const [items, setItems] = useState<FavoriteView[] | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    loadFavorites()
+      .then(({ items: favorites }) => {
+        if (!cancelled) setItems(favorites)
+      })
+      .catch(() => {
+        if (!cancelled) setItems([])
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   return (
     <ScreenShell title="Kayıtlılar" icon={<IconStar className="h-5 w-5" />}>
-      {saved.length === 0 ? (
+      {items === null ? (
+        <EmptyState text="Kayıtlı rotalar yükleniyor…" />
+      ) : items.length === 0 ? (
         <EmptyState text="Henüz kaydedilmiş rota yok. Arama sonuçlarındaki yıldıza dokunarak rotanı kaydedebilirsin." />
       ) : (
         <div className="space-y-2.5">
-          {saved.map((entry) => (
+          {items.map((entry) => (
             <RouteListRow
-              key={`${entry.from}-${entry.to}`}
+              key={entry.id ?? `${entry.from}-${entry.to}`}
               entry={entry}
               onOpen={() => onOpenRoute(entry)}
-              onRemove={() => {
-                removeSaved(entry.from, entry.to)
-                setSaved(getSaved())
+              onRemove={async () => {
+                const result = await toggleFavorite({
+                  from: entry.from,
+                  to: entry.to,
+                  people: entry.people,
+                  mode: entry.mode,
+                })
+
+                if (result.items) setItems(result.items)
               }}
             />
           ))}
@@ -181,10 +213,69 @@ export function NotificationsScreen() {
   )
 }
 
-export function ProfileScreen({ defaultVehicle }: { defaultVehicle: string | null }) {
+export function ProfileScreen({
+  defaultVehicle,
+  user,
+  onRequireLogin,
+  onLogout,
+}: {
+  defaultVehicle: string | null
+  user: AuthUser | null
+  onRequireLogin: () => void
+  onLogout: () => void
+}) {
   return (
     <ScreenShell title="Profil" icon={<IconUser className="h-5 w-5" />}>
-      <div className="rounded-2xl border border-line bg-surface-2/90 p-4">
+      {user ? (
+        <div className="rounded-2xl border border-line bg-surface-2/90 p-4">
+          <div className="flex items-center gap-3">
+            {user.picture ? (
+              <img
+                src={user.picture}
+                alt=""
+                className="h-12 w-12 rounded-full border border-line"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/15 text-lg font-bold text-accent">
+                {(user.name ?? 'K').slice(0, 1).toUpperCase()}
+              </span>
+            )}
+            <div className="min-w-0">
+              <p className="truncate text-sm font-bold">{user.name ?? 'Kullanıcı'}</p>
+              <p className="truncate text-xs text-muted">{user.email}</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={async () => {
+              await signOut()
+              onLogout()
+            }}
+            className="mt-4 w-full rounded-xl border border-line py-2.5 text-xs font-bold text-muted transition-colors hover:border-red-400/50 hover:text-red-300"
+          >
+            Çıkış yap
+          </button>
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-line bg-surface-2/90 p-4">
+          <p className="text-xs uppercase tracking-wide text-muted">Hesap</p>
+          <p className="mt-1 text-sm font-bold">Google ile giriş yap</p>
+          <p className="mt-1 text-xs text-muted">
+            Favori rotaların hesabına kaydedilir, telefonda kalmaz. AI asistanı
+            da hesapla kullanılır.
+          </p>
+          <button
+            type="button"
+            onClick={onRequireLogin}
+            className="mt-3 w-full rounded-xl bg-accent py-2.5 text-sm font-bold text-accent-ink"
+          >
+            Google ile giriş yap
+          </button>
+        </div>
+      )}
+
+      <div className="mt-3 rounded-2xl border border-line bg-surface-2/90 p-4">
         <p className="text-xs uppercase tracking-wide text-muted">Varsayılan araç</p>
         <p className="mt-1 text-sm font-bold">{defaultVehicle ?? 'Araba/Motosiklet modunda seçilmedi'}</p>
         <p className="mt-1 text-xs text-muted">

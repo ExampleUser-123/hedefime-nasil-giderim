@@ -6,6 +6,7 @@ import splashArtwork from '@/assets/splash.png'
 import WeatherChip from '@/components/WeatherChip'
 import RouteSearch, { type SearchPreset } from '@/components/RouteSearch'
 import ChatDrawer from '@/components/ChatDrawer'
+import LoginSheet from '@/components/LoginSheet'
 import MapView from '@/components/MapView'
 import BottomNav, { type Tab } from '@/components/BottomNav'
 import {
@@ -15,7 +16,8 @@ import {
   SavedScreen,
 } from '@/components/TabScreens'
 import { IconLogo } from '@/icons'
-import type { PlanResult } from '@/lib/api'
+import type { AuthUser, PlanResult } from '@/lib/api'
+import { getStoredUser, refreshAuthState, signOut } from '@/lib/auth'
 
 function defaultVehicleName(): string | null {
   try {
@@ -34,11 +36,27 @@ export default function App() {
   const [preset, setPreset] = useState<SearchPreset | null>(null)
   const [bootSplash, setBootSplash] = useState(true)
   const [weatherCity, setWeatherCity] = useState('İstanbul')
+  const [authUser, setAuthUser] = useState<AuthUser | null>(() => getStoredUser())
+  const [loginOpen, setLoginOpen] = useState(false)
 
   useEffect(() => {
     const timer = setTimeout(() => setBootSplash(false), 1400)
     return () => clearTimeout(timer)
   }, [])
+
+  // Suresi dolmus oturum varsa temizle
+  useEffect(() => {
+    refreshAuthState().then(() => setAuthUser(getStoredUser())).catch(() => {})
+  }, [])
+
+  function openLogin() {
+    setLoginOpen(true)
+  }
+
+  async function handleLogout() {
+    await signOut()
+    setAuthUser(null)
+  }
 
   // Android geri tusu: once acik ekrani kapat, ana sayfadaysa uygulamadan cik
   useEffect(() => {
@@ -144,6 +162,7 @@ export default function App() {
                   preset={preset}
                   routeIndex={routeIndex}
                   onRouteIndexChange={setRouteIndex}
+                  onRequireLogin={openLogin}
                 />
               </div>
             </motion.section>
@@ -153,7 +172,14 @@ export default function App() {
         {tab === 'saved' && <SavedScreen onOpenRoute={openRoute} />}
         {tab === 'history' && <HistoryScreen onOpenRoute={openRoute} />}
         {tab === 'alerts' && <NotificationsScreen />}
-        {tab === 'profile' && <ProfileScreen defaultVehicle={defaultVehicleName()} />}
+        {tab === 'profile' && (
+          <ProfileScreen
+            defaultVehicle={defaultVehicleName()}
+            user={authUser}
+            onRequireLogin={openLogin}
+            onLogout={handleLogout}
+          />
+        )}
 
         <BottomNav
           active={tab}
@@ -161,7 +187,18 @@ export default function App() {
           onAi={() => setChatOpen(true)}
         />
 
-        <ChatDrawer open={chatOpen} onClose={() => setChatOpen(false)} />
+        <ChatDrawer
+          open={chatOpen}
+          onClose={() => setChatOpen(false)}
+          onRequireLogin={openLogin}
+          authOk={!!authUser}
+        />
+
+        <LoginSheet
+          open={loginOpen}
+          onClose={() => setLoginOpen(false)}
+          onLoggedIn={() => setAuthUser(getStoredUser())}
+        />
 
         <AnimatePresence>
           {bootSplash && (
