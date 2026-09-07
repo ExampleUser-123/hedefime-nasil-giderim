@@ -457,6 +457,14 @@ def find_transit_routes(
         "Çanakkale": ("services.kentkart_cities", "find_canakkale_route"),
         "Samsun": ("services.kentkart_cities", "find_samsun_route"),
         "Edirne": ("services.kentkart_cities", "find_edirne_route"),
+        "Ankara": ("services.extra_transit", "find_ankara_route"),
+        "Bursa": ("services.extra_transit", "find_bursa_route"),
+        "Mersin": ("services.extra_transit", "find_mersin_route"),
+        "Hatay": ("services.extra_transit", "find_hatay_route"),
+        "Kayseri": ("services.extra_transit", "find_kayseri_route"),
+        "Manisa": ("services.extra_transit", "find_manisa_route"),
+        "Tekirdağ": ("services.extra_transit", "find_tekirdag_route"),
+        "Balıkesir": ("services.extra_transit", "find_balikesir_route"),
     }
 
     provider = direct_providers.get(start_city)

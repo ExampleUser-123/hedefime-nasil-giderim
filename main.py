@@ -921,6 +921,14 @@ def plan(
         "Çanakkale",
         "Samsun",
         "Edirne",
+        "Ankara",
+        "Bursa",
+        "Mersin",
+        "Hatay",
+        "Kayseri",
+        "Manisa",
+        "Tekirdağ",
+        "Balıkesir",
     }
 
     start_city = start_province.get("name") if start_province else None
