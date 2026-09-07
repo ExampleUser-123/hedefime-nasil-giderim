@@ -427,6 +427,42 @@ export default function ResultsScreen({
     }
   }
 
+  const [shared, setShared] = useState(false)
+
+  async function handleShare() {
+    const lines = visibleCandidates
+      .filter((option) => option.minutes > 0)
+      .slice(0, 3)
+      .map((option) => {
+        const cost = option.total != null
+          ? ` ~${Math.round(option.total).toLocaleString('tr-TR')} TL`
+          : ''
+        const time = option.minutes >= 60
+          ? `${Math.floor(option.minutes / 60)}s ${option.minutes % 60}dk`
+          : `${option.minutes}dk`
+        return `• ${option.title}: ${time}${cost}`
+      })
+
+    const text = [
+      `${shortName(plan.start)} → ${shortName(plan.destination)} (${people} kişi)`,
+      ...lines,
+      '',
+      'Hedefime Nasıl Giderim ile hesaplandı',
+    ].join('\n')
+
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share({ title: 'Rota', text })
+      } else {
+        await navigator.clipboard.writeText(text)
+        setShared(true)
+        setTimeout(() => setShared(false), 2000)
+      }
+    } catch {
+      // kullanici paylasimi iptal ettiyse sessiz gec
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-40 overflow-y-auto bg-bg">
       <div className={`mx-auto w-full max-w-xl px-4 pt-5 sm:px-6 ${withAds ? 'pb-32' : 'pb-10'}`}>
@@ -447,6 +483,14 @@ export default function ResultsScreen({
             </p>
             <p className="text-xs text-muted">{people} kişi</p>
           </div>
+          <button
+            type="button"
+            onClick={handleShare}
+            aria-label="Rotayı paylaş"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line bg-surface-2 text-muted transition-colors hover:border-accent hover:text-accent"
+          >
+            {shared ? '✓' : <svg viewBox="0 0 24 24" className="h-4.5 w-4.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>}
+          </button>
           <button
             type="button"
             onClick={handleToggleSaved}
