@@ -4,10 +4,10 @@ import { authWithGoogle, setAuthToken, type AuthUser } from './api'
 
 const USER_KEY = 'hng-auth-user'
 
-// Google Cloud Console'da olusturulacak WEB client ID.
+// Google Cloud Console'da olusturulan WEB client ID.
 // Backend'deki GOOGLE_CLIENT_ID env'i ile AYNI olmali.
-// Console adimlari tamamlanana kadar bos — bosken giris ekrani uyari verir.
-export const GOOGLE_WEB_CLIENT_ID = ''
+export const GOOGLE_WEB_CLIENT_ID =
+  '141606636741-hncceotjp53lov9fkcklvt0krq50pb79.apps.googleusercontent.com'
 
 let initialized = false
 
