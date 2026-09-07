@@ -103,3 +103,52 @@ export function removeSaved(from: string, to: string) {
 export function clearHistory() {
   writeList(HISTORY_KEY, [])
 }
+
+// --- Ev / İş sabit konumları ------------------------------------------------
+
+export type PinnedPlace = {
+  label: string
+  address: string
+  lat: number
+  lon: number
+}
+
+const HOME_KEY = 'hng-home-place'
+const WORK_KEY = 'hng-work-place'
+
+export function getPinnedPlace(kind: 'home' | 'work'): PinnedPlace | null {
+  try {
+    const raw = localStorage.getItem(kind === 'home' ? HOME_KEY : WORK_KEY)
+    if (!raw) return null
+
+    const parsed = JSON.parse(raw) as PinnedPlace
+
+    if (
+      typeof parsed.lat !== 'number' ||
+      typeof parsed.lon !== 'number' ||
+      !parsed.label
+    ) {
+      return null
+    }
+
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+export function setPinnedPlace(kind: 'home' | 'work', place: PinnedPlace) {
+  try {
+    localStorage.setItem(kind === 'home' ? HOME_KEY : WORK_KEY, JSON.stringify(place))
+  } catch {
+    // sessizce devam
+  }
+}
+
+export function clearPinnedPlace(kind: 'home' | 'work') {
+  try {
+    localStorage.removeItem(kind === 'home' ? HOME_KEY : WORK_KEY)
+  } catch {
+    // sessizce devam
+  }
+}

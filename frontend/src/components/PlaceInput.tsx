@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { fetchSuggestions, type PlaceSuggestion } from '@/lib/api'
-import { getLastCoords, saveLastCoords } from '@/lib/storage'
+import { getPinnedPlace, getLastCoords, saveLastCoords, type PinnedPlace } from '@/lib/storage'
 import { IconPin } from '@/icons'
 
 /**
@@ -8,10 +8,12 @@ import { IconPin } from '@/icons'
  * - value: aramada kullanılacak tam metin (display_name)
  * - onChange: seçim yapılınca veya yazınca çağrılır
  * Öneri seçilince input'a kısa isim yazılır, onChange'a tam isim gider.
+ * Sabitlenmiş Ev/İş konumları öneri listesinin tepesinde çıkar.
  */
 export default function PlaceInput({
   value,
   onChange,
+  onPicked,
   placeholder,
   accent,
   endSlot,
@@ -19,6 +21,7 @@ export default function PlaceInput({
 }: {
   value: string
   onChange: (next: string) => void
+  onPicked?: (coords: { lat: number; lon: number }) => void
   placeholder: string
   accent?: boolean
   endSlot?: React.ReactNode
@@ -101,8 +104,22 @@ export default function PlaceInput({
     onChange(suggestion.display_name)
     setItems([])
     setOpen(false)
+    onPicked?.({ lat: suggestion.lat, lon: suggestion.lon })
   }
 
+  function pickPinned(place: PinnedPlace) {
+    setText(place.label)
+    lastSyncedRef.current = place.address
+    onChange(place.address)
+    setItems([])
+    setOpen(false)
+    onPicked?.({ lat: place.lat, lon: place.lon })
+  }
+
+  // Ev/Is sabit konumlari: odaaktayken onerilerin ustunde cikar
+  const home = getPinnedPlace('home')
+  const work = getPinnedPlace('work')
+  const showPinned = open && text.trim().length === 0
   const showItems = open && items.length > 0 && text.trim().length >= 3
 
   return (
@@ -130,6 +147,44 @@ export default function PlaceInput({
         />
         {endSlot}
       </div>
+
+      {showPinned && (home || work) && (
+        <ul
+          aria-label="Sabit konumlar"
+          className="absolute inset-x-0 top-full z-[60] overflow-hidden rounded-b-xl border border-t-0 border-line bg-surface shadow-lg shadow-black/30"
+        >
+          {home && (
+            <li>
+              <button
+                type="button"
+                onClick={() => pickPinned(home)}
+                className="flex w-full items-center gap-2 px-4 py-2.5 text-left transition-colors hover:bg-bg/60 active:bg-bg"
+              >
+                <span aria-hidden="true">🏠</span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-bold">Ev</span>
+                  <span className="block truncate text-xs text-muted">{home.address}</span>
+                </span>
+              </button>
+            </li>
+          )}
+          {work && (
+            <li>
+              <button
+                type="button"
+                onClick={() => pickPinned(work)}
+                className="flex w-full items-center gap-2 px-4 py-2.5 text-left transition-colors hover:bg-bg/60 active:bg-bg"
+              >
+                <span aria-hidden="true">💼</span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-bold">İş</span>
+                  <span className="block truncate text-xs text-muted">{work.address}</span>
+                </span>
+              </button>
+            </li>
+          )}
+        </ul>
+      )}
 
       {showItems && (
         <ul

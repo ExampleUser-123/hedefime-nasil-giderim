@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
-import { API_BASE, type AuthUser } from '@/lib/api'
+import { API_BASE, reverseGeocode, type AuthUser } from '@/lib/api'
 import {
   clearHistory,
   getHistory,
+  getPinnedPlace,
+  setPinnedPlace,
+  clearPinnedPlace,
   type SavedRoute,
 } from '@/lib/storage'
 import {
@@ -205,7 +208,7 @@ export function NotificationsScreen() {
           <li>· Rota sonuçlarındaki yıldıza dokunarak rotanı kaydedebilirsin.</li>
           <li>· Araba/Motosiklet modunda "Hatırla" işaretlersen aracın her seferinde seçilir.</li>
           <li>· Metro, Tramvay ve Deniz modlarında sadece o türde rotalar listelenir; "Tümünü göster" ile hepsini görebilirsin.</li>
-          <li>· 16 ilde şehir içi toplu taşıma, tüm Türkiye'de araç/uçak/tren hesaplaması mevcut.</li>
+          <li>· 35 ilde şehir içi toplu taşıma, tüm Türkiye'de araç/uçak/tren hesaplaması mevcut.</li>
           <li>· AI asistanına "Yarın 4 kişi İzmit'ten İzmir'e en ucuz nasıl gideriz?" gibi doğal sorular sorabilirsin.</li>
         </ul>
       </div>
@@ -224,6 +227,92 @@ export function ProfileScreen({
   onRequireLogin: () => void
   onLogout: () => void
 }) {
+  const [homePlace, setHomePlace] = useState(() => getPinnedPlace('home'))
+  const [workPlace, setWorkPlace] = useState(() => getPinnedPlace('work'))
+  const [pinning, setPinning] = useState<'home' | 'work' | null>(null)
+  const [pinError, setPinError] = useState<string | null>(null)
+
+  function captureLocation(kind: 'home' | 'work') {
+    if (pinning) return
+
+    if (!('geolocation' in navigator)) {
+      setPinError('Cihazın konum desteği sunmuyor.')
+      return
+    }
+
+    setPinning(kind)
+    setPinError(null)
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords
+          let address = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`
+
+          try {
+            const place = await reverseGeocode(latitude, longitude)
+            address = place.display_name.split(',').slice(0, 3).join(',')
+          } catch {
+            // adres bulunamazsa koordinat etiketi yeterli
+          }
+
+          const next = { label: kind === 'home' ? 'Ev' : 'İş', address, lat: latitude, lon: longitude }
+          setPinnedPlace(kind, next)
+
+          if (kind === 'home') setHomePlace(next)
+          else setWorkPlace(next)
+        } finally {
+          setPinning(null)
+        }
+      },
+      () => {
+        setPinning(null)
+        setPinError('Konum alınamadı. GPS iznini kontrol et.')
+      },
+      { enableHighAccuracy: true, timeout: 12000 },
+    )
+  }
+
+  function pinnedRow(kind: 'home' | 'work') {
+    const place = kind === 'home' ? homePlace : workPlace
+    const icon = kind === 'home' ? '🏠' : '💼'
+    const title = kind === 'home' ? 'Ev konumu' : 'İş konumu'
+
+    return (
+      <div className="flex items-center gap-3 py-2.5">
+        <span aria-hidden="true" className="text-lg">{icon}</span>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold">{title}</p>
+          <p className="truncate text-xs text-muted">
+            {place ? place.address : 'Henüz ayarlanmadı'}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => captureLocation(kind)}
+          disabled={pinning !== null}
+          className="shrink-0 rounded-lg border border-line px-3 py-1.5 text-xs font-bold text-accent disabled:opacity-40"
+        >
+          {pinning === kind ? 'Alınıyor…' : place ? 'Güncelle' : 'Konumumla ayarla'}
+        </button>
+        {place && (
+          <button
+            type="button"
+            onClick={() => {
+              clearPinnedPlace(kind)
+              if (kind === 'home') setHomePlace(null)
+              else setWorkPlace(null)
+            }}
+            aria-label={`${title} temizle`}
+            className="shrink-0 text-xs text-muted transition-colors hover:text-red-300"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+    )
+  }
+
   return (
     <ScreenShell title="Profil" icon={<IconUser className="h-5 w-5" />}>
       {user ? (
@@ -274,6 +363,20 @@ export function ProfileScreen({
           </button>
         </div>
       )}
+
+      <div className="mt-3 rounded-2xl border border-line bg-surface-2/90 p-4">
+        <p className="text-xs uppercase tracking-wide text-muted">Sabit konumlar</p>
+        <p className="mt-1 text-xs text-muted">
+          Ev ve İş konumlarını bir kez ayarla; arama kutusuna dokunduğunda hazır çıkar.
+        </p>
+        <div className="mt-1 divide-y divide-line/60">
+          {pinnedRow('home')}
+          {pinnedRow('work')}
+        </div>
+        {pinError && (
+          <p role="alert" className="mt-2 text-xs text-red-300">{pinError}</p>
+        )}
+      </div>
 
       <div className="mt-3 rounded-2xl border border-line bg-surface-2/90 p-4">
         <p className="text-xs uppercase tracking-wide text-muted">Varsayılan araç</p>
