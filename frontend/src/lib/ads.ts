@@ -7,12 +7,11 @@ import {
   type BannerAdOptions,
 } from '@capacitor-community/admob'
 
-// Google'in herkese acik TEST reklam ID'leri — gercek reklam goruntulemez,
-// hesap ucretlendirilmez. AdMob hesabi acilinca asagidaki ID'ler
-// para-kazanma-planindaki gercek ID'lerle degistirilecek.
-const TEST_AD_IDS = {
-  banner: 'ca-app-pub-3940256099942544/6300978111',
-  rewarded: 'ca-app-pub-3940256099942544/5224354917',
+// Gercek AdMob hesabi ID'leri (hesap sahibi: omerfaruk poyraz)
+// Uygulama: com.hedefime.giderim
+const AD_IDS = {
+  banner: 'ca-app-pub-4008793570253978/7070612243',
+  rewarded: 'ca-app-pub-4008793570253978/4684122058',
 }
 
 let initialized = false
@@ -26,7 +25,7 @@ export async function initAds(): Promise<void> {
 
   try {
     await AdMob.initialize({
-      initializeForTesting: true,
+      initializeForTesting: false,
       maxAdContentRating: MaxAdContentRating.General,
       tagForChildDirectedTreatment: false,
     })
@@ -42,7 +41,7 @@ export async function showBottomBanner(): Promise<void> {
   try {
     await initAds()
     const options: BannerAdOptions = {
-      adId: TEST_AD_IDS.banner,
+      adId: AD_IDS.banner,
       adSize: BannerAdSize.ADAPTIVE_BANNER,
       position: BannerAdPosition.BOTTOM_CENTER,
     }
@@ -81,7 +80,7 @@ export async function showRewardedAd(): Promise<boolean> {
 
   try {
     await initAds()
-    await AdMob.prepareRewardVideoAd({ adId: TEST_AD_IDS.rewarded })
+    await AdMob.prepareRewardVideoAd({ adId: AD_IDS.rewarded })
     await AdMob.showRewardVideoAd()
     return true
   } catch (e) {
