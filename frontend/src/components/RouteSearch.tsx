@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { fetchPlan, reverseGeocode, type Mode, type PlanResult, type Vehicle } from '@/lib/api'
-import { addHistory, saveLastCoords } from '@/lib/storage'
+import { addHistory, getRouteShortcuts, saveLastCoords, type SavedRoute } from '@/lib/storage'
 import ResultsScreen from '@/components/ResultsScreen'
 import VehiclePicker, { loadRememberedVehicle } from '@/components/VehiclePicker'
 import type { VehicleType } from '@/lib/api'
@@ -69,6 +69,7 @@ export default function RouteSearch({
   const [vehicle, setVehicle] = useState<Vehicle | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [shortcuts, setShortcuts] = useState<SavedRoute[]>(() => getRouteShortcuts())
 
   const rememberedId = loadRememberedVehicle()
 
@@ -95,6 +96,7 @@ export default function RouteSearch({
       )
       onPlanChange(nextPlan)
       addHistory({ from: start, to: end, people, mode })
+      setShortcuts(getRouteShortcuts())
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Rota alınamadı.')
     } finally {
@@ -352,12 +354,42 @@ export default function RouteSearch({
         </p>
       )}
 
+      {shortcuts.length > 0 && (
+        <div className="mt-4">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
+            Sık kullanılan
+          </p>
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {shortcuts.map((item) => (
+              <button
+                key={`${item.from}=>${item.to}`}
+                type="button"
+                onClick={() => {
+                  setFrom(item.from)
+                  setTo(item.to)
+                  search(item.from, item.to)
+                }}
+                className="flex min-h-[36px] max-w-[15rem] shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface-2/70 px-3 text-xs text-muted transition-colors hover:border-accent hover:text-fg"
+              >
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" aria-hidden="true" />
+                <span className="truncate">
+                  {item.from} → {item.to}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {plan && (
         <ResultsScreen
           plan={plan}
           people={people}
           mode={mode}
-          onBack={() => onPlanChange(null)}
+          onBack={() => {
+            onPlanChange(null)
+            setShortcuts(getRouteShortcuts())
+          }}
           routeIndex={routeIndex}
           onRouteIndexChange={onRouteIndexChange}
           onRequireLogin={onRequireLogin}

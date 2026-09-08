@@ -104,6 +104,25 @@ export function clearHistory() {
   writeList(HISTORY_KEY, [])
 }
 
+// --- Sık kullanılan rota kısayolları -----------------------------------------
+
+export function getRouteShortcuts(max = 6): SavedRoute[] {
+  const saved = getSaved()
+  const history = getHistory()
+  const seen = new Set<string>()
+  const out: SavedRoute[] = []
+
+  for (const item of [...saved, ...history]) {
+    const key = `${item.from}=>${item.to}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(item)
+    if (out.length >= max) break
+  }
+
+  return out
+}
+
 // --- Ev / İş sabit konumları ------------------------------------------------
 
 export type PinnedPlace = {
