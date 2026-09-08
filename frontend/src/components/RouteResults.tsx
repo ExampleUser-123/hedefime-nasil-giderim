@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react'
+import { DepartureBadge, DepartureCityContext } from '@/components/DepartureBadge'
 import type { CarResult, FlightEstimate, Mode, PlanResult, TrainEstimate, TransitLeg, TransitRoute } from '@/lib/api'
 import {
   IconBus,
@@ -136,7 +137,37 @@ export function WalkingDetails({ result }: { result: PlanResult }) {
   )
 }
 
-function LegRow({ leg }: { leg: TransitLeg }) {
+// Yaklaşan sefer rozeti icin leg anahtari (hat + binis duragi)
+function departureLegKey(leg: TransitLeg): string {
+  return `${leg.line ?? ''}|${leg.from_stop ?? ''}`
+}
+
+// Görünen rotalardaki ilk `limit` adet bus leg'in anahtarini dondurur.
+function firstBusLegKeys(routes: TransitRoute[], limit = 3): Set<string> {
+  const keys = new Set<string>()
+
+  for (const route of routes) {
+    for (const leg of route.legs) {
+      if (leg.type === 'bus' && keys.size < limit) {
+        keys.add(departureLegKey(leg))
+      }
+    }
+  }
+
+  return keys
+}
+
+function LegRow({
+  leg,
+  showDeparture,
+  lat,
+  lon,
+}: {
+  leg: TransitLeg
+  showDeparture?: boolean
+  lat?: number
+  lon?: number
+}) {
   const Icon = legIcon(leg)
 
   if (leg.type === 'walking') {
@@ -159,6 +190,9 @@ function LegRow({ leg }: { leg: TransitLeg }) {
       <div className="min-w-0 flex-1">
         <p className="flex flex-wrap items-center gap-1.5 text-sm font-semibold">
           {leg.name ?? leg.line ?? 'Hat'}
+          {showDeparture && (
+            <DepartureBadge line={leg.line} stop={leg.from_stop} lat={lat} lon={lon} />
+          )}
           {leg.alternate_lines.length > 0 && (
             <span className="text-xs font-normal text-muted">(+{leg.alternate_lines.length} alternatif)</span>
           )}
@@ -180,12 +214,18 @@ function TransitRouteCard({
   badges,
   selected,
   onSelect,
+  departureLegs,
+  lat,
+  lon,
 }: {
   route: TransitRoute
   people: number
   badges: string[]
   selected: boolean
   onSelect: () => void
+  departureLegs?: Set<string>
+  lat?: number
+  lon?: number
 }) {
   const totalPrice = route.fee != null ? route.fee * people : null
 
@@ -239,7 +279,13 @@ function TransitRouteCard({
         <div className="border-t border-line px-4 py-1.5">
           <ol className="divide-y divide-line/60">
             {route.legs.map((leg, index) => (
-              <LegRow key={index} leg={leg} />
+              <LegRow
+                key={index}
+                leg={leg}
+                showDeparture={departureLegs?.has(departureLegKey(leg))}
+                lat={lat}
+                lon={lon}
+              />
             ))}
           </ol>
         </div>
@@ -366,6 +412,9 @@ export function TransitList({
             badges={getBadges(route, recommendations)}
             selected={index === selectedIndex}
             onSelect={() => onSelect(index)}
+            departureLegs={firstBusLegKeys(ferryRoutes.slice(0, 4))}
+            lat={result.start_coord.lat}
+            lon={result.start_coord.lon}
           />
         ))}
 
@@ -399,6 +448,9 @@ export function TransitList({
             badges={getBadges(route, recommendations)}
             selected={index === selectedIndex}
             onSelect={() => onSelect(index)}
+            departureLegs={firstBusLegKeys(tramRoutes.slice(0, 4))}
+            lat={result.start_coord.lat}
+            lon={result.start_coord.lon}
           />
         ))}
 
@@ -425,6 +477,9 @@ export function TransitList({
           badges={getBadges(route, recommendations)}
           selected={index === selectedIndex}
           onSelect={() => onSelect(index)}
+          departureLegs={firstBusLegKeys(visibleRoutes.slice(0, 4))}
+          lat={result.start_coord.lat}
+          lon={result.start_coord.lon}
         />
       ))}
 
@@ -578,8 +633,14 @@ export default function RouteResults({
 }) {
   const recommendations = result.recommendations ?? result.public_transport.recommendations
 
+  // Sehir adini baslangic noktasindan turet ("Kadıköy, İstanbul" -> "İstanbul")
+  const city = result.start.includes(',')
+    ? result.start.split(',').pop()!.trim()
+    : result.start
+
   return (
     <div className="mt-4 space-y-3 rounded-2xl border border-line bg-surface-2/90 p-4" role="region" aria-label="Rota sonuçları">
+      <DepartureCityContext.Provider value={city}>
       {(mode === 'arac' || mode === 'motosiklet') &&
         (result.car ? (
           <CarDetails car={result.car} people={people} />
@@ -633,6 +694,7 @@ export default function RouteResults({
           {mode === 'yuruyus' ? 'Yakıt maliyeti dahil değil' : mode === 'motosiklet' ? 'Yakıt maliyeti (motosiklet) dahil' : mode === 'arac' ? 'Yakıt maliyeti dahil' : 'Ücretler yaklaşık'}
         </span>
       </div>
+      </DepartureCityContext.Provider>
     </div>
   )
 }

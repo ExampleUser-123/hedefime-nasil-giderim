@@ -307,6 +307,40 @@ export function addFavorite(entry: { from: string; to: string; people: number; m
   }, 15000)
 }
 
+// --- Yaklaşan seferler -------------------------------------------------------
+
+export type NextDeparture = {
+  time: string
+  source: 'gtfs' | 'tahmini'
+  minutes_ahead: number
+}
+
+export type NextDeparturesResponse = {
+  departures: NextDeparture[]
+  city: string
+  line: string
+  stop: string
+}
+
+// 401/404 ve network hatalarinda null doner; UI rozet gostermez, bozulmaz.
+export async function fetchNextDepartures(
+  city: string,
+  line: string,
+  stop: string,
+  lat?: number,
+  lon?: number,
+): Promise<NextDeparturesResponse | null> {
+  try {
+    return await request<NextDeparturesResponse>('/next-departures', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ city, line, stop, lat, lon }),
+    }, 8000)
+  } catch {
+    return null
+  }
+}
+
 export function deleteFavorite(id: string) {
   return request<{ favorites: ServerFavorite[] }>(`/favorites/${id}`, {
     method: 'DELETE',

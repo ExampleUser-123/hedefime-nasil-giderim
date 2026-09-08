@@ -3,6 +3,7 @@ __pycache__/
 *.pyc
 .env
 chat_sessions/
+data/gtfs_cache/
   
 # Imzalama anahtari - ASLA commit etme  
 frontend/android/keystore/  

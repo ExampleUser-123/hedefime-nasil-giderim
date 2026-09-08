@@ -743,6 +743,41 @@ def nearest_stops(
 
 
 # =========================================================
+# YAKLASAN SEFERLER (GTFS varsa gercek, yoksa tahmini)
+# =========================================================
+
+class NextDeparturesBody(BaseModel):
+    city: str
+    line: str
+    stop: str
+    lat: float | None = None
+    lon: float | None = None
+
+
+@app.post("/next-departures")
+def next_departures_endpoint(body: NextDeparturesBody):
+    from services.gtfs_times import next_departures
+    from services.estimate_times import estimate_departures
+
+    now_dt = datetime.now()
+
+    departures = []
+    if body.lat is not None and body.lon is not None:
+        departures = next_departures(
+            body.city, body.line, body.stop, body.lat, body.lon, now_dt
+        )
+    if not departures:
+        departures = estimate_departures(body.city, body.line, body.stop, now_dt)
+
+    return {
+        "city": body.city,
+        "line": body.line,
+        "stop": body.stop,
+        "departures": departures,
+    }
+
+
+# =========================================================
 # DURAĞA GELEN HATLAR
 # =========================================================
 
