@@ -346,3 +346,61 @@ export function deleteFavorite(id: string) {
     method: 'DELETE',
   }, 15000)
 }
+
+// --- Yakin duraklar + durak kalkislari ---------------------------------------
+
+export type NearbyStop = {
+  city: string
+  stop_id: string
+  name: string
+  lat: number
+  lon: number
+  distance_m: number
+  lines: string[]
+}
+
+export type StopDeparture = {
+  line: string
+  time: string
+  source: 'gtfs' | 'tahmini'
+  minutes_ahead: number
+}
+
+// 401/404 ve network hatalarinda null doner; UI bos liste gosterir, bozulmaz.
+export async function fetchNearbyStops(
+  lat: number,
+  lon: number,
+  limit = 8,
+): Promise<NearbyStop[] | null> {
+  const params = new URLSearchParams({
+    lat: String(lat),
+    lon: String(lon),
+    limit: String(limit),
+  })
+
+  try {
+    const data = await request<{ results: NearbyStop[] }>(`/nearby-stops?${params}`, undefined, 8000)
+    return data?.results ?? []
+  } catch {
+    return null
+  }
+}
+
+export async function fetchStopDepartures(
+  city: string,
+  stop: string,
+  lat: number,
+  lon: number,
+  lines: string[],
+): Promise<StopDeparture[] | null> {
+  try {
+    const data = await request<{ departures: StopDeparture[] }>('/stop-departures', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ city, stop, lat, lon, lines }),
+    }, 8000)
+    return data?.departures ?? []
+  } catch {
+    return null
+  }
+}

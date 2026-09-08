@@ -36,6 +36,26 @@ function endIcon() {
   })
 }
 
+export type NearbyStop = {
+  name: string
+  lat: number
+  lon: number
+  lines: string[]
+}
+
+function stopIcon(lineCount: number) {
+  const badge = lineCount > 0 ? String(lineCount) : ''
+  return L.divIcon({
+    className: '',
+    html: `<span style="position:relative;display:block;width:18px;height:18px">
+      <span style="position:absolute;inset:0;display:block;width:12px;height:12px;margin:3px;border-radius:9999px;background:#f59e0b;border:2px solid #0b1220;box-shadow:0 0 0 2px rgba(245,158,11,.35)"></span>
+      ${badge ? `<span style="position:absolute;top:-6px;right:-6px;min-width:14px;height:14px;padding:0 3px;border-radius:9999px;background:#0b1220;color:#f59e0b;font:700 9px/14px system-ui,sans-serif;text-align:center;border:1px solid #f59e0b">${badge}</span>` : ''}
+    </span>`,
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
+  })
+}
+
 function buildPaths(plan: PlanResult, mode: MapMode, routeIndex: number): Path[] {
   const straight: Path = {
     positions: [
@@ -102,14 +122,19 @@ export default function MapView({
   plan,
   mode,
   routeIndex,
+  nearbyStops,
+  onSelectStop,
 }: {
   plan: PlanResult
   mode: MapMode
   routeIndex: number
+  nearbyStops?: NearbyStop[]
+  onSelectStop?: (stop: NearbyStop) => void
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<L.Map | null>(null)
   const routeLayerRef = useRef<L.LayerGroup | null>(null)
+  const stopsLayerRef = useRef<L.LayerGroup | null>(null)
 
   useEffect(() => {
     const container = containerRef.current
@@ -125,12 +150,14 @@ export default function MapView({
 
     L.tileLayer(TILE_URL, { attribution: TILE_ATTRIBUTION }).addTo(map)
     routeLayerRef.current = L.layerGroup().addTo(map)
+    stopsLayerRef.current = L.layerGroup().addTo(map)
     mapRef.current = map
 
     return () => {
       map.remove()
       mapRef.current = null
       routeLayerRef.current = null
+      stopsLayerRef.current = null
     }
   }, [])
 
@@ -172,6 +199,33 @@ export default function MapView({
       padding: [70, 70],
     })
   }, [plan, mode, routeIndex])
+
+  useEffect(() => {
+    const map = mapRef.current
+    const stopsLayer = stopsLayerRef.current
+
+    if (!map || !stopsLayer) return
+
+    stopsLayer.clearLayers()
+
+    if (!nearbyStops?.length) return
+
+    for (const stop of nearbyStops) {
+      const marker = L.marker([stop.lat, stop.lon], {
+        icon: stopIcon(stop.lines.length),
+        zIndexOffset: -500,
+        keyboard: false,
+      })
+
+      marker.bindTooltip(stop.name, { direction: 'top', offset: [0, -8] })
+
+      if (onSelectStop) {
+        marker.on('click', () => onSelectStop(stop))
+      }
+
+      marker.addTo(stopsLayer)
+    }
+  }, [nearbyStops, onSelectStop])
 
   return <div ref={containerRef} className="absolute inset-0 z-[1] h-full w-full" />
 }

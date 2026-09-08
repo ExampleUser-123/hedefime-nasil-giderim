@@ -778,6 +778,39 @@ def next_departures_endpoint(body: NextDeparturesBody):
 
 
 # =========================================================
+# YAKIN DURAKLAR (tüm şehirler)
+# =========================================================
+
+@app.get("/nearby-stops")
+def nearby_stops_endpoint(lat: float, lon: float, limit: int = 8):
+    from services.nearby import nearby_stops
+
+    return {"results": nearby_stops(lat, lon, limit)}
+
+
+class StopDeparturesBody(BaseModel):
+    city: str
+    stop: str
+    lat: float | None = None
+    lon: float | None = None
+    lines: list[str] = Field(default_factory=list)
+
+
+@app.post("/stop-departures")
+def stop_departures_endpoint(body: StopDeparturesBody):
+    from services.nearby import stop_departures
+
+    deps = stop_departures(
+        body.city,
+        body.stop,
+        body.lat or 0.0,
+        body.lon or 0.0,
+        body.lines,
+    )
+    return {"city": body.city, "stop": body.stop, "departures": deps}
+
+
+# =========================================================
 # DURAĞA GELEN HATLAR
 # =========================================================
 

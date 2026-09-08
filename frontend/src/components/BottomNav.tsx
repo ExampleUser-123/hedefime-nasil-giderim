@@ -8,7 +8,19 @@ import {
   IconUser,
 } from '@/icons'
 
-export type Tab = 'home' | 'saved' | 'history' | 'alerts' | 'profile'
+export type Tab = 'home' | 'saved' | 'history' | 'stops' | 'alerts' | 'profile'
+
+function IconStop({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <rect x="5" y="2" width="14" height="12" rx="3" />
+      <path d="M5 8h14" />
+      <path d="M9 5.5h.01M15 5.5h.01" />
+      <path d="M12 14v8" />
+      <path d="M8 22h8" />
+    </svg>
+  )
+}
 
 type TabItem = { id: Tab; label: string; icon: (props: { className?: string }) => ReactElement }
 
@@ -19,6 +31,7 @@ const TABS: TabItem[] = [
 ]
 
 const AFTER_TABS: TabItem[] = [
+  { id: 'stops', label: 'Duraklar', icon: IconStop },
   { id: 'alerts', label: 'Bildirimler', icon: IconBell },
   { id: 'profile', label: 'Profil', icon: IconUser },
 ]

@@ -9,6 +9,7 @@ import ChatDrawer from '@/components/ChatDrawer'
 import LoginSheet from '@/components/LoginSheet'
 import MapView from '@/components/MapView'
 import BottomNav, { type Tab } from '@/components/BottomNav'
+import NearbyStops from '@/components/NearbyStops'
 import {
   HistoryScreen,
   NotificationsScreen,
@@ -169,6 +170,7 @@ export default function App() {
           </>
         )}
 
+        {tab === 'stops' && <NearbyStops />}
         {tab === 'saved' && <SavedScreen onOpenRoute={openRoute} />}
         {tab === 'history' && <HistoryScreen onOpenRoute={openRoute} />}
         {tab === 'alerts' && <NotificationsScreen />}
