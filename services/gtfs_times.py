@@ -9,9 +9,14 @@ Tek public fonksiyon: next_departures(city, line_no, stop_name, lat, lon, now_dt
 
 import io
 import pickle
+import threading
 import zipfile
 from datetime import datetime
 from pathlib import Path
+
+# GTFS indeksi kurulumu bellek agiridir (buyuk zip -> RAM); ayni anda tek
+# kurulum calisir, paralel istekler siraya girer. Yoksa 512MB Render'da OOM.
+_BUILD_LOCK = threading.Lock()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 GTFS_DIR = BASE_DIR / "data" / "gtfs"
@@ -235,13 +240,21 @@ def _load_index(city: str) -> dict:
                 return pickle.load(f)
         except Exception:
             pass
-    index = _build_index(city)
-    try:
-        with open(cache_file, "wb") as f:
-            pickle.dump(index, f, protocol=pickle.HIGHEST_PROTOCOL)
-    except Exception:
-        pass
-    return index
+    with _BUILD_LOCK:
+        # Lock'u beklerken baska thread pkl'i yazmis olabilir
+        if cache_file.exists():
+            try:
+                with open(cache_file, "rb") as f:
+                    return pickle.load(f)
+            except Exception:
+                pass
+        index = _build_index(city)
+        try:
+            with open(cache_file, "wb") as f:
+                pickle.dump(index, f, protocol=pickle.HIGHEST_PROTOCOL)
+        except Exception:
+            pass
+        return index
 
 
 # ---------------------------------------------------------------- public API
