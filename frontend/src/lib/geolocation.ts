@@ -63,8 +63,12 @@ export function useCurrentPosition(): CurrentPositionState {
 
     const timerId = setTimeout(() => {
       inFlightRef.current = null
+      // Bazi telefonlarda (ozellikle kapali alanda / zayif GPS'te) WebView ne
+      // cevap doner ne hata; sessiz bos ekran yerine anlasilir mesaj goster.
+      setCoords(null)
+      setError("Konum şu anda alınamadı. Açık alanda birkaç saniye bekleyip Yenile'ye bas.")
       setLoading(false)
-    }, 16000) // options.timeout (15s) + pay
+    }, 16000) // options.timeout (15s) + pay; cozulmezse tetiklenir
     inFlightRef.current = timerId
 
     navigator.geolocation.getCurrentPosition(

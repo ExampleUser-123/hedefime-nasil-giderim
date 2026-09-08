@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactElement } from 'react'
+import { useEffect, useRef, useState, type ReactElement } from 'react'
 import { fetchNearbyStops, type NearbyStop } from '@/lib/api'
 import { useCurrentPosition } from '@/lib/geolocation'
 import StopDetailSheet from '@/components/StopDetailSheet'
@@ -40,6 +40,14 @@ export default function NearbyStops({
   const [fetching, setFetching] = useState(false)
   const [fetchFailed, setFetchFailed] = useState(false)
   const [selected, setSelected] = useState<NearbyStop | null>(null)
+  const autoStartedRef = useRef(false)
+
+  // Sekme ilk acildiginda konum isteğini otomatik baslat.
+  useEffect(() => {
+    if (autoStartedRef.current) return
+    autoStartedRef.current = true
+    refresh()
+  }, [refresh])
 
   useEffect(() => {
     let alive = true
