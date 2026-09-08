@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react'
-import type { Mode, PlanResult, TransitRoute } from '@/lib/api'
+import type { CarResult, Mode, PlanResult, TransitRoute } from '@/lib/api'
 import VoiceGuidance from '@/components/VoiceGuidance'
 import TripReport from '@/components/TripReport'
 import { loadFavorites, toggleFavorite } from '@/lib/favorites'
@@ -40,13 +40,14 @@ const MODE_LABELS: Record<Mode, string> = {
 }
 
 type Candidate = {
-  id: 'transit' | 'ucak' | 'tren' | 'arac' | 'yuruyus'
+  id: 'transit' | 'ucak' | 'tren' | 'arac' | 'moto' | 'yuruyus'
   title: string
   icon: (props: { className?: string }) => ReactElement
   minutes: number
   pricePerPerson: number | null
   total: number | null
   note?: string
+  vehicleData?: CarResult
 }
 
 type SortMode = 'recommended' | 'least_walking' | 'least_transfers'
@@ -156,19 +157,23 @@ function buildCandidates(plan: PlanResult, people: number, mode: Mode): Candidat
     })
   }
 
-  if (plan.car) {
-    const isMoto = mode === 'motosiklet'
+  const pushVehicle = (data: CarResult) => {
+    const isMoto = data.vehicle_type === 'motosiklet'
 
     candidates.push({
-      id: 'arac',
+      id: isMoto ? 'moto' : 'arac',
       title: isMoto ? 'Motosiklet' : 'Araba',
       icon: isMoto ? IconMoto : IconCar,
-      minutes: plan.car.duration_minutes,
-      pricePerPerson: plan.car.cost_per_person,
-      total: plan.car.total_cost,
-      note: `${plan.car.distance_km} km · ${plan.car.vehicle}`,
+      minutes: data.duration_minutes,
+      pricePerPerson: data.cost_per_person,
+      total: data.total_cost,
+      note: `${data.distance_km} km · ${data.vehicle}`,
+      vehicleData: data,
     })
   }
+
+  if (plan.car) pushVehicle(plan.car)
+  if (plan.other_vehicle) pushVehicle(plan.other_vehicle)
 
   return candidates
 }
@@ -287,8 +292,8 @@ function ModeCard({
           {candidate.id === 'tren' && plan.train && (
             <TrainDetails train={plan.train} />
           )}
-          {candidate.id === 'arac' && plan.car && (
-            <CarDetails car={plan.car} people={people} />
+          {candidate.vehicleData && (
+            <CarDetails car={candidate.vehicleData} people={people} />
           )}
           {candidate.id === 'yuruyus' && <WalkingDetails result={plan} />}
         </div>
@@ -349,8 +354,10 @@ export default function ResultsScreen({
 
     switch (mode) {
       case 'tumu':
-        // Varsayilan: ozel arac haric butun secenekler
-        return candidates.filter((candidate) => candidate.id !== 'arac')
+        // Varsayilan: ozel arac/motosiklet haric butun secenekler
+        return candidates.filter(
+          (candidate) => candidate.id !== 'arac' && candidate.id !== 'moto',
+        )
       case 'otobus':
         return candidates.filter((candidate) => candidate.id === 'transit')
       case 'metro':
@@ -366,6 +373,7 @@ export default function ResultsScreen({
           ? candidates.filter((candidate) => candidate.id === 'transit')
           : []
       case 'motosiklet':
+        return candidates.filter((candidate) => candidate.id === 'moto')
       case 'arac':
         return candidates.filter((candidate) => candidate.id === 'arac')
       case 'ucak':

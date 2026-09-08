@@ -54,6 +54,7 @@ export type TransitRoute = {
 
 export type CarResult = {
   vehicle: string
+  vehicle_type?: 'arac' | 'motosiklet'
   distance_km: number
   duration_minutes: number
   fuel_liters: number
@@ -82,6 +83,7 @@ export type PlanResult = {
   end_coord: Coord
   car: CarResult | null
   car_error: string | null
+  other_vehicle?: CarResult | null
   vehicle_selected: string
   flight: FlightEstimate | null
   train: TrainEstimate | null

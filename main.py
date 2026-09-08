@@ -1136,11 +1136,44 @@ def plan(
         else:
             car_result = {
                 "vehicle": vehicle_data["name"],
+                "vehicle_type": vehicle_data.get("vehicle_type", "arac"),
                 "fuel_type": vehicle_data["fuel_type"],
                 "fuel_consumption": vehicle_data["consumption"],
                 **route_result,
                 **fuel_result
             }
+
+    # -----------------------------------------------------
+    # IKINCI OZEL ARAC TAHMINI
+    # (araba secildiyse varsayilan motosiklet, motosiklet secildiyse
+    # varsayilan araba da hesaplanir; sonuc ekraninda ikisi de gorunsun)
+    # -----------------------------------------------------
+
+    other_result = None
+
+    if route_result is not None:
+        if vehicle_data.get("vehicle_type") == "motosiklet":
+            other_data = get_vehicle("toyota_corolla")
+        else:
+            other_data = get_vehicle("honda_pcx")
+
+        if other_data is not None and other_data.get("vehicle_type") != vehicle_data.get("vehicle_type"):
+            other_fuel = calculate_fuel_cost(
+                distance_km=route_result["distance_km"],
+                fuel_type=other_data["fuel_type"],
+                fuel_consumption=other_data["consumption"],
+                people=people
+            )
+
+            if "error" not in other_fuel:
+                other_result = {
+                    "vehicle": other_data["name"],
+                    "vehicle_type": other_data.get("vehicle_type", "arac"),
+                    "fuel_type": other_data["fuel_type"],
+                    "fuel_consumption": other_data["consumption"],
+                    **route_result,
+                    **other_fuel
+                }
 
     # -----------------------------------------------------
     # UÇAK TAHMİNİ (kuş uçuşu mesafe üzerinden)
@@ -1181,6 +1214,8 @@ def plan(
 
         "car": car_result,
         "car_error": car_error,
+
+        "other_vehicle": other_result,
 
         "vehicle_selected": vehicle_data["name"],
 
