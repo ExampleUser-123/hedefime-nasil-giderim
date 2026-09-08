@@ -216,7 +216,7 @@ export default function StopDetailSheet({
           </button>
         </header>
 
-        <div className="flex-1 space-y-2.5 overflow-y-auto px-5 py-4">
+        <div className="min-h-0 flex-1 space-y-2.5 overflow-y-auto overscroll-contain px-5 py-4">
           {!failed && departures !== null && (
             <div className="flex items-center justify-between px-1">
               <p className="text-xs font-bold uppercase tracking-wide text-muted">Sefer uyarısı</p>

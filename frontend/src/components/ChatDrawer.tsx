@@ -155,7 +155,7 @@ export default function ChatDrawer({
           </button>
         </header>
 
-        <div ref={listRef} className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
+        <div ref={listRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain px-5 py-4">
           {!authOk && (
             <div className="rounded-2xl border border-accent/40 bg-accent/10 p-4 text-sm">
               <p className="font-bold">AI asistanı hesapla kullanılıyor</p>
