@@ -295,6 +295,22 @@ export function authWithGoogle(idToken: string) {
   }, 20000)
 }
 
+export function registerWithEmail(email: string, password: string, name: string) {
+  return request<{ token: string; user: AuthUser }>('/auth/register', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, name }),
+  }, 20000)
+}
+
+export function loginWithEmail(email: string, password: string) {
+  return request<{ token: string; user: AuthUser }>('/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  }, 20000)
+}
+
 export function fetchAuthMe() {
   return request<{ user: AuthUser }>('/auth/me', undefined, 15000)
 }

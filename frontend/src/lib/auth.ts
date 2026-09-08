@@ -1,6 +1,6 @@
 import { Capacitor } from '@capacitor/core'
 import { GoogleSignIn } from '@capawesome/capacitor-google-sign-in'
-import { authWithGoogle, setAuthToken, type AuthUser } from './api'
+import { authWithGoogle, loginWithEmail, registerWithEmail, setAuthToken, type AuthUser } from './api'
 
 const USER_KEY = 'hng-auth-user'
 
@@ -55,6 +55,24 @@ export async function signInWithGoogle(): Promise<AuthUser> {
   }
 
   const { token, user } = await authWithGoogle(result.idToken)
+
+  setAuthToken(token)
+  storeUser(user)
+
+  return user
+}
+
+export async function signInWithEmail(email: string, password: string): Promise<AuthUser> {
+  const { token, user } = await loginWithEmail(email.trim(), password)
+
+  setAuthToken(token)
+  storeUser(user)
+
+  return user
+}
+
+export async function signUpWithEmail(email: string, password: string, name: string): Promise<AuthUser> {
+  const { token, user } = await registerWithEmail(email.trim(), password, name.trim())
 
   setAuthToken(token)
   storeUser(user)

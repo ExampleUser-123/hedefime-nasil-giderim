@@ -82,6 +82,73 @@ def upsert_google_user(payload: dict) -> dict:
     return user
 
 
+def find_user_by_email(email: str) -> dict | None:
+    """E-posta ile kullanici arar (e-posta kayitli kullanicilar icin)."""
+
+    email_norm = (email or "").strip().lower()
+
+    if not email_norm:
+        return None
+
+    for user in _load().values():
+        if (user.get("email") or "").strip().lower() == email_norm:
+            return user
+
+    return None
+
+
+def upsert_email_user(email: str, name: str, password_hash: str, salt: str) -> dict:
+    """E-posta+sifre ile kullanici kaydeder/gunceller; user dict doner."""
+
+    email_norm = email.strip().lower()
+    now = datetime.now().isoformat(timespec="seconds")
+
+    with _lock:
+        users = _load()
+
+        user = find_user_by_email(email_norm)
+
+        if user is None:
+            user_id = "em_" + uuid.uuid4().hex[:16]
+            user = {
+                "id": user_id,
+                "created_at": now,
+                "favorites": [],
+                "ai_request_count": 0,
+            }
+        else:
+            user = users.get(user["id"]) or user
+
+        user.update({
+            "email": email_norm,
+            "name": name or email_norm.split("@")[0],
+            "provider": "email",
+            "password_hash": password_hash,
+            "salt": salt,
+            "last_login": now,
+        })
+
+        users[user["id"]] = user
+        _save(users)
+
+    return user
+
+
+def touch_last_login(user_id: str) -> None:
+    """Giris anini kaydeder (hata durumunda sessizce gecer)."""
+
+    try:
+        with _lock:
+            users = _load()
+            user = users.get(user_id)
+
+            if user is not None:
+                user["last_login"] = datetime.now().isoformat(timespec="seconds")
+                _save(users)
+    except Exception:
+        pass
+
+
 def get_user(user_id: str) -> dict | None:
     users = _load()
     return users.get(user_id)

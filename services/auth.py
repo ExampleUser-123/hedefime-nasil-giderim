@@ -58,6 +58,62 @@ def _jwt_secret() -> str:
     return _secrets.token_hex(32)
 
 
+# --- E-posta + sifre -------------------------------------------------------
+
+_PBKDF2_ITERATIONS = 200_000
+
+
+def hash_password(password: str, salt: str) -> str:
+    """PBKDF2-SHA256 ile sifreyi hash'ler (karmasiz metin ASLA saklanmaz)."""
+
+    import hashlib
+
+    return hashlib.pbkdf2_hmac(
+        "sha256",
+        password.encode("utf-8"),
+        bytes.fromhex(salt),
+        _PBKDF2_ITERATIONS,
+    ).hex()
+
+
+def new_salt() -> str:
+    """16 baytlik rastgele tuz (hex)."""
+
+    import secrets as _sec
+
+    return _sec.token_hex(16)
+
+
+def verify_password(password: str, salt: str, expected_hash: str) -> bool:
+    """Sifreyi sabit-zamanli karsilastirmayla dogrular."""
+
+    import hmac
+
+    try:
+        return hmac.compare_digest(hash_password(password, salt), expected_hash)
+    except (ValueError, TypeError):
+        return False
+
+
+def validate_email_password(email: str, password: str) -> str | None:
+    """Girdi kurallari; sorun yoksa None, varsa hata mesaji doner."""
+
+    import re
+
+    email_norm = (email or "").strip().lower()
+
+    if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]{2,}", email_norm):
+        return "Gecerli bir e-posta adresi gir."
+
+    if len(password or "") < 6:
+        return "Sifre en az 6 karakter olmali."
+
+    if len(password) > 128:
+        return "Sifre cok uzun."
+
+    return None
+
+
 def verify_google_token(id_token: str) -> dict:
     """Google ID Token'i dogrular; payload (sub, email, name, picture) doner."""
 

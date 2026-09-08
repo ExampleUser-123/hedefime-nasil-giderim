@@ -29,6 +29,10 @@ from services.auth import (
     decode_app_token,
     extract_bearer_token,
     _bearer_scheme,
+    hash_password,
+    verify_password,
+    new_salt,
+    validate_email_password,
 )
 from services import user_store
 
@@ -164,6 +168,12 @@ def get_current_user(
 
 class GoogleAuthBody(BaseModel):
     credential: str
+
+
+class EmailAuthBody(BaseModel):
+    email: str
+    password: str
+    name: str = ""
 
 
 class FavoriteBody(BaseModel):
@@ -1252,6 +1262,64 @@ def auth_google(body: GoogleAuthBody):
         return JSONResponse(status_code=401, content={"error": str(exc)})
 
     user = user_store.upsert_google_user(payload)
+
+    return {
+        "token": issue_app_token(user),
+        "user": user_store.public_user(user),
+    }
+
+
+@app.post("/auth/register")
+def auth_register(body: EmailAuthBody):
+    """E-posta + sifre ile kayit. Sifre PBKDF2 ile hash'lenir, metin saklanmaz."""
+
+    error = validate_email_password(body.email, body.password)
+
+    if error:
+        return JSONResponse(status_code=400, content={"error": error})
+
+    email_norm = body.email.strip().lower()
+
+    if user_store.find_user_by_email(email_norm) is not None:
+        return JSONResponse(
+            status_code=409,
+            content={"error": "Bu e-posta zaten kayitli. Giris yapmayi dene."},
+        )
+
+    salt = new_salt()
+    user = user_store.upsert_email_user(
+        email=email_norm,
+        name=body.name.strip()[:40],
+        password_hash=hash_password(body.password, salt),
+        salt=salt,
+    )
+
+    return {
+        "token": issue_app_token(user),
+        "user": user_store.public_user(user),
+    }
+
+
+@app.post("/auth/login")
+def auth_login(body: EmailAuthBody):
+    """E-posta + sifre ile giris."""
+
+    user = user_store.find_user_by_email(body.email)
+
+    if user is None or not user.get("password_hash") or not user.get("salt"):
+        # Kayit yoksa da ayni mesaj (hesap taramasina kapali)
+        return JSONResponse(
+            status_code=401,
+            content={"error": "E-posta veya sifre hatali."},
+        )
+
+    if not verify_password(body.password, user["salt"], user["password_hash"]):
+        return JSONResponse(
+            status_code=401,
+            content={"error": "E-posta veya sifre hatali."},
+        )
+
+    user_store.touch_last_login(user["id"])
 
     return {
         "token": issue_app_token(user),
