@@ -1,5 +1,14 @@
 import { useEffect, useRef, useState, type ReactElement } from 'react'
 import { fetchStopDepartures, type NearbyStop, type StopDeparture } from '@/lib/api'
+import {
+  addReminder,
+  cancelReminder,
+  isReminderActive,
+  type AddReminderResult,
+} from '@/lib/reminders'
+
+const LEAD_OPTIONS = [5, 10, 15] as const
+const LEAD_STORAGE_KEY = 'hatirlatic_lead_v1'
 
 // '350 m' / '1,2 km' biciminde mesafe metni
 function formatDistance(meters: number): string {
@@ -48,6 +57,16 @@ export default function StopDetailSheet({
   const [departures, setDepartures] = useState<StopDeparture[] | null>(null)
   const [failed, setFailed] = useState(false)
   const aliveRef = useRef(true)
+  const [leadMin, setLeadMin] = useState<number>(() => {
+    try {
+      const raw = localStorage.getItem(LEAD_STORAGE_KEY)
+      return raw ? Number.parseInt(raw, 10) : 10
+    } catch {
+      return 10
+    }
+  })
+  const [activeIds, setActiveIds] = useState<Set<string>>(new Set())
+  const [notice, setNotice] = useState<string | null>(null)
 
   useEffect(() => {
     aliveRef.current = true
@@ -72,6 +91,65 @@ export default function StopDetailSheet({
     for (const line of stop.lines) {
       const first = departures.find((d) => d.line === line) ?? null
       nextByLine.set(line, first)
+    }
+  }
+
+  // Acilista mevcut hatirlaticlari isaretle
+  useEffect(() => {
+    if (!departures) return
+
+    const active = new Set<string>()
+
+    for (const d of departures) {
+      if (isReminderActive(stop.name, stop.city, d.line, d.time)) {
+        active.add(`${d.line}|${d.time}`)
+      }
+    }
+    setActiveIds(active)
+  }, [departures, stop])
+
+  function pickLead(min: number): void {
+    setLeadMin(min)
+    try {
+      localStorage.setItem(LEAD_STORAGE_KEY, String(min))
+    } catch {
+      // tercihi saklayamazsak sadece oturumluk kalir
+    }
+  }
+
+  async function handleToggleReminder(dep: StopDeparture): Promise<void> {
+    setNotice(null)
+    const key = `${dep.line}|${dep.time}`
+
+    if (activeIds.has(key)) {
+      await cancelReminder(stop.name, stop.city, dep.line, dep.time)
+      setActiveIds((prev) => {
+        const next = new Set(prev)
+        next.delete(key)
+        return next
+      })
+      return
+    }
+
+    const result: AddReminderResult = await addReminder({
+      stopName: stop.name,
+      city: stop.city,
+      line: dep.line,
+      time: dep.time,
+      leadMin,
+    })
+
+    if (result.ok) {
+      setActiveIds((prev) => new Set(prev).add(key))
+      return
+    }
+
+    if (result.reason === 'too-late') {
+      setNotice('Sefer çok yakın, uyarı kurulamadı.')
+    } else if (result.reason === 'permission') {
+      setNotice('Bildirim izni verilmedi. Ayarlardan izin verip tekrar dene.')
+    } else {
+      setNotice('Hatırlatic kurulamadı, tekrar dene.')
     }
   }
 
@@ -122,6 +200,29 @@ export default function StopDetailSheet({
         </header>
 
         <div className="flex-1 space-y-2.5 overflow-y-auto px-5 py-4">
+          {!failed && departures !== null && (
+            <div className="flex items-center justify-between px-1">
+              <p className="text-xs font-bold uppercase tracking-wide text-muted">Sefer uyarısı</p>
+              <div className="flex items-center gap-1">
+                {LEAD_OPTIONS.map((min) => (
+                  <button
+                    key={min}
+                    type="button"
+                    onClick={() => pickLead(min)}
+                    aria-pressed={leadMin === min}
+                    className={`rounded-full px-2.5 py-1 text-xs font-bold transition-colors ${
+                      leadMin === min
+                        ? 'bg-accent text-accent-ink'
+                        : 'bg-surface-2 text-muted hover:text-fg'
+                    }`}
+                  >
+                    {min} dk
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {!failed && departures === null && (
             <>
               {stop.lines.slice(0, 5).map((line) => (
@@ -147,7 +248,22 @@ export default function StopDetailSheet({
                       {line}
                     </span>
                     {next ? (
-                      <MiniDepartureBadge departure={next} />
+                      <div className="flex items-center gap-2">
+                        <MiniDepartureBadge departure={next} />
+                        <button
+                          type="button"
+                          onClick={() => handleToggleReminder(next)}
+                          aria-label={`${line} hattı ${next.time} seferi için hatırlatıcı`}
+                          aria-pressed={activeIds.has(`${next.line}|${next.time}`)}
+                          className={`flex h-8 w-8 items-center justify-center rounded-full border transition-colors ${
+                            activeIds.has(`${next.line}|${next.time}`)
+                              ? 'border-accent bg-accent/15 text-accent'
+                              : 'border-line text-muted hover:border-accent hover:text-accent'
+                          }`}
+                        >
+                          {activeIds.has(`${next.line}|${next.time}`) ? '🔔' : '🔕'}
+                        </button>
+                      </div>
                     ) : (
                       <span className="text-xs text-muted">Bugün sefer yok</span>
                     )}
@@ -160,6 +276,12 @@ export default function StopDetailSheet({
           {failed && (
             <p role="alert" className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
               Sefer bilgisi şu anda alınamadı. Durak yine de yakın duraklar listesinde.
+            </p>
+          )}
+
+          {notice && (
+            <p role="alert" className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+              {notice}
             </p>
           )}
         </div>

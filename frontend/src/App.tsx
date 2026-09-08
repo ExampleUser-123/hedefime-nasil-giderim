@@ -19,6 +19,7 @@ import {
 import { IconLogo } from '@/icons'
 import type { AuthUser, PlanResult } from '@/lib/api'
 import { getStoredUser, refreshAuthState, signOut } from '@/lib/auth'
+import { rescheduleAll } from '@/lib/reminders'
 
 function defaultVehicleName(): string | null {
   try {
@@ -48,6 +49,11 @@ export default function App() {
   // Suresi dolmus oturum varsa temizle
   useEffect(() => {
     refreshAuthState().then(() => setAuthUser(getStoredUser())).catch(() => {})
+  }, [])
+
+  // Gecmis sefer hatirlaticlarini temizle, gelecektekileri yeniden planla
+  useEffect(() => {
+    rescheduleAll().catch(() => {})
   }, [])
 
   function openLogin() {
