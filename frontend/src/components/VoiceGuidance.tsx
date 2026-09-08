@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
+import { Capacitor } from '@capacitor/core'
+import { TextToSpeech } from '@capacitor-community/text-to-speech'
 
 export type VoiceGuidanceLeg = {
   type: string
@@ -55,8 +57,11 @@ export default function VoiceGuidance({
   legs: VoiceGuidanceLeg[]
   onClose: () => void
 }): ReactElement {
-  const supported =
-    typeof window !== 'undefined' && 'speechSynthesis' in window
+  // Android/iOS'ta native TTS eklentisi (WebView speechSynthesis desteklemez),
+  // tarayicida Web Speech API.
+  const isNative = Capacitor.isNativePlatform()
+  const webSupported = typeof window !== 'undefined' && 'speechSynthesis' in window
+  const supported = isNative || webSupported
 
   const steps = useMemo(
     () =>
@@ -70,46 +75,84 @@ export default function VoiceGuidance({
   const [activeIndex, setActiveIndex] = useState(0)
   const [playing, setPlaying] = useState(false)
   const utterancesRef = useRef<SpeechSynthesisUtterance[]>([])
+  // Oynat/durdur yarisi gelince eski ses akisini iptal etmek icin nesil sayaci
+  const generationRef = useRef(0)
 
   // Bilesen unmount olurken sesi kes
   useEffect(() => {
-    if (!supported) return undefined
-
     return () => {
-      window.speechSynthesis.cancel()
+      generationRef.current++
+      if (isNative) {
+        TextToSpeech.stop().catch(() => {})
+      } else if (webSupported) {
+        window.speechSynthesis.cancel()
+      }
     }
-  }, [supported])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  function speakFrom(index: number) {
-    if (!supported || index < 0 || index >= steps.length) return
-
-    window.speechSynthesis.cancel()
-    utterancesRef.current = []
-
-    // Aktif adimdan baslayarak kalan adimlari oku
-    for (let i = index; i < steps.length; i++) {
-      const utterance = new SpeechSynthesisUtterance(steps[i].sentence)
+  // Web (tarayici) icin: tek cumleyi okuyup bitisinde promise dondurur
+  function speakWebSentence(sentence: string): Promise<void> {
+    return new Promise((resolve) => {
+      const utterance = new SpeechSynthesisUtterance(sentence)
       utterance.lang = 'tr-TR'
       utterance.rate = 1
-
-      utterance.onstart = () => setActiveIndex(i)
-
-      if (i === steps.length - 1) {
-        utterance.onend = () => setPlaying(false)
-      }
-
+      utterance.onend = () => resolve()
+      utterance.onerror = () => resolve()
       utterancesRef.current.push(utterance)
       window.speechSynthesis.speak(utterance)
+    })
+  }
+
+  async function speakFrom(index: number) {
+    if (!supported || index < 0 || index >= steps.length) return
+
+    const generation = ++generationRef.current
+
+    try {
+      if (isNative) {
+        await TextToSpeech.stop()
+      } else {
+        window.speechSynthesis.cancel()
+      }
+    } catch {
+      // stop() basarisiz olsa da okumaya devam et
     }
 
-    setActiveIndex(index)
     setPlaying(true)
+
+    for (let i = index; i < steps.length; i++) {
+      if (generationRef.current !== generation) return
+
+      setActiveIndex(i)
+      try {
+        if (isNative) {
+          await TextToSpeech.speak({
+            text: steps[i].sentence,
+            lang: 'tr-TR',
+            rate: 1,
+            pitch: 1,
+            volume: 1,
+          })
+        } else {
+          await speakWebSentence(steps[i].sentence)
+        }
+      } catch {
+        setPlaying(false)
+        return
+      }
+    }
+
+    if (generationRef.current === generation) setPlaying(false)
   }
 
   function handleStop() {
-    if (!supported) return
-
-    window.speechSynthesis.cancel()
+    generationRef.current++
+    if (isNative) {
+      TextToSpeech.stop().catch(() => {})
+    } else if (webSupported) {
+      window.speechSynthesis.cancel()
+    }
     setPlaying(false)
   }
 
