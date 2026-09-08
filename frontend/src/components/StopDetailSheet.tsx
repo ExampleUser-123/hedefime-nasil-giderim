@@ -71,18 +71,35 @@ export default function StopDetailSheet({
   useEffect(() => {
     aliveRef.current = true
 
-    fetchStopDepartures(stop.city, stop.name, stop.lat, stop.lon, stop.lines)
-      .then((data) => {
-        if (aliveRef.current) setDepartures(data ?? null)
-      })
-      .catch(() => {
-        if (aliveRef.current) setFailed(true)
-      })
+    loadDepartures()
 
     return () => {
       aliveRef.current = false
     }
   }, [stop])
+
+  function loadDepartures(): void {
+    setFailed(false)
+    setDepartures(null)
+
+    fetchStopDepartures(stop.city, stop.name, stop.lat, stop.lon, stop.lines)
+      .then((data) => {
+        if (!aliveRef.current) return
+        if (data === null) {
+          // istek basarisiz (zaman asimi dâhil) -> sonsuz iskelet yerine mesaj
+          setFailed(true)
+          setDepartures([])
+        } else {
+          setDepartures(data)
+        }
+      })
+      .catch(() => {
+        if (aliveRef.current) {
+          setFailed(true)
+          setDepartures([])
+        }
+      })
+  }
 
   // Her hat icin bir sonraki sefer (null ise rozet yok)
   const nextByLine = new Map<string, StopDeparture | null>()
@@ -274,9 +291,16 @@ export default function StopDetailSheet({
           )}
 
           {failed && (
-            <p role="alert" className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
-              Sefer bilgisi şu anda alınamadı. Durak yine de yakın duraklar listesinde.
-            </p>
+            <div role="alert" className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+              <p>Sefer bilgisi şu anda alınamadı. Sunucu ilk açılışta hazırlanıyor olabilir.</p>
+              <button
+                type="button"
+                onClick={loadDepartures}
+                className="mt-2 min-h-[40px] w-full rounded-lg border border-amber-500/40 font-bold text-amber-200 transition-colors hover:bg-amber-500/10"
+              >
+                Tekrar dene
+              </button>
+            </div>
           )}
 
           {notice && (

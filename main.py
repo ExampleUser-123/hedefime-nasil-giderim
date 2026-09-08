@@ -837,7 +837,20 @@ def next_departures_endpoint(body: NextDeparturesBody):
 def nearby_stops_endpoint(lat: float, lon: float, limit: int = 8):
     from services.nearby import nearby_stops
 
-    return {"results": nearby_stops(lat, lon, limit)}
+    results = nearby_stops(lat, lon, limit)
+
+    # Kullanicin en cok dokunacagi sehir (ilk sonuc) icin sefer indeksini
+    # arka planda onceden kur: durak detayi acilinca uzun bekleme olmasin.
+    if results:
+        import threading
+
+        warm_city = results[0].get("city")
+        if warm_city:
+            from services.gtfs_times import warm_index
+
+            threading.Thread(target=warm_index, args=(warm_city,), daemon=True).start()
+
+    return {"results": results}
 
 
 class StopDeparturesBody(BaseModel):

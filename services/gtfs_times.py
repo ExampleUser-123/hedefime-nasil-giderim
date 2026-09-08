@@ -230,6 +230,18 @@ def _build_index(city: str) -> dict:
     return index
 
 
+def warm_index(city: str) -> None:
+    """Sefer indeksini onceden kurar (lock'a saygi duyar, pkl cache'e yazar).
+
+    /nearby-stops yanitindan sonra arka planda cagrilarak kullanicinin durak
+    detayina dokundugu anda indeksin hazir olmasi saglanir.
+    """
+    try:
+        _load_index(city)
+    except Exception:
+        pass
+
+
 def _load_index(city: str) -> dict:
     """Cache'den oku, yoksa kur ve pkl'a yaz."""
     CACHE_DIR.mkdir(parents=True, exist_ok=True)

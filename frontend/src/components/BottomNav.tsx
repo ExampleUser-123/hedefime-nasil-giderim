@@ -54,12 +54,12 @@ export default function BottomNav({
         type="button"
         onClick={() => onChange(id)}
         aria-current={isActive ? 'page' : undefined}
-        className={`flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10px] font-bold transition-colors ${
+        className={`flex min-h-[56px] w-[80px] shrink-0 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[11px] font-bold transition-colors ${
           isActive ? 'text-accent' : 'text-muted hover:text-fg'
         }`}
       >
         <Icon className="h-5 w-5" />
-        <span>{label}</span>
+        <span className="whitespace-nowrap">{label}</span>
         <span
           className={`h-0.5 w-6 rounded-full transition-colors ${
             isActive ? 'bg-accent' : 'bg-transparent'
@@ -75,20 +75,22 @@ export default function BottomNav({
       aria-label="Ana menü"
       className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md"
     >
-      <div className="mx-auto flex max-w-xl items-stretch justify-around px-2">
-        {TABS.map(renderTab)}
+      <div className="mx-auto max-w-xl px-1">
+        <div className="flex flex-nowrap items-stretch justify-start overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {TABS.map(renderTab)}
 
-        <button
-          type="button"
-          onClick={onAi}
-          aria-label="AI asistan sohbetini aç"
-          className="flex min-h-[56px] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[10px] font-bold text-accent transition-colors hover:text-accent"
-        >
-          <IconSparkle className="h-6 w-6" />
-          <span>AI</span>
-        </button>
+          <button
+            type="button"
+            onClick={onAi}
+            aria-label="AI asistan sohbetini aç"
+            className="flex min-h-[56px] w-[64px] shrink-0 flex-col items-center justify-center gap-0.5 px-1 py-2 text-[11px] font-bold text-accent transition-colors hover:text-accent"
+          >
+            <IconSparkle className="h-6 w-6" />
+            <span className="whitespace-nowrap">AI</span>
+          </button>
 
-        {AFTER_TABS.map(renderTab)}
+          {AFTER_TABS.map(renderTab)}
+        </div>
       </div>
     </nav>
   )

@@ -402,7 +402,7 @@ export async function fetchStopDepartures(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ city, stop, lat, lon, lines }),
-    }, 8000)
+    }, 25000)
     return data?.departures ?? []
   } catch {
     return null
