@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { fetchPlan, reverseGeocode, type Mode, type PlanResult, type Vehicle } from '@/lib/api'
 import { addHistory, getRouteShortcuts, getWalkTolerance, saveLastCoords, setWalkTolerance, type SavedRoute } from '@/lib/storage'
+import { maybeShowInterstitial } from '@/lib/ads'
 import ResultsScreen from '@/components/ResultsScreen'
 import VehiclePicker, { loadRememberedVehicle } from '@/components/VehiclePicker'
 import type { VehicleType } from '@/lib/api'
@@ -106,6 +107,8 @@ export default function RouteSearch({
       onPlanChange(nextPlan)
       addHistory({ from: start, to: end, people, mode })
       setShortcuts(getRouteShortcuts())
+      // Araya giren reklam rota ekrani hazirlanirken arkada yuklenir
+      maybeShowInterstitial().catch(() => {})
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Rota alınamadı.')
     } finally {
