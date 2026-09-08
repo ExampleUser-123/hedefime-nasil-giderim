@@ -208,7 +208,7 @@ export function NotificationsScreen() {
           <li>· Rota sonuçlarındaki yıldıza dokunarak rotanı kaydedebilirsin.</li>
           <li>· Araba/Motosiklet modunda "Hatırla" işaretlersen aracın her seferinde seçilir.</li>
           <li>· Metro, Tramvay ve Deniz modlarında sadece o türde rotalar listelenir; "Tümünü göster" ile hepsini görebilirsin.</li>
-          <li>· 35 ilde şehir içi toplu taşıma, tüm Türkiye'de araç/uçak/tren hesaplaması mevcut.</li>
+          <li>· 38 ilde şehir içi toplu taşıma, tüm Türkiye'de araç/uçak/tren hesaplaması mevcut.</li>
           <li>· AI asistanına "Yarın 4 kişi İzmit'ten İzmir'e en ucuz nasıl gideriz?" gibi doğal sorular sorabilirsin.</li>
         </ul>
       </div>

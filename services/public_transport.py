@@ -476,6 +476,9 @@ def find_transit_routes(
         "Osmaniye": ("services.extra_transit", "find_osmaniye_route"),
         "Karabük": ("services.extra_transit", "find_karabuk_route"),
         "Bartın": ("services.extra_transit", "find_bartin_route"),
+        "Trabzon": ("services.extra_transit", "find_trabzon_route"),
+        "Denizli": ("services.extra_transit", "find_denizli_route"),
+        "Karaman": ("services.extra_transit", "find_karaman_route"),
     }
 
     provider = direct_providers.get(start_city)

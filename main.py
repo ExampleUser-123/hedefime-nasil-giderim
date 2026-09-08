@@ -940,6 +940,9 @@ def plan(
         "Osmaniye",
         "Karabük",
         "Bartın",
+        "Trabzon",
+        "Denizli",
+        "Karaman",
     }
 
     start_city = start_province.get("name") if start_province else None

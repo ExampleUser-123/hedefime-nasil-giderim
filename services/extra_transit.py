@@ -138,3 +138,24 @@ find_bartin_route = make_finder(
     city_label="Bartın",
     hours_note_url="bartin.bel.tr",
 )
+
+find_trabzon_route = make_finder(
+    "trabzon_transit.json.gz",
+    source_label="TULAŞ / Trabzon Büyükşehir",
+    city_label="Trabzon",
+    hours_note_url="trabzon.bel.tr",
+)
+
+find_denizli_route = make_finder(
+    "denizli_transit.json.gz",
+    source_label="Denizli Ulaşım A.Ş. / Denizli Büyükşehir",
+    city_label="Denizli",
+    hours_note_url="ulasim.denizli.bel.tr",
+)
+
+find_karaman_route = make_finder(
+    "karaman_transit.json.gz",
+    source_label="Karaman Belediye Otobüsleri",
+    city_label="Karaman",
+    hours_note_url="karaman.bel.tr",
+)
