@@ -82,6 +82,14 @@ export function useCurrentPosition(): CurrentPositionState {
 
     ;(async () => {
       try {
+        // Android'de eklenti izni kendiliginden sormaz; once acikca iste.
+        if (native) {
+          const status = await Geolocation.checkPermissions()
+          if (status.location !== 'granted' && status.coarseLocation !== 'granted') {
+            await Geolocation.requestPermissions()
+          }
+        }
+
         const position = native
           ? await Geolocation.getCurrentPosition({
               enableHighAccuracy: true,
