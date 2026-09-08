@@ -179,7 +179,7 @@ export default function StopDetailSheet({
     >
       <div className="absolute inset-0 bg-bg/70 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
 
-      <div className="relative flex max-h-[80vh] w-full flex-col overflow-hidden rounded-t-3xl border border-line bg-surface sm:max-w-lg">
+      <div className="relative flex h-[92dvh] w-full flex-col overflow-hidden rounded-t-3xl border border-line bg-surface sm:max-h-[85vh] sm:max-w-lg">
         <header className="flex items-start gap-3 border-b border-line px-5 py-4">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent">
             <svg
