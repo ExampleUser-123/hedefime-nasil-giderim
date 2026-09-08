@@ -358,6 +358,20 @@ def home():
     }
 
 
+@app.get("/privacy")
+def privacy_policy():
+    from fastapi.responses import HTMLResponse
+    from pathlib import Path
+
+    html_path = Path(__file__).parent / "privacy.html"
+    if html_path.exists():
+        return HTMLResponse(html_path.read_text(encoding="utf-8"))
+    return HTMLResponse(
+        "<h1>Hedefime Nasıl Giderim</h1><p>Gizlilik politikası için "
+        "hedefimenasilgiderim@gmail.com adresine yazabilirsiniz.</p>"
+    )
+
+
 # =========================================================
 # ARAÇ LİSTESİ
 # =========================================================
