@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactElement } from 'react'
+import { useEffect, useState, type ReactElement } from 'react'
 import { fetchNearbyStops, type NearbyStop } from '@/lib/api'
 import { useCurrentPosition } from '@/lib/geolocation'
 import StopDetailSheet from '@/components/StopDetailSheet'
@@ -40,12 +40,10 @@ export default function NearbyStops({
   const [fetching, setFetching] = useState(false)
   const [fetchFailed, setFetchFailed] = useState(false)
   const [selected, setSelected] = useState<NearbyStop | null>(null)
-  const autoStartedRef = useRef(false)
 
-  // Sekme ilk acildiginda konum isteğini otomatik baslat.
+  // Sekme acilinca konum isteğini otomatik baslat (her mount'ta bir kez;
+  // StrictMode cift cagrisi generation sayaciyla zararsiz).
   useEffect(() => {
-    if (autoStartedRef.current) return
-    autoStartedRef.current = true
     refresh()
   }, [refresh])
 
@@ -77,7 +75,10 @@ export default function NearbyStops({
   }, [coords])
 
   return (
-    <section aria-label="Yakın duraklar" className="space-y-3">
+    <section
+      aria-label="Yakın duraklar"
+      className="relative z-10 mx-auto w-full max-w-xl space-y-3 px-4 pb-28 pt-6 sm:px-6"
+    >
       <div className="flex items-center justify-between px-1">
         <h2 className="text-sm font-bold">Yakın Duraklar</h2>
         <button
