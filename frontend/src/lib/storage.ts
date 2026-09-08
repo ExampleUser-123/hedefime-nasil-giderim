@@ -123,6 +123,30 @@ export function getRouteShortcuts(max = 6): SavedRoute[] {
   return out
 }
 
+// --- Yürüyüş toleransı --------------------------------------------------------
+
+const WALK_KEY = 'hng-walk-tolerance'
+
+export function getWalkTolerance(): number | null {
+  try {
+    const raw = localStorage.getItem(WALK_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as number
+    return typeof parsed === 'number' && parsed > 0 ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+export function setWalkTolerance(value: number | null) {
+  try {
+    if (value === null) localStorage.removeItem(WALK_KEY)
+    else localStorage.setItem(WALK_KEY, JSON.stringify(value))
+  } catch {
+    // sessizce devam
+  }
+}
+
 // --- Ev / İş sabit konumları ------------------------------------------------
 
 export type PinnedPlace = {

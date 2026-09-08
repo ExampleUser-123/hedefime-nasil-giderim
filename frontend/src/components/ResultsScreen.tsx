@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react'
-import type { Mode, PlanResult } from '@/lib/api'
+import type { Mode, PlanResult, TransitRoute } from '@/lib/api'
+import VoiceGuidance from '@/components/VoiceGuidance'
+import TripReport from '@/components/TripReport'
 import { loadFavorites, toggleFavorite } from '@/lib/favorites'
 import { adsAvailable, removeBanner, showBottomBanner } from '@/lib/ads'
 import {
@@ -45,6 +47,42 @@ type Candidate = {
   pricePerPerson: number | null
   total: number | null
   note?: string
+}
+
+type SortMode = 'recommended' | 'least_walking' | 'least_transfers'
+
+const SORT_LABELS: { id: SortMode; label: string }[] = [
+  { id: 'recommended', label: 'Önerilen' },
+  { id: 'least_walking', label: 'En az yürüme' },
+  { id: 'least_transfers', label: 'En az aktarma' },
+]
+
+// Aktarma sayiminda yalnizca otobus/minibus/dolmus gecisleri say;
+// rail/metro/tramvay/vapur sayilmaz.
+function countBusTransfers(route: TransitRoute): number {
+  return route.legs.filter((leg) => {
+    const type = leg.type.toUpperCase()
+
+    return type !== 'WALKING' && /BUS|MINIB|DOLMUS|DOLMUŞ|OTOB/.test(type)
+  }).length
+}
+
+function sortTransitRoutes(routes: TransitRoute[], sortMode: SortMode): TransitRoute[] {
+  if (sortMode === 'recommended') return routes
+
+  const scored = routes.map((route, index) => ({
+    route,
+    index,
+    key:
+      sortMode === 'least_walking'
+        ? route.walking_distance_m
+        : countBusTransfers(route),
+  }))
+
+  // Stabil siralama: esit degerlerde mevcut sira korunur
+  scored.sort((a, b) => a.key - b.key || a.index - b.index)
+
+  return scored.map((item) => item.route)
 }
 
 function formatDuration(minutes: number): string {
@@ -280,6 +318,29 @@ export default function ResultsScreen({
     () => buildCandidates(plan, people, mode),
     [plan, people, mode],
   )
+
+  // Rota siralama/filtre cipleri: varsayilan 'Onerilen' mevcut sirayi korur
+  const [sortMode, setSortMode] = useState<SortMode>('recommended')
+  const hasTransitRoutes = plan.public_transport.routes.length > 0
+
+  const sortedPlan = useMemo<PlanResult>(() => {
+    if (sortMode === 'recommended') return plan
+
+    return {
+      ...plan,
+      public_transport: {
+        ...plan.public_transport,
+        routes: sortTransitRoutes(plan.public_transport.routes, sortMode),
+      },
+    }
+  }, [plan, sortMode])
+
+  // Sesli rehber: secili rota (yoksa ilk rota)
+  const selectedRoute =
+    plan.public_transport.routes[routeIndex] ?? plan.public_transport.routes[0] ?? null
+
+  const [showVoice, setShowVoice] = useState(false)
+  useEffect(() => setShowVoice(false), [plan])
 
   // Seçili moda göre daralt: kullanıcı belirli bir tür seçtiyse
   // sonuç ekranı yalnızca o türü göstersin
@@ -556,13 +617,46 @@ export default function ResultsScreen({
           </p>
         )}
 
+        {hasTransitRoutes && (
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            {SORT_LABELS.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => setSortMode(option.id)}
+                aria-pressed={sortMode === option.id}
+                className={`rounded-full border px-3 py-1.5 text-xs font-bold transition-colors ${
+                  sortMode === option.id
+                    ? 'border-accent bg-accent/15 text-accent'
+                    : 'border-line bg-surface-2 text-muted hover:border-accent hover:text-accent'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => setShowVoice(true)}
+              aria-label="Sesli rehber"
+              className="ml-auto flex items-center gap-1.5 rounded-full border border-line bg-surface-2 px-3 py-1.5 text-xs font-bold text-accent transition-colors hover:border-accent"
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="currentColor" stroke="none" />
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+              </svg>
+              Sesli rehber
+            </button>
+          </div>
+        )}
+
         <div className="mt-4 space-y-3">
           {visibleCandidates.map((candidate) => (
             <ModeCard
               key={candidate.id}
               candidate={candidate}
               best={best}
-              plan={plan}
+              plan={sortedPlan}
               people={people}
               listMode={listMode}
               routeIndex={routeIndex}
@@ -570,6 +664,48 @@ export default function ResultsScreen({
             />
           ))}
         </div>
+
+        {(() => {
+          // TripReport: secili toplu tasima rotasindan; yoksa en mantikli secenekten
+          const from = plan.start
+          const to = plan.destination
+
+          if (selectedRoute) {
+            const walkingM = selectedRoute.walking_distance_m ?? 0
+            const costPerPerson = selectedRoute.fee
+            const legsCount = selectedRoute.legs.filter((leg) => leg.type !== 'walking').length || 1
+
+            return (
+              <TripReport
+                from={from}
+                to={to}
+                people={people}
+                totalMinutes={selectedRoute.duration_minutes ?? best?.minutes ?? 0}
+                walkingDistanceM={walkingM}
+                costPerPerson={costPerPerson ?? 0}
+                totalCost={costPerPerson != null ? costPerPerson * people : best?.total ?? 0}
+                legsCount={legsCount}
+              />
+            )
+          }
+
+          if (best) {
+            return (
+              <TripReport
+                from={from}
+                to={to}
+                people={people}
+                totalMinutes={best.minutes}
+                walkingDistanceM={0}
+                costPerPerson={best.pricePerPerson ?? 0}
+                totalCost={best.total ?? (best.pricePerPerson != null ? best.pricePerPerson * people : 0)}
+                legsCount={1}
+              />
+            )
+          }
+
+          return null
+        })()}
 
         <button
           type="button"
@@ -579,6 +715,20 @@ export default function ResultsScreen({
           Yeni rota ara
         </button>
       </div>
+
+      {showVoice && selectedRoute && (
+        <VoiceGuidance
+          legs={selectedRoute.legs.map((leg) => ({
+            type: leg.type,
+            name: leg.name,
+            line: leg.line,
+            from_stop: leg.from_stop,
+            to_stop: leg.to_stop,
+            distance_m: leg.distance_m,
+          }))}
+          onClose={() => setShowVoice(false)}
+        />
+      )}
     </div>
   )
 }

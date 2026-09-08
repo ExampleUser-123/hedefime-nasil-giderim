@@ -182,8 +182,15 @@ SEARCH_RADII_M = (NEAR_RADIUS_M, 2000, 6000)
 MAX_PIER_DISTANCE_M = 8000
 
 
-def _stops_near_adaptive(stops, lat, lon):
-    """Önce yürüyüş mesafesinde durak arar, yoksa yarıçapı kademeli büyütür."""
+def _stops_near_adaptive(stops, lat, lon, max_walk=None):
+    """Önce yürüyüş mesafesinde durak arar, yoksa yarıçapı kademeli büyütür.
+
+    max_walk verilirse sabit yarıçap kullanılır (kademeli büyütme yapılmaz);
+    verilmezse mevcut SEARCH_RADII_M davranışı korunur.
+    """
+
+    if max_walk is not None:
+        return _stops_within(stops, lat, lon, max_walk)
 
     for radius in SEARCH_RADII_M:
         near = _stops_within(stops, lat, lon, radius)
@@ -269,7 +276,7 @@ def _no_route(message, source="ESHOT"):
     }
 
 
-def find_izmir_route(start_lat, start_lon, end_lat, end_lon):
+def find_izmir_route(start_lat, start_lon, end_lat, end_lon, max_walk=None):
     """
     İzmir için A→B toplu taşıma önerisi üretir.
     Diğer sağlayıcılarla aynı yanıt şemasını döndürür.
@@ -303,8 +310,8 @@ def find_izmir_route(start_lat, start_lon, end_lat, end_lon):
     # Geçit 1: ESHOT otobüs (durak-durak ortak hat)
     # -------------------------------------------------
 
-    near_start = _stops_near_adaptive(eshot_stops, start_lat, start_lon)
-    near_end = _stops_near_adaptive(eshot_stops, end_lat, end_lon)
+    near_start = _stops_near_adaptive(eshot_stops, start_lat, start_lon, max_walk)
+    near_end = _stops_near_adaptive(eshot_stops, end_lat, end_lon, max_walk)
 
     for start_distance, board_stop in near_start[:MAX_STOPS_PER_SIDE]:
         for end_distance, alight_stop in near_end[:MAX_STOPS_PER_SIDE]:

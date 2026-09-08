@@ -210,6 +210,8 @@ export function NotificationsScreen() {
           <li>· Metro, Tramvay ve Deniz modlarında sadece o türde rotalar listelenir; "Tümünü göster" ile hepsini görebilirsin.</li>
           <li>· 38 ilde şehir içi toplu taşıma, tüm Türkiye'de araç/uçak/tren hesaplaması mevcut.</li>
           <li>· AI asistanına "Yarın 4 kişi İzmit'ten İzmir'e en ucuz nasıl gideriz?" gibi doğal sorular sorabilirsin.</li>
+          <li>· Sesli rehberlik ve yolculuk raporu</li>
+          <li>· Yürüyüş toleransı seçimi</li>
         </ul>
       </div>
     </ScreenShell>

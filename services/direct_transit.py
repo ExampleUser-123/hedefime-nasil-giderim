@@ -84,7 +84,7 @@ def make_finder(
             "Aktarmalı yolculuk gerekebilir."
         )
 
-    def find_route(start_lat, start_lon, end_lat, end_lon):
+    def find_route(start_lat, start_lon, end_lat, end_lon, max_walk=None):
         if not stops:
             return {
                 "transport_type": "public_transport",
@@ -94,8 +94,8 @@ def make_finder(
                 "source": source_label,
             }
 
-        near_start = _stops_near_adaptive(stops, start_lat, start_lon)
-        near_end = _stops_near_adaptive(stops, end_lat, end_lon)
+        near_start = _stops_near_adaptive(stops, start_lat, start_lon, max_walk)
+        near_end = _stops_near_adaptive(stops, end_lat, end_lon, max_walk)
 
         if not near_start or not near_end:
             return _no_route(

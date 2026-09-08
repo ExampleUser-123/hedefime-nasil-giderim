@@ -656,7 +656,8 @@ def public_transport(
     end: str,
     time: str | None = None,
     date: str | None = None,
-    optimizefor: str = "time"
+    optimizefor: str = "time",
+    max_walk: int | None = None
 ):
 
     start_place = search_place(start)
@@ -673,12 +674,25 @@ def public_transport(
             "error": f"Hedef noktası bulunamadı: {end}"
         }
 
+    # Yürüme yarıçapı: 200-3000 metre aralığına sabitlenir;
+    # verilmezse her sağlayıcı kendi varsayılanını kullanır.
+    if max_walk is not None:
+        max_walk = max(200, min(3000, int(max_walk)))
+
     # Saat verilmediyse mevcut saati kullan
     if time is None:
         time = datetime.now().strftime("%H:%M")
 
-    start_province = find_province(start_place["lat"], start_place["lon"])
-    end_province = find_province(end_place["lat"], end_place["lon"])
+    start_province = find_province_from_place(start_place)
+    end_province = find_province_from_place(end_place)
+
+    # Adresten il cikamazsa koordinatla tespit dene
+    if start_province is None:
+        from services.city_detect import city_for_point
+        start_province = city_for_point(start_place["lat"], start_place["lon"])
+    if end_province is None:
+        from services.city_detect import city_for_point
+        end_province = city_for_point(end_place["lat"], end_place["lon"])
 
     result = find_transit_routes(
         start_place["lat"],
@@ -686,7 +700,8 @@ def public_transport(
         end_place["lat"],
         end_place["lon"],
         start_province=start_province,
-        end_province=end_province
+        end_province=end_province,
+        max_walk=max_walk
     )
 
     result = clean_public_transport_result(
@@ -696,6 +711,29 @@ def public_transport(
     )
 
     result = add_public_transport_recommendations(result)
+
+    # Hiç rota bulunamadıysa başlangıca en yakın durakları öner
+    # (geriye uyumlu: mevcut alanlara dokunulmaz, sadece 'suggestions' eklenir)
+    if not result.get("routes"):
+        try:
+            from services.nearby import nearby_stops
+
+            result["suggestions"] = [
+                {
+                    "name": stop["name"],
+                    "city": stop["city"],
+                    "distance_m": stop["distance_m"],
+                    "lat": stop["lat"],
+                    "lon": stop["lon"]
+                }
+                for stop in nearby_stops(
+                    start_place["lat"],
+                    start_place["lon"],
+                    3
+                )
+            ]
+        except Exception:
+            pass
 
     return {
         "start": start_place["display_name"],

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { fetchPlan, reverseGeocode, type Mode, type PlanResult, type Vehicle } from '@/lib/api'
-import { addHistory, getRouteShortcuts, saveLastCoords, type SavedRoute } from '@/lib/storage'
+import { addHistory, getRouteShortcuts, getWalkTolerance, saveLastCoords, setWalkTolerance, type SavedRoute } from '@/lib/storage'
 import ResultsScreen from '@/components/ResultsScreen'
 import VehiclePicker, { loadRememberedVehicle } from '@/components/VehiclePicker'
 import type { VehicleType } from '@/lib/api'
@@ -32,6 +32,13 @@ const MODES = [
   { id: 'yuruyus', label: 'Yürüyüş', icon: IconWalk },
   { id: 'arac', label: 'Araba', icon: IconCar },
   { id: 'ucak', label: 'Uçak', icon: IconPlane },
+] as const
+
+const WALK_OPTIONS = [
+  { value: 300, label: '300m' },
+  { value: 500, label: '500m' },
+  { value: 1000, label: '1km' },
+  { value: 2000, label: '2km' },
 ] as const
 
 export type SearchPreset = {
@@ -66,6 +73,7 @@ export default function RouteSearch({
   const [loading, setLoading] = useState(false)
   const [locating, setLocating] = useState(false)
   const [people, setPeople] = useState(1)
+  const [maxWalk, setMaxWalk] = useState<number | null>(() => getWalkTolerance())
   const [vehicle, setVehicle] = useState<Vehicle | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -93,6 +101,7 @@ export default function RouteSearch({
         end,
         people,
         effectiveVehicleId,
+        maxWalk ?? undefined,
       )
       onPlanChange(nextPlan)
       addHistory({ from: start, to: end, people, mode })
@@ -328,6 +337,34 @@ export default function RouteSearch({
             >
               +
             </button>
+          </div>
+        </div>
+
+        <div className="mt-2 flex items-center gap-2 rounded-xl bg-bg/60 px-3 py-2" role="group" aria-label="Yürüyüş toleransı">
+          <span className="flex min-w-20 items-center gap-2 text-sm font-bold">
+            <IconWalk className="h-4 w-4 shrink-0 text-muted" />
+            Yürüyüş
+          </span>
+          <div className="-mx-1 flex gap-1.5 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {WALK_OPTIONS.map(({ value, label }) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={maxWalk === value}
+                onClick={() => {
+                  const next = maxWalk === value ? null : value
+                  setMaxWalk(next)
+                  setWalkTolerance(next)
+                }}
+                className={`min-h-[32px] shrink-0 rounded-full border px-3 text-xs font-medium transition-colors ${
+                  maxWalk === value
+                    ? 'border-accent bg-accent/10 text-accent'
+                    : 'border-line bg-surface-2/70 text-muted hover:border-accent hover:text-fg'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
       </div>

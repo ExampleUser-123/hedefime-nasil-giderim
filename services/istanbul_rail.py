@@ -151,13 +151,15 @@ def _nearest_clusters(lat, lon, max_walk_m=MAX_ACCESS_WALK_M, limit=3):
     return scored[:limit]
 
 
-def find_rail_route(start_lat, start_lon, end_lat, end_lon, max_routes=3):
+def find_rail_route(start_lat, start_lon, end_lat, end_lon, max_routes=3, max_walk=None):
     """Kapi->kapi rayli ag rotasi; IETT leg semasina uyumlu doner."""
+
+    access_walk_m = max_walk if max_walk is not None else MAX_ACCESS_WALK_M
 
     net = _build_network()
 
-    starts = _nearest_clusters(start_lat, start_lon)
-    ends = _nearest_clusters(end_lat, end_lon)
+    starts = _nearest_clusters(start_lat, start_lon, max_walk_m=access_walk_m)
+    ends = _nearest_clusters(end_lat, end_lon, max_walk_m=access_walk_m)
 
     if not starts or not ends:
         return {

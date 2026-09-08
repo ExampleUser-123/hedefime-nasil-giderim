@@ -369,7 +369,8 @@ def find_transit_routes(
     end_lat,
     end_lon,
     start_province=None,
-    end_province=None
+    end_province=None,
+    max_walk=None
 ):
     """
     İle göre uygun toplu taşıma sağlayıcısını seçer.
@@ -405,7 +406,7 @@ def find_transit_routes(
     if start_city == "İzmir":
         from services.izmir import find_izmir_route
 
-        return find_izmir_route(start_lat, start_lon, end_lat, end_lon)
+        return find_izmir_route(start_lat, start_lon, end_lat, end_lon, max_walk=max_walk)
 
     if start_city == "İstanbul":
         # İETT (otobüs/vapur/dolmuş) + OSM raylı ağ (metro/Marmaray/tramvay)
@@ -420,6 +421,7 @@ def find_transit_routes(
             rail_future = pool.submit(
                 find_rail_route,
                 start_lat, start_lon, end_lat, end_lon,
+                max_walk=max_walk
             )
             iett_result = iett_future.result()
             rail_result = rail_future.result()
@@ -504,5 +506,6 @@ def find_transit_routes(
         start_lat,
         start_lon,
         end_lat,
-        end_lon
+        end_lon,
+        max_walk=max_walk
     )

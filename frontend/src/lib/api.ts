@@ -203,7 +203,7 @@ export function fetchSuggestions(q: string, coords?: { lat: number; lon: number 
   ).then((data) => data.suggestions ?? [])
 }
 
-export function fetchPlan(start: string, end: string, people = 1, vehicleId?: string) {
+export function fetchPlan(start: string, end: string, people = 1, vehicleId?: string, maxWalk?: number) {
   const params = new URLSearchParams({
     start,
     end,
@@ -212,6 +212,10 @@ export function fetchPlan(start: string, end: string, people = 1, vehicleId?: st
 
   if (vehicleId) {
     params.set('vehicle', vehicleId)
+  }
+
+  if (typeof maxWalk === 'number') {
+    params.set('max_walk', String(maxWalk))
   }
 
   return request<PlanResult>(`/plan?${params.toString()}`, undefined, 45000)
