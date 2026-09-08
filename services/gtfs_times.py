@@ -106,6 +106,8 @@ def _csv_rows(zf: zipfile.ZipFile, name: str):
             continue
     if info is None:
         return None
+    import csv as _csv
+
     raw = zf.open(info)
     for enc in ("utf-8-sig", "utf-8", "latin-1"):
         try:
@@ -119,11 +121,8 @@ def _csv_rows(zf: zipfile.ZipFile, name: str):
             header = [h.strip().strip('"') for h in first.split(delim)]
             if not any(header):
                 return None
-            for line in f:
-                line = line.rstrip("\r\n")
-                if not line:
-                    continue
-                vals = next(__import__("csv").reader([line], delimiter=delim))
+            # Tek reader ile tum dosya: satir basina reader kurmak cok yavas
+            for vals in _csv.reader(f, delimiter=delim):
                 if len(vals) < len(header):
                     vals += [""] * (len(header) - len(vals))
                 yield dict(zip(header, vals))
@@ -228,6 +227,15 @@ def _build_index(city: str) -> dict:
 
     index["_meta"] = {"calendar": calendar, "add": cal_dates_add, "del": cal_dates_del}
     return index
+
+
+def index_ready(city: str) -> bool:
+    """Sefer indeksi cache'te hazir mi? (Kurulum TETIKLEMEZ — hizli kontrol.)
+
+    Hazir degilse istekler tahmini saatlerle cevap verir; kurulum arka planda
+    warm_index ile surer. Boylece Render'in yavas CPU'sunda istek 502'ye dusmez.
+    """
+    return (CACHE_DIR / f"{_norm(city)}.pkl").exists()
 
 
 def warm_index(city: str) -> None:

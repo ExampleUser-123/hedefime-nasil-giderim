@@ -133,15 +133,22 @@ def stop_departures(
     now_dt = datetime.now()
     merged: list[dict] = []
 
-    from services.gtfs_times import next_departures
+    from services.gtfs_times import next_departures, index_ready
     from services.estimate_times import estimate_departures
+
+    # Indeks cache'te yoksa GTFS'i HIC DENEME: kurulum lock'u dakikalar surebilir
+    # (Render 502). Tahmini saatlerle hemen cevap ver; warm_index arka planda
+    # kurar, sonraki isteklerde gercek GTFS doner.
+    gtfs_usable = index_ready(city)
 
     for line in lines or []:
         line_no = str(line)
-        try:
-            deps = next_departures(city, line_no, stop_name, lat, lon, now_dt)
-        except Exception:
-            deps = []
+        deps: list[dict] = []
+        if gtfs_usable:
+            try:
+                deps = next_departures(city, line_no, stop_name, lat, lon, now_dt)
+            except Exception:
+                deps = []
         if not deps:
             try:
                 deps = estimate_departures(city, line_no, stop_name, now_dt)
