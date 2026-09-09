@@ -95,7 +95,9 @@ export async function signOut(): Promise<void> {
 
 /**
  * Token'in gecerliligini sunucudan kontrol eder.
- * Suresi dolmus token'larda oturumu temizler.
+ * YALNIZCA sunucu net 401 donunce (token suresi bitti/gecersiz) oturumu
+ * temizler. Ag hatasi / sunucu uyudu / 5xx durumlarinda oturum korunur —
+ * Render uykudan uyanirken kullaniciyi haksiz yere attirmasin.
  */
 export async function refreshAuthState(): Promise<void> {
   if (!getStoredUser()) return
@@ -104,7 +106,12 @@ export async function refreshAuthState(): Promise<void> {
 
   try {
     await fetchAuthMe()
-  } catch {
-    await signOut()
+  } catch (e) {
+    const status = (e as Error & { status?: number }).status
+
+    if (status === 401) {
+      await signOut()
+    }
+    // Diger hatalar (ag, timeout, 502...) sessizce yutulur; oturum kalir
   }
 }

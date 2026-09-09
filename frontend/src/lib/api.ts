@@ -172,7 +172,10 @@ async function request<T>(path: string, init?: RequestInit, timeoutMs = 30000): 
   const data = await response.json().catch(() => null)
 
   if (!response.ok) {
-    throw new Error(data?.error ?? data?.detail ?? 'Sunucu bir hata verdi. Lütfen tekrar dene.')
+    const err = new Error(data?.error ?? data?.detail ?? 'Sunucu bir hata verdi. Lütfen tekrar dene.')
+    // Cagiran tarafin ag hatasi ile kimlik hatasini ayirt edebilmesi icin
+    ;(err as Error & { status?: number }).status = response.status
+    throw err
   }
 
   if (data?.error) {
