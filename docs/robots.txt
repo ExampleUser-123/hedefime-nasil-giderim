@@ -1,2 +1,4 @@
 User-agent: *
 Allow: /
+
+Sitemap: https://exampleuser-123.github.io/hedefime-nasil-giderim/sitemap.xml
