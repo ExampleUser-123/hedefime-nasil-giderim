@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
-"""SEO sehir sayfalari uretici: docs/ altina sehir-ulasim.html sayfalari yazar."""
+"""SEO sehir sayfalari uretici: hedef klasore sehir-ulasim.html sayfalari yazar."""
 import io, os
 
-DOCS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs")
+# SITE_BASE: sitemap URL'leri icin kok adres (kok site: exampleuser-123.github.io)
+SITE_BASE = os.environ.get("SITE_BASE", "https://exampleuser-123.github.io/").rstrip("/") + "/"
+DOCS = os.environ.get("SITE_DOCS", os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs"))
 
 TPL = """<!DOCTYPE html>
 <html lang="tr">
@@ -11,6 +13,7 @@ TPL = """<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{title}</title>
 <meta name="description" content="{desc}">
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4008793570253978" crossorigin="anonymous"></script>
 <style>
   :root {{ --bg:#0b1220; --surface:#121a2b; --line:#22304d; --text:#e6edf7; --muted:#93a4c3; --accent:#2dd4bf; }}
   * {{ margin:0; padding:0; box-sizing:border-box; }}
@@ -363,6 +366,146 @@ CITIES = {
 <p><strong>Hedefime Nasil Giderim</strong> ile Denizli'de otogardan merkeze, merkezden Pamukkale'ye nasil gideceginizi planlayabilir, sure ve tahmini ucreti gorebilirsiniz.</p>
 """,
     },
+    "balikesir": {
+        "slug": "balikesir-otobus-saatleri.html",
+        "title": "Balikesir Otobus Saatleri (2026) — Balikesir Ulasim Rehberi",
+        "desc": "Balikesir'de otobus hatlari ve sefer saatleri. Balikesir'de nasil gidilir, rota nasil planlanir?",
+        "h1": "Balikesir'de Nasil Gidilir? Otobus Rehberi",
+        "cta": "Balikesir rota ara",
+        "body": """
+<p>Balikesir'de ulasim merkez ve ilceleri baglayan otobus hatlariyla saglanir. Edremit, Ayvalik, Bandirma gibi turistik ilcelere merkezden guclu baglanti vardir.</p>
+<h2>Balikesir'de ulasim turleri</h2>
+<ul>
+  <li><strong>Otobusler:</strong> Karesi ve Altieylul merkez ilcelerini ilcelere baglayan hatlar.</li>
+  <li><strong>Balikesir Kart:</strong> Otobuslerde kullanilan gecis karti.</li>
+  <li><strong>Bandirma baglantisi:</strong> Istanbul feribotuna baglanti saglayan Bandirma yonu hatlar.</li>
+</ul>
+<h2>Saatler ne zaman?</h2>
+<p>Balikesir'de otobusler genellikle <strong>06:30-23:00</strong> arasinda calisir. Universite (BIGED) hattinda ders saatlarina paralel siklasir.</p>
+<h2>Akilli rota planlama</h2>
+<p><strong>Hedefime Nasil Giderim</strong> ile Balikesir'de otogardan merkeze, merkezden ciftlik ve kent ormanina nasil gideceginizi planlayabilirsiniz.</p>
+""",
+    },
+    "malatya": {
+        "slug": "malatya-otobus-saatleri.html",
+        "title": "Malatya Otobus Saatleri (2026) — Malatya Ulasim Rehberi",
+        "desc": "Malatya'da otobus hatlari ve sefer saatleri. Malatya'da nasil gidilir, rota nasil planlanir?",
+        "h1": "Malatya'da Nasil Gidilir? Otobus Rehberi",
+        "cta": "Malatya rota ara",
+        "body": """
+<p>Kayisisenin baskenti Malatya'da ulasim genis otobus agiyla saglanir. Yeni sehir ile eski sehir arasindaki hatlar en yogun koridorlardir.</p>
+<h2>Malatya'da ulasim turleri</h2>
+<ul>
+  <li><strong>Otobusler:</strong> Battalgazi ve Yesilyurt ilcelerini baglayan hatlar.</li>
+  <li><strong>Malatya Kart:</strong> Otobuslerde kullanilan gecis karti.</li>
+  <li><strong>Otogar baglantisi:</strong> Sehirler arasi otogardan merkeze duzenli ulasim.</li>
+</ul>
+<h2>Saatler ne zaman?</h2>
+<p>Malatya'da otobusler genellikle <strong>06:00-23:00</strong> arasinda calisir. Universite hattinda ogrenci saatlarine paralel siklasir.</p>
+<h2>Akilli rota planlama</h2>
+<p><strong>Hedefime Nasil Giderim</strong> ile Malatya'da otogardan merkez pazaryerine, yeni sehirden Kernek'e nasil gideceginizi planlayabilir, sure ve tahmini ucreti gorebilirsiniz.</p>
+""",
+    },
+    "erzurum": {
+        "slug": "erzurum-otobus-saatleri.html",
+        "title": "Erzurum Otobus Saatleri (2026) — Erzurum Ulasim Rehberi",
+        "desc": "Erzurum'da otobus hatlari ve sefer saatleri. Erzurum'da nasil gidilir, rota nasil planlanir?",
+        "h1": "Erzurum'da Nasil Gidilir? Otobus Rehberi",
+        "cta": "Erzurum rota ara",
+        "body": """
+<p>Turkiye'nin yuksek yerlesimli sehrlerinden Erzurum'da ulasim otobus hatlariyla saglanir. Kis turizminde Palandoken'e ulasim onem kazanir.</p>
+<h2>Erzurum'da ulasim turleri</h2>
+<ul>
+  <li><strong>Otobusler:</strong> Yakutiye ve Aziziye ilcelerini baglayan hatlar.</li>
+  <li><strong>Erzurum Kart:</strong> Otobuslerde kullanilan gecis karti.</li>
+  <li><strong>Palandoken baglantisi:</strong> Kisman Palandoken kayak merkezine duzenli hat.</li>
+</ul>
+<h2>Saatler ne zaman?</h2>
+<p>Erzurum'da otobusler genellikle <strong>06:00-23:00</strong> arasinda calisir. Ataturk Universitesi hattinda ogrenci saatlarine paralel siklasir.</p>
+<h2>Akilli rota planlama</h2>
+<p><strong>Hedefime Nasil Giderim</strong> ile Erzurum'da otogardan merkeze, merkezden Palandoken'e nasil gideceginizi planlayabilirsiniz.</p>
+""",
+    },
+    "diyarbakir": {
+        "slug": "diyarbakir-otobus-saatleri.html",
+        "title": "Diyarbakir Otobus Saatleri (2026) — Diyarbakir Ulasim Rehberi",
+        "desc": "Diyarbakir'de otobus hatlari ve sefer saatleri. Diyarbakir'de nasil gidilir, rota nasil planlanir?",
+        "h1": "Diyarbakir'da Nasil Gidilir? Otobus Rehberi",
+        "cta": "Diyarbakir rota ara",
+        "body": """
+<p>Diyarbakir'da ulasim genis otobus agiyla saglanir. Sur, Baglar, Kayapinar ve Yenisehir ilcelerini baglayan hatlar sehrin ana omurgasidir.</p>
+<h2>Diyarbakir'da ulasim turleri</h2>
+<ul>
+  <li><strong>Otobusler:</strong> Merkez ilceleri ve Dicle Universitesi'ni baglayan yogun hat agi.</li>
+  <li><strong>Diyarbakir Kart:</strong> Otobuslerde kullanilan gecis karti.</li>
+  <li><strong>Otogar baglantisi:</strong> Sehirler arasi otogardan merkeze duzenli ulasim.</li>
+</ul>
+<h2>Saatler ne zaman?</h2>
+<p>Diyarbakir'da otobusler genellikle <strong>06:00-23:30</strong> arasinda calisir. Universite hattinda ogrenci saatlarine paralel siklasir.</p>
+<h2>Akilli rota planlama</h2>
+<p><strong>Hedefime Nasil Giderim</strong> ile Diyarbakir'da otogardan tarihi Sur'a, Kayapinar'dan Dicle Universitesi'ne nasil gideceginizi planlayabilirsiniz.</p>
+""",
+    },
+    "sanliurfa": {
+        "slug": "sanliurfa-otobus-saatleri.html",
+        "title": "Sanliurfa Otobus Saatleri (2026) — Urfa Ulasim Rehberi",
+        "desc": "Sanliurfa'da otobus hatlari ve sefer saatleri. Sanliurfa'da nasil gidilir, rota nasil planlanir?",
+        "h1": "Sanliurfa'da Nasil Gidilir? Otobus Rehberi",
+        "cta": "Sanliurfa rota ara",
+        "body": """
+<p>Peygamberler sehrinde ulasim merkez ilceleri baglayan otobus hatlariyla saglanir. Gobeklitepe ve Harran turistik destinasyonlarina ulasim otogar uzerinden isler.</p>
+<h2>Sanliurfa'da ulasim turleri</h2>
+<ul>
+  <li><strong>Otobusler:</strong> Haliliye, Eyyubiye ve Karakopru ilcelerini baglayan hatlar.</li>
+  <li><strong>Urfa Kart:</strong> Otobuslerde kullanilan gecis karti.</li>
+  <li><strong>Turistik hatlar:</strong> Gobeklitepe ve Harran yonu sezonsal hatlar.</li>
+</ul>
+<h2>Saatler ne zaman?</h2>
+<p>Sanliurfa'da otobusler genellikle <strong>06:00-23:00</strong> arasinda calisir. Yaz aylarinda sicaktan korunmak icin oglen seferleri hafifler, aksam siklasir.</p>
+<h2>Akilli rota planlama</h2>
+<p><strong>Hedefime Nasil Giderim</strong> ile Sanliurfa'da otogardan Balikligol'e, merkezden Harran yonune nasil gideceginizi planlayabilirsiniz.</p>
+""",
+    },
+    "van": {
+        "slug": "van-otobus-saatleri.html",
+        "title": "Van Otobus Saatleri (2026) — Van Ulasim Rehberi",
+        "desc": "Van'da otobus hatlari ve sefer saatleri. Van'da nasil gidilir, rota nasil planlanir?",
+        "h1": "Van'da Nasil Gidilir? Otobus Rehberi",
+        "cta": "Van rota ara",
+        "body": """
+<p>Van Golu'nun kiyisindaki bu buyuk sehrimizde ulasim otobus hatlariyla saglanir. Edremit, Ercis ve Gevas yonu hatlarin yogun oldugu koridorlardir.</p>
+<h2>Van'da ulasim turleri</h2>
+<ul>
+  <li><strong>Otobusler:</strong> Ipekyolu, Edremit ve Ercis ilcelerini baglayan hatlar.</li>
+  <li><strong>Van Kart:</strong> Otobuslerde kullanilan gecis karti.</li>
+  <li><strong>Iskele baglantisi:</strong> Van Golu feribotlarina ve Akdamar Adasi'na ulasim Gevas yonuyle saglanir.</li>
+</ul>
+<h2>Saatler ne zaman?</h2>
+<p>Van'da otobusler genellikle <strong>06:30-23:00</strong> arasinda calisir. Yuksek yukselti nedeniyle yaz kis sefer saatleri doneme gore degisir.</p>
+<h2>Akilli rota planlama</h2>
+<p><strong>Hedefime Nasil Giderim</strong> ile Van'da otogardan merkeze, merkezden Gevas iskelesine nasil gideceginizi planlayabilir, sure ve tahmini ucreti gorebilirsiniz.</p>
+""",
+    },
+    "hatay": {
+        "slug": "hatay-otobus-saatleri.html",
+        "title": "Hatay Otobus Saatleri (2026) — Antakya Ulasim Rehberi",
+        "desc": "Hatay / Antakya'da otobus hatlari ve sefer saatleri. Hatay'da nasil gidilir, rota nasil planlanir?",
+        "h1": "Hatay'da Nasil Gidilir? Antakya Otobus Rehberi",
+        "cta": "Hatay rota ara",
+        "body": """
+<p>Medeniyetler sehrinde ulasim Antakya merkez ile Iskenderun, Defne ve Reyhanli ilcelerini baglayan otobus hatlariyla saglanir.</p>
+<h2>Hatay'da ulasim turleri</h2>
+<ul>
+  <li><strong>Otobusler:</strong> Antakya merkez ve ilceleri baglayan hatlar.</li>
+  <li><strong>Hatay Kart:</strong> Otobuslerde kullanilan gecis karti.</li>
+  <li><strong>Havalimani baglantisi:</strong> Hatay Havalimani'ndan Antakya ve Iskenderun'a ulasim.</li>
+</ul>
+<h2>Saatler ne zaman?</h2>
+<p>Hatay'da otobusler genellikle <strong>06:00-23:00</strong> arasinda calisir. Antakya - Iskenderun koridoru sehrin en yogun hattidir.</p>
+<h2>Akilli rota planlama</h2>
+<p><strong>Hedefime Nasil Giderim</strong> ile Hatay'da otogardan tarihi Antakya evlerine, merkezden Iskenderun sahiline nasil gideceginizi planlayabilirsiniz.</p>
+""",
+    },
 }
 
 def render_city(slug_key, info, all_keys):
@@ -387,7 +530,7 @@ def main():
         path = os.path.join(DOCS, info["slug"])
         with io.open(path, "w", encoding="utf-8") as f:
             f.write(render_city(key, info, keys))
-        urls.append("https://exampleuser-123.github.io/hedefime-nasil-giderim/" + info["slug"])
+        urls.append(SITE_BASE + info["slug"])
         print("yazildi:", info["slug"])
 
     # sitemap
@@ -395,7 +538,7 @@ def main():
     items = []
     today = "2026-09-11"
     for s in static:
-        items.append("https://exampleuser-123.github.io/hedefime-nasil-giderim/" + s)
+        items.append(SITE_BASE + s)
     items.extend(urls)
     sm = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
     for u in items:
