@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState, type ReactElement } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
 import type { CarResult, Mode, PlanResult, TransitRoute } from '@/lib/api'
+import { reportFeedback } from '@/lib/api'
+import { watchGetOff } from '@/lib/getOffAlert'
 import VoiceGuidance from '@/components/VoiceGuidance'
 import TripReport from '@/components/TripReport'
 import { loadFavorites, toggleFavorite } from '@/lib/favorites'
@@ -347,6 +349,85 @@ export default function ResultsScreen({
   const [showVoice, setShowVoice] = useState(false)
   useEffect(() => setShowVoice(false), [plan])
 
+  // --- İnme uyarisi: hedef duraga GPS ile yaklasma takibi ---
+  const [offState, setOffState] = useState<'off' | 'watching' | 'arrived'>('off')
+  const [offDistance, setOffDistance] = useState<number | null>(null)
+  const [offError, setOffError] = useState<string | null>(null)
+  const stopWatchRef = useRef<(() => void) | null>(null)
+
+  useEffect(() => {
+    // yeni aramada eski izlemeyi temizle
+    stopWatchRef.current?.()
+    stopWatchRef.current = null
+    setOffState('off')
+    setOffDistance(null)
+    setOffError(null)
+    return () => {
+      stopWatchRef.current?.()
+      stopWatchRef.current = null
+    }
+  }, [plan])
+
+  const toggleGetOffAlert = () => {
+    if (offState === 'watching') {
+      stopWatchRef.current?.()
+      stopWatchRef.current = null
+      setOffState('off')
+      setOffDistance(null)
+      return
+    }
+
+    setOffError(null)
+    setOffDistance(null)
+    setOffState('watching')
+
+    watchGetOff(plan.end_coord, plan.destination, {
+      onDistance: (m) => setOffDistance(m),
+      onArrived: () => {
+        stopWatchRef.current?.()
+        stopWatchRef.current = null
+        setOffState('arrived')
+      },
+      onError: (msg) => {
+        stopWatchRef.current?.()
+        stopWatchRef.current = null
+        setOffState('off')
+        setOffError(msg)
+      },
+    })
+      .then((stop) => {
+        stopWatchRef.current = stop
+      })
+      .catch(() => {
+        setOffState('off')
+        setOffError('İnme uyarısı başlatılamadı.')
+      })
+  }
+
+  // --- Bu bilgi yanlis raporu ---
+  const [showReport, setShowReport] = useState(false)
+  const [reportText, setReportText] = useState('')
+  const [reportState, setReportState] = useState<'idle' | 'sending' | 'done' | 'error'>('idle')
+
+  const submitReport = async () => {
+    if (!reportText.trim() || reportState === 'sending') return
+    setReportState('sending')
+    try {
+      await reportFeedback({
+        message: reportText.trim(),
+        context: `${plan.start} → ${plan.destination} (${MODE_LABELS[mode]})`,
+      })
+      setReportState('done')
+      setReportText('')
+      setTimeout(() => {
+        setShowReport(false)
+        setReportState('idle')
+      }, 2200)
+    } catch {
+      setReportState('error')
+    }
+  }
+
   // Seçili moda göre daralt: kullanıcı belirli bir tür seçtiyse
   // sonuç ekranı yalnızca o türü göstersin
   const modeCandidates = useMemo(() => {
@@ -644,6 +725,22 @@ export default function ResultsScreen({
             ))}
             <button
               type="button"
+              onClick={toggleGetOffAlert}
+              aria-pressed={offState !== 'off'}
+              className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-bold transition-colors ${
+                offState !== 'off'
+                  ? 'border-accent bg-accent/15 text-accent'
+                  : 'border-line bg-surface-2 text-accent hover:border-accent'
+              } ${offState === 'arrived' ? 'ml-auto' : ''}`}
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              </svg>
+              {offState === 'watching' ? 'İzleniyor…' : offState === 'arrived' ? 'İnme zamanı!' : 'İnme uyarısı'}
+            </button>
+            <button
+              type="button"
               onClick={() => setShowVoice(true)}
               aria-label="Sesli rehber"
               className="ml-auto flex items-center gap-1.5 rounded-full border border-line bg-surface-2 px-3 py-1.5 text-xs font-bold text-accent transition-colors hover:border-accent"
@@ -657,6 +754,18 @@ export default function ResultsScreen({
             </button>
           </div>
         )}
+
+        {offState === 'watching' && offDistance != null && (
+          <p className="mt-2 text-xs font-bold text-accent">
+            🚏 {plan.destination} durağına ~{Math.round(offDistance / 10) * 10} m — yaklaştıkça haber vereceğiz
+          </p>
+        )}
+        {offState === 'arrived' && (
+          <p className="mt-2 text-xs font-bold text-accent">
+            🔔 İnme zamanı! {plan.destination} durağına ulaştın.
+          </p>
+        )}
+        {offError && <p className="mt-2 text-xs text-red-300">{offError}</p>}
 
         <div className="mt-4 space-y-3">
           {visibleCandidates.map((candidate) => (
@@ -672,6 +781,18 @@ export default function ResultsScreen({
             />
           ))}
         </div>
+
+        {!hasTransitRoutes && (
+          <div className="mt-4 rounded-2xl border border-line bg-surface-2 px-4 py-3">
+            <p className="text-xs font-bold text-accent">🚐 Dolmuş / minibüs seçeneği</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted">
+              Aradığın güzergahta dolmuş veya minibüs hattı olabilir — bu hatların saat verisi
+              uygulamamızda ayrıntılı değil. AI asistanına “{plan.start} → {plan.destination} dolmuş ile
+              nasıl gidilir, ücreti ne kadar?” diye sor; güzergah, aktarma ve tahmini ücreti senin için
+              araştırır.
+            </p>
+          </div>
+        )}
 
         {(() => {
           // TripReport: secili toplu tasima rotasindan; yoksa en mantikli secenekten
@@ -717,12 +838,66 @@ export default function ResultsScreen({
 
         <button
           type="button"
+          onClick={() => setShowReport(true)}
+          className="mt-4 flex min-h-[40px] w-full items-center justify-center gap-1.5 rounded-2xl border border-line bg-transparent text-xs font-bold text-muted transition-colors hover:border-accent hover:text-accent"
+        >
+          ⚠ Bu bilgi yanlış mı? Bildir
+        </button>
+
+        <button
+          type="button"
           onClick={onBack}
-          className="mt-5 flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-line bg-surface-2 font-bold text-muted transition-colors hover:border-accent hover:text-accent"
+          className="mt-2 flex min-h-[48px] w-full items-center justify-center rounded-2xl border border-line bg-surface-2 font-bold text-muted transition-colors hover:border-accent hover:text-accent"
         >
           Yeni rota ara
         </button>
       </div>
+
+      {showReport && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center" role="dialog" aria-modal="true">
+          <div className="w-full max-w-md rounded-t-3xl border border-line bg-surface p-5 sm:rounded-3xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-extrabold">Bu bilgi yanlış mı?</h3>
+              <button
+                type="button"
+                onClick={() => { setShowReport(false); setReportState('idle') }}
+                aria-label="Kapat"
+                className="rounded-full p-1.5 text-muted hover:text-text"
+              >
+                ✕
+              </button>
+            </div>
+            {reportState === 'done' ? (
+              <p className="mt-4 text-sm text-accent">Teşekkürler! Bildirimin ekibe iletildi — kontrol edip verileri güncelleyeceğiz.</p>
+            ) : (
+              <>
+                <p className="mt-1 text-xs text-muted">
+                  Yanlış saat, eksik hat veya rota hatası bulduysan yaz; verilerimizi bu bildirimlerle düzeltiyoruz.
+                </p>
+                <textarea
+                  value={reportText}
+                  onChange={(e) => setReportText(e.target.value)}
+                  rows={4}
+                  maxLength={500}
+                  placeholder="Örn: 640 hattı hafta sonu hiç geçmiyor / saatler yanlış…"
+                  className="mt-3 w-full rounded-2xl border border-line bg-surface-2 px-4 py-3 text-sm text-text placeholder:text-muted/60 focus:border-accent focus:outline-none"
+                />
+                {reportState === 'error' && (
+                  <p className="mt-2 text-xs text-red-300">Gönderilemedi — bağlantını kontrol edip tekrar dene.</p>
+                )}
+                <button
+                  type="button"
+                  onClick={submitReport}
+                  disabled={!reportText.trim() || reportState === 'sending'}
+                  className="mt-3 flex min-h-[46px] w-full items-center justify-center rounded-2xl bg-accent font-extrabold text-[#04241d] transition-opacity disabled:opacity-40"
+                >
+                  {reportState === 'sending' ? 'Gönderiliyor…' : 'Bildirimi gönder'}
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {showVoice && selectedRoute && (
         <VoiceGuidance

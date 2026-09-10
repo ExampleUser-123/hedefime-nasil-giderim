@@ -1416,6 +1416,47 @@ def admin_users(x_admin_key: str | None = None):
 
 
 # =========================================================
+# VERİ DÜZELTME BİLDİRİMLERİ ("Bu bilgi yanlış")
+# =========================================================
+
+from services import report_store  # noqa: E402
+from pydantic import BaseModel  # noqa: E402
+
+
+class ReportMessage(BaseModel):
+    message: str
+    context: str | None = None
+
+
+@app.post("/reports")
+def create_report(body: ReportMessage, request: Request):
+    """Kullanıcı yanlış sefer/rota bilgisini bildirir (genel IP limitine tabi)."""
+
+    text = (body.message or "").strip()
+    if len(text) < 3:
+        return JSONResponse(status_code=400, content={"error": "Bildirim çok kısa."})
+
+    entry = report_store.add_report(text, body.context)
+    print(f"[report] #{entry['id']} {entry['context']}: {text[:80]}")
+    return {"ok": True}
+
+
+@app.get("/admin/reports")
+def admin_reports(x_admin_key: str | None = None, limit: int = 100):
+    """Bildirilen veri hatalarını listeler (aile paneli)."""
+
+    admin_key = os.getenv("ADMIN_KEY")
+
+    if not admin_key or x_admin_key != admin_key:
+        return JSONResponse(
+            status_code=403,
+            content={"error": "Bu işlem için yetkiniz yok."},
+        )
+
+    return {"reports": report_store.list_reports(limit)}
+
+
+# =========================================================
 # AI ASİSTAN
 # =========================================================
 

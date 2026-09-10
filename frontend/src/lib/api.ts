@@ -320,6 +320,16 @@ export function fetchAuthMe() {
   return request<{ user: AuthUser }>('/auth/me', undefined, 15000)
 }
 
+// --- Kullanici veri-duzeltme bildirimi --------------------------------------
+
+export function reportFeedback(payload: { message: string; context?: string }) {
+  return request<{ ok: boolean }>('/reports', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }, 15000)
+}
+
 export function fetchFavorites() {
   return request<{ favorites: ServerFavorite[] }>('/favorites', undefined, 15000)
 }
