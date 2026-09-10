@@ -223,6 +223,146 @@ CITIES = {
 <p><strong>Hedefime Nasil Giderim</strong> ile Adana'da otogardan merkez pazaryerine, Seyhan'dan Cukurova Universitesi'ne nasil gideceginizi planlayabilir, sure ve tahmini ucreti gorebilirsiniz.</p>
 """,
     },
+    "eskisehir": {
+        "slug": "eskisehir-otobus-tramvay-saatleri.html",
+        "title": "Eskisehir Otobus ve Tramvay Saatleri (2026) — Eskisehir Ulasim Rehberi",
+        "desc": "Eskisehir'de otobus hatlari ve EsTram saatleri. Eskisehir'de nasil gidilir, rota nasil planlanir?",
+        "h1": "Eskisehir'de Nasil Gidilir? Otobus ve EsTram Rehberi",
+        "cta": "Eskisehir rota ara",
+        "body": """
+<p>Ogrenci sehrinin kalbi Eskisehir'de ulasimin yildizi <strong>EsTram</strong> tramvay hattidir. Universite cografyasi oldugu icin hatlar gecen saatlere kadar yogundur.</p>
+<h2>Eskisehir'de ulasim turleri</h2>
+<ul>
+  <li><strong>EsTram:</strong> Ogrenci sitesi - Emekos - OPET hatti, sehrin iki ucunu birlestirir. Anadolu Universitesi ve Osmangazi Universitesi koridorlarinda can kurtaricidir.</li>
+  <li><strong>Otobusler:</strong> Tepebasi ve Odunpazari ilcelerini kapsayan genis hat agi.</li>
+  <li><strong>EsKart:</strong> Tramvay ve otobuslerde ortak gecis.</li>
+</ul>
+<h2>Saatler ne zaman?</h2>
+<p>EsTram sabah ~06:00 ile gece ~00:30 arasinda calisir — universite sehrinin gec yasam uyumuna paralel. Otobusler 06:15-23:45 arasinda sefer duzenler.</p>
+<h2>Akilli rota planlama</h2>
+<p><strong>Hedefime Nasil Giderim</strong> ile Eskisehir'de universiteden cikista otogara, Odunpazari'dan Tepebasi'ye nasil gideceginizi sure ve tahmini ucreti ile planlayabilirsiniz.</p>
+""",
+    },
+    "gaziantep": {
+        "slug": "gaziantep-otobus-saatleri.html",
+        "title": "Gaziantep Otobus Saatleri (2026) — Gaziantep Ulasim Rehberi",
+        "desc": "Gaziantep'te otobus hatlari ve sefer saatleri. Gaziantep'te nasil gidilir, rota nasil planlanir?",
+        "h1": "Gaziantep'te Nasil Gidilir? Otobus Rehberi",
+        "cta": "Gaziantep rota ara",
+        "body": """
+<p>Gaziantep'te ulasim genis otobus agiyla saglanir. Sehir buyuklugune ragmen hat duzeni mantikli; merkez ilceler (Sahinbey, Sehitkamil) arasi baglanti gucludur.</p>
+<h2>Gaziantep'te ulasim turleri</h2>
+<ul>
+  <li><strong>Otobusler:</strong> Merkez ve ilceleri baglayan yuzlerce hat. Gaziantep Kart ile gecis saglanir.</li>
+  <li><strong>Ilceler arasi hatlar:</strong> Nizip, Islahiye, Kilis yonu hatlari merkez otogar uzerinden isler.</li>
+  <li><strong>Otogar baglantisi:</strong> Sehirler arasi otogardan merkeze duzenli ulasim.</li>
+</ul>
+<h2>Saatler ne zaman?</h2>
+<p>Gaziantep'te otobusler genellikle <strong>06:00-23:30</strong> arasinda calisir. Yogun koridorlarda (Gar - Sahinbey hatti gibi) sefer araliklari kisadir.</p>
+<h2>Akilli rota planlama</h2>
+<p><strong>Hedefime Nasil Giderim</strong> ile Gaziantep'te otogardan bakircilar carsisina, Sahinbey'den Sehitkamil'e nasil gideceginizi planlayabilir, sure ve tahmini ucreti gorebilirsiniz.</p>
+""",
+    },
+    "mersin": {
+        "slug": "mersin-otobus-saatleri.html",
+        "title": "Mersin Otobus Saatleri (2026) — Mersin Ulasim Rehberi",
+        "desc": "Mersin'de otobus hatlari ve sefer saatleri. Mersin'de nasil gidilir, rota nasil planlanir?",
+        "h1": "Mersin'de Nasil Gidilir? Otobus Rehberi",
+        "cta": "Mersin rota ara",
+        "body": """
+<p>Mersin'de ulasim EGO'ya benzer duzende toplu otobus hatlariyla saglanir. Sahil seridinde uzanan sehirde hatlar genellikle sahil yolunu ve merkezi baglar.</p>
+<h2>Mersin'de ulasim turleri</h2>
+<ul>
+  <li><strong>Otobusler:</strong> Yenisehir, Akdeniz, Toroslar ve Mezitli ilcelerini baglayan hatlar.</li>
+  <li><strong>Mersin Kart:</strong> Otobuslerde kullanilan gecis karti.</li>
+  <li><strong>Otogar baglantisi:</strong> Sehirler arasi otogardan merkez ve universiteye ulasim.</li>
+</ul>
+<h2>Saatler ne zaman?</h2>
+<p>Mersin'de otobusler genellikle <strong>06:00-23:00</strong> arasinda calisir. Universite hattinda ogrenci yogunluguna gore ek seferler duzenlenir.</p>
+<h2>Akilli rota planlama</h2>
+<p><strong>Hedefime Nasil Giderim</strong> ile Mersin'de otogardan Universite'ye, Mezitli'den merkeze nasil gideceginizi planlayabilirsiniz. Uygulama sure, yuruyus ve tahmini ucreti bir arada gosterir.</p>
+""",
+    },
+    "samsun": {
+        "slug": "samsun-otobus-tramvay-saatleri.html",
+        "title": "Samsun Otobus ve Tramvay Saatleri (2026) — Samsun Ulasim Rehberi",
+        "desc": "Samsun'da otobus hatlari ve tramvay saatleri. Samsun'da nasil gidilir, rota nasil planlanir?",
+        "h1": "Samsun'da Nasil Gidilir? Otobus ve Tramvay Rehberi",
+        "cta": "Samsun rota ara",
+        "body": """
+<p>Karadeniz'in en buyuk sehri Samsun'da ulasim otobusler ve sahil tramvay hattiyla saglanir. Atakum - Atakent - Cumhuriyet Meydani hatti sehrin ana omurgasidir.</p>
+<h2>Samsun'da ulasim turleri</h2>
+<ul>
+  <li><strong>Otobusler:</strong> Ilkadim, Atakum, Canik ilcelerini baglayan genis hat agi.</li>
+  <li><strong>Tramvay:</strong> Sahil seridinde Atakum'dan merkeze hizli ve rahat ulasim.</li>
+  <li><strong>Samsun Kart:</strong> Otobus ve tramvayda ortak gecis.</li>
+</ul>
+<h2>Saatler ne zaman?</h2>
+<p>Samsun'da otobusler genellikle <strong>06:00-23:30</strong> arasinda calisir. Tramvay benzer saatlerde sefer duzenler; universite hattinda ders saatlarine paralel siklasir.</p>
+<h2>Akilli rota planlama</h2>
+<p><strong>Hedefime Nasil Giderim</strong> ile Samsun'da Atakum'dan Cumhuriyet Meydani'na, otogardan universiteye nasil gideceginizi planlayabilir, sure ve tahmini ucreti gorebilirsiniz.</p>
+""",
+    },
+    "kayseri": {
+        "slug": "kayseri-otobus-tramvay-saatleri.html",
+        "title": "Kayseri Otobus ve Tramvay Saatleri (2026) — Kayseray Rehberi",
+        "desc": "Kayseri'de otobus hatlari ve Kayseray tramvay saatleri. Kayseri'de nasil gidilir, rota nasil planlanir?",
+        "h1": "Kayseri'de Nasil Gidilir? Otobus ve Kayseray Rehberi",
+        "cta": "Kayseri rota ara",
+        "body": """
+<p>Kayseri'de ulasimin simgesi <strong>Kayseray</strong> tramvay hattidir. Sehirde otobus agi ve tramvay birbirini tamamlayan bir duzende calisir.</p>
+<h2>Kayseri'de ulasim turleri</h2>
+<ul>
+  <li><strong>Kayseray:</strong> Cumhuriyet Meydani, Erkilet ve Talas yonu hatlari. Universite hattinda yogunluk yuksektir.</li>
+  <li><strong>Otobusler:</strong> Melikgazi, Kocasinan ve Talas ilcelerini baglayan hatlar.</li>
+  <li><strong>Kayseri Kart:</strong> Tramvay ve otobuslerde ortak gecis karti.</li>
+</ul>
+<h2>Saatler ne zaman?</h2>
+<p>Kayseri'de tramvay sabah ~06:00 ile gece ~00:00 arasinda calisir. Otobusler 06:00-23:30 arasinda sefer duzenler.</p>
+<h2>Akilli rota planlama</h2>
+<p><strong>Hedefime Nasil Giderim</strong> ile Kayseri'de otogardan Erciyes Universitesi'ne, Talas'tan merkeze nasil gideceginizi planlayabilirsiniz.</p>
+""",
+    },
+    "trabzon": {
+        "slug": "trabzon-otobus-saatleri.html",
+        "title": "Trabzon Otobus Saatleri (2026) — Trabzon Ulasim Rehberi",
+        "desc": "Trabzon'da otobus hatlari ve dolmus guzergahlari. Trabzon'da nasil gidilir, rota nasil planlanir?",
+        "h1": "Trabzon'da Nasil Gidilir? Otobus Rehberi",
+        "cta": "Trabzon rota ara",
+        "body": """
+<p>Karadeniz'in incisi Trabzon'da ulasim otobus hatlari ve yogun dolmus agiyla saglanir. Sahil seridinde uzanan sehirde hatlar Ortahisar merkez ile batigazi arasinda isler.</p>
+<h2>Trabzon'da ulasim turleri</h2>
+<ul>
+  <li><strong>Otobusler:</strong> Merkez Ortahisar, Akcaabat ve Arsin yonu hatlar.</li>
+  <li><strong>Trabzon Kart:</strong> Otobuslerde kullanilan gecis karti.</li>
+  <li><strong>Havalimani baglantisi:</strong> Trabzon Havalimani'ndan merkeze duzenli otobus ve dolmus hatlari.</li>
+</ul>
+<h2>Saatler ne zaman?</h2>
+<p>Trabzon'da otobusler genellikle <strong>06:00-23:00</strong> arasinda calisir. Dolmuslar sabah erken saatlerden gece yarilarina kadar isler.</p>
+<h2>Akilli rota planlama</h2>
+<p><strong>Hedefime Nasil Giderim</strong> ile Trabzon'da havalimanindan Meydan Park'a, Akcaabat'tan merkeze nasil gideceginizi sure ve tahmini ucreti ile planlayabilirsiniz.</p>
+""",
+    },
+    "denizli": {
+        "slug": "denizli-otobus-saatleri.html",
+        "title": "Denizli Otobus Saatleri (2026) — Denizli Ulasim Rehberi",
+        "desc": "Denizli'de otobus hatlari ve sefer saatleri. Denizli'de nasil gidilir, rota nasil planlanir?",
+        "h1": "Denizli'de Nasil Gidilir? Otobus Rehberi",
+        "cta": "Denizli rota ara",
+        "body": """
+<p>Denizli'de ulasim genis otobus agiyla saglanir. Merkez ilceler (Pamukkale, Merkezefendi) arasi hatlar sik; horoz tipi sehir yapisinda rota bulmak kolaydir.</p>
+<h2>Denizli'de ulasim turleri</h2>
+<ul>
+  <li><strong>Otobusler:</strong> Merkezefendi ve Pamukkale ilcelerini baglayan hatlar. Denizli Kart ile gecis.</li>
+  <li><strong>Pamukkale baglantisi:</strong> Dunya mirasi Pamukkale travertenlerine merkezden duzenli otobus.</li>
+  <li><strong>Otogar baglantisi:</strong> Sehirler arasi otogardan merkeze ulasim kolaydir.</li>
+</ul>
+<h2>Saatler ne zaman?</h2>
+<p>Denizli'de otobusler genellikle <strong>06:00-23:30</strong> arasinda calisir. Universite hattinda ogrenci saatlarine paralel siklasir.</p>
+<h2>Akilli rota planlama</h2>
+<p><strong>Hedefime Nasil Giderim</strong> ile Denizli'de otogardan merkeze, merkezden Pamukkale'ye nasil gideceginizi planlayabilir, sure ve tahmini ucreti gorebilirsiniz.</p>
+""",
+    },
 }
 
 def render_city(slug_key, info, all_keys):
