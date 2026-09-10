@@ -391,7 +391,7 @@ def main():
         print("yazildi:", info["slug"])
 
     # sitemap
-    static = ["", "privacy.html", "app/"]
+    static = ["", "privacy.html", "hakkinda.html", "app/"]
     items = []
     today = "2026-09-11"
     for s in static:
