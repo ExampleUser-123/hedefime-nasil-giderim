@@ -8,3 +8,5 @@ data/gtfs_cache/
 # Imzalama anahtari - ASLA commit etme  
 frontend/android/keystore/
 frontend/android/keystore.properties  
+rootsite/  
+site/  
