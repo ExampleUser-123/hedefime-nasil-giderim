@@ -30,6 +30,8 @@ CITIES = {
     'osmaniye': '033',
     'karabuk': '037',
     'bartin': '040',
+    'bolu': '024',
+    'alanya': '019',
 }
 
 GTFS_TYPES = {
