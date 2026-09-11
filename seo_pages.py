@@ -510,6 +510,87 @@ CITIES = {
     },
 }
 
+# ---------------------------------------------------------------------------
+# Ek sehirler: uygulamada toplu tasima verisi olan ama ayri rehber sayfasi
+# olmayan iller. Kisa alanlardan tam sayfa govdesi uretilir.
+# ---------------------------------------------------------------------------
+EXTRA_CITIES = {
+    "isparta": ("Isparta", "Isparta Belediyesi otobüsleri",
+                "Merkez ve mahalle hatlari", "Suleyman Demirel Universitesi hatlari derse giris saatlerinde yogunlasir",
+                "06:30-23:00"),
+    "karaman": ("Karaman", "Karaman Belediyesi otobüsleri",
+                "Merkez hatlari", "Karaman'da otobusler merkez ilcede yogun, mahalle baglantilari guclu", "07:00-22:30"),
+    "rize": ("Rize", "Rize Belediyesi otobüsleri",
+             "Merkez ve sahil seridi hatlari", "Dik yamacli cografyada otobus ve dolmus birlikte calisir", "06:30-22:30"),
+    "tekirdag": ("Tekirdağ", "Tekirdağ Büyükşehir Belediyesi otobüsleri",
+                 "Merkez, Corlu ve Cerkezkoy hatlari", "Corlu - merkez koridoru sanayi saatlerinde cok yogun", "06:00-23:00"),
+    "manisa": ("Manisa", "Manisa Büyükşehir Belediyesi otobüsleri",
+               "Merkez ve ilce baglanti hatlari", "Turgutlu ve Salihli yonu banliyo yogunluguna sahiptir", "06:00-23:30"),
+    "alanya": ("Alanya", "Alanya Belediyesi otobüsleri",
+               "Mahalle ve turizm hatlari", "Yaz aylarinda hat sikligi turizm sezonuna gore artar", "06:00-00:00"),
+    "bartin": ("Bartın", "Bartın Belediyesi otobüsleri",
+               "Merkez hatlari", "Amasra yonu tatil donemlerinde yogunlasir", "07:00-22:00"),
+    "bolu": ("Bolu", "Bolu Belediyesi otobüsleri",
+             "Merkez hatlari", "Bolu, Ankara-Istanbul yolu uzerinde oldugu icin otogar baglantilari gucludur", "07:00-22:00"),
+    "burdur": ("Burdur", "Burdur Belediyesi otobüsleri",
+               "Merkez hatlari", "Burdur Golu cevresinde kent ici hatlar merkezden baslar", "07:00-22:00"),
+    "canakkale": ("Çanakkale", "Çanakkale Belediyesi otobüsleri",
+                  "Merkez hatlari", "Kilitbahir ve Bozcaada feribot baglantilari otobus hatlariyla birlesir", "06:30-23:00"),
+    "duzce": ("Düzce", "Düzce Belediyesi otobüsleri",
+              "Merkez ve mahalle hatlari", "Duzce'de universite ve otogar hatlari en sik seferli hatlardir", "07:00-22:00"),
+    "edirne": ("Edirne", "Edirne Belediyesi otobüsleri",
+               "Merkez ve mahalle hatlari", "Kapikule sinir kapisi yonu otogar hatlariyla desteklenir", "06:30-23:00"),
+    "karabuk": ("Karabük", "Karabük Belediyesi otobüsleri",
+                "Merkez hatlari", "Safranbolu baglantisi kent ici hatlarla saglanir", "07:00-22:00"),
+    "kirklareli": ("Kırklareli", "Kırklareli Belediyesi otobüsleri",
+                   "Merkez hatlari", "Luleburgaz yonu ilce hatlari yogun iki koridordur", "07:00-22:00"),
+    "mardin": ("Mardin", "Mardin Büyükşehir Belediyesi otobüsleri",
+               "Merkez, Kiziltepe, Midyat ve Nusaybin hatlari", "Tarihi tas mimari bolgelerinde duraklar eskisehir yolu uzerinde konumlanir", "06:00-23:00"),
+    "mugla": ("Muğla", "Muğla Büyükşehir Belediyesi MUTTAŞ otobüsleri",
+              "Bodrum, Fethiye, Marmaris ve Milas ilce hatlari", "Turizm sezonunda ilceler arasi hat sikligi belirgin artar", "06:00-00:30"),
+    "nigde": ("Niğde", "Niğde Belediyesi otobüsleri",
+              "Merkez ve universite hatlari", "Omer Halisdemir Universitesi hatlari donem icerisinde yogundur", "07:00-22:00"),
+    "ordu": ("Ordu", "Ordu Büyükşehir Belediyesi otobüsleri",
+             "Merkez, Unye ve Fatsa hatlari", "Boztepe teleferigi ve sahil yolu hatlari popular gunubirlik guzergahlardir", "06:30-23:00"),
+    "osmaniye": ("Osmaniye", "Osmaniye Belediyesi otobüsleri",
+                 "Merkez hatlari", "Osmaniye'de merkez hatlar caddesi uzerinde yogunlasir", "07:00-22:00"),
+    "sivas": ("Sivas", "Sivas Belediyesi otobüsleri",
+              "Merkez ve universite hatlari", "Cumhuriyet Universitesi yonu hatlar gun icinde en sik seferli hatlardir", "06:30-23:00"),
+    "tokat": ("Tokat", "Tokat Belediyesi otobüsleri",
+              "Merkez hatlari", "Tokat'ta merkez ve Gaziosmanpasa Universitesi hatlari birbirini tamamlar", "07:00-22:00"),
+    "zonguldak": ("Zonguldak", "Zonguldak Belediyesi otobüsleri",
+                  "Merkez hatlari", "Eregli yonu sanayi hatlari vardiya saatlerinde yogunlasir", "06:30-23:00"),
+}
+
+
+def _extra_body(name, op, ul, tip, hours):
+    return """
+<p>{n}, Turkiye'de toplu tasima agini belediye otobusleriyle kuran sehirler arasinda. {op}, gunluk ulasimin belkemigini olusturuyor.</p>
+<h2>{n}'da ulasim turleri</h2>
+<ul>
+  <li><strong>{op}:</strong> {ul}.</li>
+  <li><strong>Dolmus ve minibüs:</strong> Otobus hatlarinin gitmedigi mahalle ve kirsal baglantilari tamamlar.</li>
+  <li><strong>Sehirlerarasi otobüs:</strong> Otogar uzerinden baska illere baglanti saglanir.</li>
+</ul>
+<p><strong>Ipucu:</strong> {tip}.</p>
+<h2>Saatler ne zaman?</h2>
+<p>{n}'da otobusler genellikle <strong>{h}</strong> arasinda calisir; hat bazli degisiklikler olabilir.</p>
+<h2>Akilli rota planlama</h2>
+<p><strong>Hedefime Nasil Giderim</strong> ile {n} icinde nereden nereye yazip en mantikli rotayi bulabilir, duraklara yakinlik ve tahmini sure ile karsilastirarak secim yapabilirsiniz.</p>
+""".format(n=name, op=op, ul=ul, tip=tip, h=hours)
+
+
+for _k, (name, op, ul, tip, hours) in EXTRA_CITIES.items():
+    CITIES[_k] = {
+        "slug": "{0}-otobus-saatleri.html".format(_k),
+        "title": "{0} Otobüs Saatleri (2026) — Nasil Gidilir?".format(name),
+        "desc": "{0}'da {1} hatlari, duraklar ve rota planlama. {0}'da nasil gidilir, en uygun rota nasil bulunur?".format(name, op),
+        "h1": "{0}'da Nasil Gidilir? {1} Rehberi".format(name, op),
+        "cta": "{0} rota ara".format(name),
+        "body": _extra_body(name, op, ul, tip, hours),
+    }
+
+
 def render_city(slug_key, info, all_keys):
     links = []
     for k in all_keys:
