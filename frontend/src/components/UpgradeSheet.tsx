@@ -61,7 +61,7 @@ export default function UpgradeSheet({ onClose }: { onClose: () => void }) {
       <div
         role="dialog"
         aria-label="Üyelik planları"
-        className="max-h-[88vh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-white/10 bg-[#0f1524] p-5 pb-8"
+        className="max-h-[94vh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-white/10 bg-[#0f1524] p-5 pb-10"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-start justify-between">

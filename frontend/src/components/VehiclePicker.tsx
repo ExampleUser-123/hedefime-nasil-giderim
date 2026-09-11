@@ -2,11 +2,33 @@ import { useEffect, useMemo, useState } from 'react'
 import { fetchVehicles, type Vehicle, type VehicleType } from '@/lib/api'
 import { IconCar, IconClose, IconMoto } from '@/icons'
 
-const STORAGE_KEY = 'hng-vehicle-id'
+const STORAGE_PREFIX = 'hng-vehicle'
 
-export function loadRememberedVehicle(): string | null {
+/** Tur bazli hatirlanan arac id'si; eski tek-anahtarli kayittan gecis yapar. */
+export function loadRememberedVehicle(type: VehicleType): string | null {
   try {
-    return localStorage.getItem(STORAGE_KEY)
+    const fresh = localStorage.getItem(`${STORAGE_PREFIX}-id-${type}`)
+    if (fresh) return fresh
+
+    const legacyId = localStorage.getItem('hng-vehicle-id')
+    const legacyType = localStorage.getItem('hng-vehicle-type') ?? 'arac'
+    if (legacyId && legacyType === type) return legacyId
+
+    return null
+  } catch {
+    return null
+  }
+}
+
+export function loadRememberedVehicleName(type: VehicleType): string | null {
+  try {
+    const fresh = localStorage.getItem(`${STORAGE_PREFIX}-name-${type}`)
+    if (fresh) return fresh
+
+    const legacyType = localStorage.getItem('hng-vehicle-type') ?? 'arac'
+    if (legacyType === type) return localStorage.getItem('hng-vehicle-name')
+
+    return null
   } catch {
     return null
   }
@@ -27,7 +49,7 @@ export default function VehiclePicker({
 }) {
   const [vehicles, setVehicles] = useState<Vehicle[] | null>(null)
   const [query, setQuery] = useState('')
-  const [remember, setRemember] = useState(() => loadRememberedVehicle() !== null)
+  const [remember, setRemember] = useState(() => loadRememberedVehicle(initialType) !== null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {

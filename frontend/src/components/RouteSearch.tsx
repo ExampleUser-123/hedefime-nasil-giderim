@@ -4,7 +4,7 @@ import { addHistory, getRouteShortcuts, getWalkTolerance, saveLastCoords, setWal
 import { maybeShowInterstitial } from '@/lib/ads'
 import { getTier } from '@/lib/auth'
 import ResultsScreen from '@/components/ResultsScreen'
-import VehiclePicker, { loadRememberedVehicle } from '@/components/VehiclePicker'
+import VehiclePicker, { loadRememberedVehicle, loadRememberedVehicleName } from '@/components/VehiclePicker'
 import UpgradeSheet from '@/components/UpgradeSheet'
 import type { VehicleType } from '@/lib/api'
 import PlaceInput from '@/components/PlaceInput'
@@ -77,14 +77,20 @@ export default function RouteSearch({
   const [locating, setLocating] = useState(false)
   const [people, setPeople] = useState(1)
   const [maxWalk, setMaxWalk] = useState<number | null>(() => getWalkTolerance())
-  const [vehicle, setVehicle] = useState<Vehicle | null>(null)
+  const [carVehicle, setCarVehicle] = useState<Vehicle | null>(null)
+  const [motoVehicle, setMotoVehicle] = useState<Vehicle | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [quotaHit, setQuotaHit] = useState(false)
   const [upgradeOpen, setUpgradeOpen] = useState(false)
   const [shortcuts, setShortcuts] = useState<SavedRoute[]>(() => getRouteShortcuts())
 
-  const rememberedId = loadRememberedVehicle()
+  // Moda uygun tur: Motosiklet modunda motosiklet, Araba modunda araba kullanılır
+  const isMotoMode = mode === 'motosiklet'
+  const activeType: VehicleType = isMotoMode ? 'motosiklet' : 'arac'
+  const activeVehicle = isMotoMode ? motoVehicle : carVehicle
+  const rememberedId = loadRememberedVehicle(activeType)
+  const rememberedName = loadRememberedVehicleName(activeType)
 
   function swap() {
     setFrom(to)
@@ -140,17 +146,18 @@ export default function RouteSearch({
   }, [preset])
 
   function handleVehicleSelect(nextVehicle: Vehicle, remember: boolean) {
-    setVehicle(nextVehicle)
+    const type = nextVehicle.vehicle_type ?? 'arac'
+
+    if (type === 'motosiklet') setMotoVehicle(nextVehicle)
+    else setCarVehicle(nextVehicle)
 
     try {
       if (remember) {
-        localStorage.setItem('hng-vehicle-id', nextVehicle.id)
-        localStorage.setItem('hng-vehicle-name', nextVehicle.name)
-        localStorage.setItem('hng-vehicle-type', nextVehicle.vehicle_type)
+        localStorage.setItem(`hng-vehicle-id-${type}`, nextVehicle.id)
+        localStorage.setItem(`hng-vehicle-name-${type}`, nextVehicle.name)
       } else {
-        localStorage.removeItem('hng-vehicle-id')
-        localStorage.removeItem('hng-vehicle-name')
-        localStorage.removeItem('hng-vehicle-type')
+        localStorage.removeItem(`hng-vehicle-id-${type}`)
+        localStorage.removeItem(`hng-vehicle-name-${type}`)
       }
     } catch {
       // localStorage kapalıysa sessizce devam
@@ -159,43 +166,19 @@ export default function RouteSearch({
     setPickerOpen(false)
   }
 
-  const rememberedName = (() => {
-    try {
-      return localStorage.getItem('hng-vehicle-name')
-    } catch {
-      return null
-    }
-  })()
-
-  const rememberedType = (() => {
-    try {
-      return (localStorage.getItem('hng-vehicle-type') as VehicleType | null) ?? 'arac'
-    } catch {
-      return 'arac' as VehicleType
-    }
-  })()
-
-  const selectedType: VehicleType = vehicle?.vehicle_type ?? rememberedType
+  const selectedType = activeType
   const RowVehicleIcon = selectedType === 'motosiklet' ? IconMoto : IconCar
 
   // Moda uygun araç: Motosiklet modunda motosiklet, Araba modunda araba kullanılır
-  const isMotoMode = mode === 'motosiklet'
-  const modeWantsType: VehicleType = isMotoMode ? 'motosiklet' : 'arac'
   const effectiveVehicleId = (() => {
-    if (mode !== 'arac' && mode !== 'motosiklet') return vehicle?.id ?? rememberedId ?? undefined
+    if (mode !== 'arac' && mode !== 'motosiklet') return activeVehicle?.id ?? rememberedId ?? undefined
 
-    if (vehicle?.vehicle_type === modeWantsType) return vehicle.id
-    if (!vehicle && rememberedId && rememberedType === modeWantsType) return rememberedId
+    if (activeVehicle) return activeVehicle.id
 
-    return isMotoMode ? 'honda_pcx' : 'toyota_corolla'
+    return rememberedId ?? (isMotoMode ? 'honda_pcx' : 'toyota_corolla')
   })()
 
-  const vehicleRowLabel =
-    effectiveVehicleId === 'honda_pcx' && !vehicle && rememberedType !== 'motosiklet'
-      ? 'Honda PCX 125 (varsayılan)'
-      : effectiveVehicleId === 'toyota_corolla' && !vehicle && rememberedType !== 'arac'
-        ? 'Toyota Corolla 1.6 (varsayılan)'
-        : (vehicle?.name ?? rememberedName ?? '')
+  const vehicleRowLabel = activeVehicle?.name ?? rememberedName ?? ''
 
   function detectLocation() {
     if (locating) return
@@ -456,7 +439,7 @@ export default function RouteSearch({
 
       <VehiclePicker
         open={pickerOpen}
-        selectedId={vehicle?.id ?? rememberedId ?? ''}
+        selectedId={activeVehicle?.id ?? rememberedId ?? ''}
         initialType={isMotoMode ? 'motosiklet' : 'arac'}
         onClose={() => setPickerOpen(false)}
         onSelect={handleVehicleSelect}
