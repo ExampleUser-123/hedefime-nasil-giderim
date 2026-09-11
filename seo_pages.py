@@ -43,7 +43,9 @@ TPL = """<!DOCTYPE html>
   {body}
   <div class="cta">
     <a class="btn" href="app/">🚀 {cta_text}</a>
-    <p>Ucretsiz, uyeliksiz — tarayicinda hemen dene.</p>
+    <p>Ucretsiz, uyeliksiz — tarayicinda hemen dene. Bu sehirdeki hatlarin
+    <strong>gercek kalkis saatlerini</strong> ve en yakin duraklari uygulamada gor.</p>
+    <p style="margin-top:14px"><a href="HedefimeNasilGiderim.apk" download style="color:var(--accent);font-size:.9rem">&#11015; Android APK indir</a></p>
   </div>
   <div class="links">
     <strong style="font-size:.9rem">Diger sehirler:</strong><br>

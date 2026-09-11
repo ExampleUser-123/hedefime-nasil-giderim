@@ -28,6 +28,20 @@
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
 
+        <!-- Ana ekran widget'i: en yakin durak + sonraki kalkislar -->
+        <receiver
+            android:name=".NearestStopWidgetProvider"
+            android:exported="false"
+            android:label="En Yakın Durak">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.hedefime.giderim.WIDGET_REFRESH" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/nearest_stop_widget_info" />
+        </receiver>
+
         <!-- AdMob: gercek uygulama kimligi -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"

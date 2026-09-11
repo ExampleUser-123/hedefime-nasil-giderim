@@ -325,12 +325,35 @@ def next_departures(city: str, line_no: str, stop_name: str, lat: float, lon: fl
         stop_n = _norm(stop_name)
 
         entries = None
-        for (r, s), lst in index.items():
-            if r == "_meta":
-                continue
+        for key, lst in index.items():
+            if not isinstance(key, tuple):
+                continue  # '_meta' vb.
+            r, s = key
             if r == route_n and (s == stop_n or (not stop_n)):
                 entries = lst
                 break
+
+        # Gevşek eşleşme: Kentkart/Kentkart-turevi kaynaklarda durak adlari
+        # GTFS'ten farkli yazilir ('Otogar1' vs '13491 - OTOGAR'), hat adinin
+        # sonunda yon/guzergah eki olabilir ('13' vs '13 TOKI-BL.EVLERI').
+        if entries is None and route_n and stop_n:
+            cands: list = []
+            for key, lst in index.items():
+                if not isinstance(key, tuple):
+                    continue
+                r, s = key
+                nxt = r[len(route_n):len(route_n) + 1]
+                if r != route_n and not (r.startswith(route_n) and nxt and not nxt.isalnum()):
+                    continue
+                s_clean = s.split(" - ", 1)[1] if " - " in s else s
+                stop_clean = stop_n[:-1] if stop_n and stop_n[-1].isdigit() else stop_n
+                if not stop_clean:
+                    stop_clean = stop_n
+                if s_clean == stop_clean or s_clean.startswith(stop_clean) or stop_clean.startswith(s_clean):
+                    cands.extend(lst)
+            if cands:
+                cands.sort(key=lambda e: e[0])
+                entries = cands
 
         if entries is None:
             return []
