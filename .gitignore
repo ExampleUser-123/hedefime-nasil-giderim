@@ -8,5 +8,16 @@ data/gtfs_cache/
 # Imzalama anahtari - ASLA commit etme  
 frontend/android/keystore/
 frontend/android/keystore.properties  
-rootsite/  
-site/  
+rootsite/
+site/
+
+# Gecici kazima / veri toplama artiklari
+_dbg_*.py
+data/_*
+data/users.json
+data/quotas.json
+data/gtfs/_*
+data/gtfs/eb_datasets.html
+data/gtfs/kb_list.html
+data/gtfs/ulasav_ego.html
+hedefime nasıl giderim uygulaması için/

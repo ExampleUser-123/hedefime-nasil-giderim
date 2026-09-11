@@ -51,6 +51,7 @@ const PLANS: Plan[] = [
  */
 export default function UpgradeSheet({ onClose }: { onClose: () => void }) {
   const [selected, setSelected] = useState<Tier>('lite')
+  const [soon, setSoon] = useState(false)
 
   return (
     <div
@@ -124,27 +125,35 @@ export default function UpgradeSheet({ onClose }: { onClose: () => void }) {
           })}
         </div>
 
-        <button
-          type="button"
-          disabled={selected === 'free'}
-          onClick={() => {
-            // Odeme altyapisi (Play Billing) entegre edilene kadar
-            const contact = 'destek@hedefimenasilgiderim.com'
-            window.location.href = `mailto:${contact}?subject=${encodeURIComponent(
-              'Üyelik: ' + selected,
-            )}`
-          }}
-          className={`mt-5 w-full rounded-2xl px-4 py-3.5 text-base font-black transition ${
-            selected === 'free'
-              ? 'cursor-not-allowed bg-white/5 text-muted'
-              : 'bg-teal-400 text-slate-900 active:scale-[0.99]'
-          }`}
-        >
-          {selected === 'free' ? 'Zaten ücretsiz planı kullanıyorsun' : `${PLANS.find((p) => p.id === selected)!.name} planına geç`}
-        </button>
-        <p className="mt-2 text-center text-xs text-muted">
-          Ödemeler Play Store üzerinden güvenle alınır. Dilediğin zaman iptal edebilirsin.
-        </p>
+        {soon ? (
+          <div className="mt-5 rounded-2xl border border-teal-400/30 bg-teal-400/10 p-4 text-center">
+            <div className="text-3xl">🚀</div>
+            <p className="mt-2 text-base font-black text-white">Yakında geliyor!</p>
+            <p className="mt-1 text-sm text-[#c7d2e5]">
+              {PLANS.find((p) => p.id === selected)!.name} planına geçiş, ödeme
+              sistemi uygulamaya eklendiği an açılacak. Şimdilik ücretsiz
+              planın tüm özelliklerini kullanmaya devam edebilirsin.
+            </p>
+          </div>
+        ) : (
+          <>
+            <button
+              type="button"
+              disabled={selected === 'free'}
+              onClick={() => setSoon(true)}
+              className={`mt-5 w-full rounded-2xl px-4 py-3.5 text-base font-black transition ${
+                selected === 'free'
+                  ? 'cursor-not-allowed bg-white/5 text-muted'
+                  : 'bg-teal-400 text-slate-900 active:scale-[0.99]'
+              }`}
+            >
+              {selected === 'free' ? 'Zaten ücretsiz planı kullanıyorsun' : `${PLANS.find((p) => p.id === selected)!.name} planına geç`}
+            </button>
+            <p className="mt-2 text-center text-xs text-muted">
+              Ödemeler Play Store üzerinden güvenle alınır. Dilediğin zaman iptal edebilirsin.
+            </p>
+          </>
+        )}
       </div>
     </div>
   )
