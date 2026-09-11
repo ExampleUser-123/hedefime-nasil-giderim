@@ -18,7 +18,7 @@ import {
 } from '@/components/TabScreens'
 import { IconLogo } from '@/icons'
 import type { AuthUser, PlanResult } from '@/lib/api'
-import { getStoredUser, refreshAuthState, signOut } from '@/lib/auth'
+import { AUTH_CHANGED_EVENT, getStoredUser, refreshAuthState, signOut } from '@/lib/auth'
 import { rescheduleAll } from '@/lib/reminders'
 
 function defaultVehicleName(): string | null {
@@ -49,6 +49,13 @@ export default function App() {
   // Suresi dolmus oturum varsa temizle
   useEffect(() => {
     refreshAuthState().then(() => setAuthUser(getStoredUser())).catch(() => {})
+  }, [])
+
+  // Web'de Google redirect akisiyla giris: oturum acilinca arayuz guncellensin
+  useEffect(() => {
+    const onAuthChanged = () => setAuthUser(getStoredUser())
+    window.addEventListener(AUTH_CHANGED_EVENT, onAuthChanged)
+    return () => window.removeEventListener(AUTH_CHANGED_EVENT, onAuthChanged)
   }, [])
 
   // Gecmis sefer hatirlaticlarini temizle, gelecektekileri yeniden planla

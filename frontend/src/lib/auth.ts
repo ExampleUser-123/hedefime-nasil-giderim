@@ -51,6 +51,11 @@ export async function handleGoogleRedirect(): Promise<boolean> {
     const { token, user } = await authWithGoogle(result.idToken)
     setAuthToken(token)
     storeUser(user)
+
+    // Hash temizlenir (yenilemede tekrar islenmesin) ve App'e oturum acildigi
+    // duyurulur — aksi halde arayuz giris yapmamis gibi gorunur.
+    window.history.replaceState({}, document.title, window.location.pathname + window.location.search)
+    window.dispatchEvent(new CustomEvent('hng-auth-changed'))
     return true
   } catch {
     // Hatali/eksik hash temizlenir; aksi halde her yuklemede tekrar denenir
@@ -58,6 +63,9 @@ export async function handleGoogleRedirect(): Promise<boolean> {
     return false
   }
 }
+
+/** Oturum degisikligini dinleyenler icin olay adi. */
+export const AUTH_CHANGED_EVENT = 'hng-auth-changed'
 
 export function isAuthed(): boolean {
   return getStoredUser() !== null
