@@ -178,6 +178,10 @@ async function request<T>(path: string, init?: RequestInit, timeoutMs = 30000): 
     const err = new Error(data?.error ?? data?.detail ?? 'Sunucu bir hata verdi. Lütfen tekrar dene.')
     // Cagiran tarafin ag hatasi ile kimlik hatasini ayirt edebilmesi icin
     ;(err as Error & { status?: number }).status = response.status
+    // 429 = gunluk kota doldu; arayuz "üyeliği yükselt" akisini acar
+    if (response.status === 429) {
+      ;(err as Error & { quota?: boolean }).quota = true
+    }
     throw err
   }
 
@@ -323,6 +327,22 @@ export function loginWithEmail(email: string, password: string) {
 
 export function fetchAuthMe() {
   return request<{ user: AuthUser }>('/auth/me', undefined, 75000)
+}
+
+// --- Uyelik katmani ve gunluk kota -------------------------------------------
+
+export type Tier = 'free' | 'lite' | 'premium'
+
+export type UsageInfo = {
+  tier: Tier
+  routes_used: number
+  routes_limit: number // -1 = sinirsiz
+  ai_used: number
+  ai_limit: number // -1 = sinirsiz
+}
+
+export function fetchUsage(): Promise<UsageInfo> {
+  return request<UsageInfo>('/usage', undefined, 30000)
 }
 
 // --- Kullanici veri-duzeltme bildirimi --------------------------------------

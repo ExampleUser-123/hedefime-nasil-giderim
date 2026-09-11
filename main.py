@@ -35,6 +35,7 @@ from services.auth import (
     validate_email_password,
 )
 from services import user_store
+from services import quota_store
 
 from services.gtfs import (
     search_stops,
@@ -178,6 +179,52 @@ def get_current_user(
         })
 
     return user
+
+
+def _optional_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(_bearer_scheme),
+) -> dict | None:
+    """Zorunlu olmayan kimlik: gecerli token varsa kullanici, yoksa None.
+
+    Kota takibi icin kullanilir; rota aramasi girissiz de calisir.
+    """
+    try:
+        token = extract_bearer_token(credentials)
+        payload = decode_app_token(token)
+    except AuthError:
+        return None
+
+    return user_store.get_user(payload["sub"])
+
+
+def _quota_guard(request: Request, user: dict | None, kind: str) -> dict:
+    """Gunluk kota kontrolu. Asilirsinda 429 JSON ile hata firlatir.
+
+    Donen dict: {"tier", "used", "limit", "key"} — islem basariliysa
+    sayaci artirmak icin kullanilir.
+    """
+    tier = user_store.get_tier(user)
+    key = quota_store.identity_key(user, request.client.host if request.client else "unknown")
+    ok, used, limit = quota_store.check(key, tier, kind)
+
+    if not ok:
+        kind_tr = "rota arama" if kind == "routes" else "AI mesajı"
+        raise HTTPException(
+            status_code=429,
+            detail=(
+                f"Günlük {kind_tr} hakkın doldu ({limit}/{limit}). "
+                "Yarın sıfırlanır veya üyeliğini yükseltebilirsin."
+            ),
+        )
+
+    return {"tier": tier, "key": key}
+
+
+def _quota_count(guard: dict, kind: str) -> None:
+    try:
+        quota_store.count(guard["key"], kind)
+    except Exception:  # noqa: BLE001 — kota sayaci hatasi ana akisi bozmasin
+        logger.warning("Kota sayaci guncellenemedi", exc_info=True)
 
 
 class GoogleAuthBody(BaseModel):
@@ -984,11 +1031,15 @@ def service_active(service_id: str):
 
 @app.get("/plan")
 def plan(
+    request: Request,
     start: str,
     end: str,
     people: int = 1,
-    vehicle: str = "toyota_corolla"
+    vehicle: str = "toyota_corolla",
+    user: dict | None = Depends(_optional_user),
 ):
+    # Gunluk rota kotasi (free 7 / lite 20 / premium sinirsiz)
+    guard = _quota_guard(request, user, "routes")
 
     # -----------------------------------------------------
     # BAŞLANGIÇ VE HEDEF YERİ (PARALEL)
@@ -1206,6 +1257,9 @@ def plan(
     # SONUÇ
     # -----------------------------------------------------
 
+    # Basarili rota aramasi gunluk kotadan dusulur
+    _quota_count(guard, "routes")
+
     return {
         "start": start_place["display_name"],
         "destination": end_place["display_name"],
@@ -1377,8 +1431,55 @@ def auth_login(body: EmailAuthBody):
 
 
 @app.get("/auth/me")
-def auth_me(user: dict = Depends(get_current_user)):
-    return {"user": user_store.public_user(user)}
+def auth_me(request: Request, user: dict = Depends(get_current_user)):
+    key = quota_store.identity_key(user, request.client.host if request.client else "")
+    usage = quota_store.get_usage(key)
+    return {
+        "user": user_store.public_user(user),
+        "usage": {
+            "tier": user_store.get_tier(user),
+            "routes_used": usage["routes"],
+            "ai_used": usage["ai"],
+            "limits": quota_store.limits_for(user_store.get_tier(user)),
+        },
+    }
+
+
+@app.get("/usage")
+def usage(request: Request, user: dict | None = Depends(_optional_user)):
+    """Gunluk kota durumu (girissiz ziyaretciler icin de calisir)."""
+    tier = user_store.get_tier(user)
+    key = quota_store.identity_key(user, request.client.host if request.client else "")
+    u = quota_store.get_usage(key)
+    limits = quota_store.limits_for(tier)
+    return {
+        "tier": tier,
+        "routes_used": u["routes"],
+        "routes_limit": limits["routes"] if limits["routes"] is not None else -1,
+        "ai_used": u["ai"],
+        "ai_limit": limits["ai"] if limits["ai"] is not None else -1,
+    }
+
+
+class TierBody(BaseModel):
+    user_id: str
+    tier: str
+
+
+@app.post("/admin/tier")
+def admin_set_tier(body: TierBody, x_admin_key: str | None = None):
+    """Uyelik katmanini elle ata (odeme altyapisi gelene kadar admin yolu)."""
+    admin_key = os.getenv("ADMIN_KEY")
+
+    if not admin_key or x_admin_key != admin_key:
+        return JSONResponse(status_code=403, content={"error": "Yetkisiz."})
+
+    user = user_store.set_tier(body.user_id, body.tier)
+
+    if user is None:
+        return JSONResponse(status_code=404, content={"error": "Kullanıcı bulunamadı veya geçersiz katman."})
+
+    return {"ok": True, "user": user_store.public_user(user)}
 
 
 @app.get("/favorites")
@@ -1509,7 +1610,7 @@ def parse_intent(body: IntentMessage):
 
 
 @app.post("/ai-assistant")
-def ai_assistant(body: AssistantMessage, user: dict = Depends(get_current_user)):
+def ai_assistant(body: AssistantMessage, request: Request, user: dict = Depends(get_current_user)):
 
     message = body.message.strip()
 
@@ -1533,6 +1634,9 @@ def ai_assistant(body: AssistantMessage, user: dict = Depends(get_current_user))
             "error": "AI asistanının dakikalık kullanım limiti doldu. "
             "Reklam izleyip tekrar deneyebilirsin."
         }
+
+    # Gunluk AI kotası (free 7 / lite 30 / premium sinirsiz)
+    ai_guard = _quota_guard(request, user, "ai")
 
     bucket.append(now)
     user_store.count_ai_request(user["id"])
@@ -1579,6 +1683,9 @@ def ai_assistant(body: AssistantMessage, user: dict = Depends(get_current_user))
         return {
             "error": "AI asistanına şu anda ulaşılamıyor. Lütfen tekrar deneyin."
         }
+
+    # Basarili AI cevabi gunluk kotadan dusulur
+    _quota_count(ai_guard, "ai")
 
     # -----------------------------------------------------
     # OTURUMA KAYDET

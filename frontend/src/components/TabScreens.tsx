@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { API_BASE, reverseGeocode, type AuthUser } from '@/lib/api'
+import { API_BASE, fetchUsage, reverseGeocode, type AuthUser, type UsageInfo } from '@/lib/api'
 import {
   clearHistory,
   getHistory,
@@ -14,6 +14,7 @@ import {
   type FavoriteView,
 } from '@/lib/favorites'
 import { signOut } from '@/lib/auth'
+import UpgradeSheet from '@/components/UpgradeSheet'
 import { IconBell, IconClock, IconStar, IconUser } from '@/icons'
 
 const MODE_LABELS: Record<string, string> = {
@@ -233,6 +234,20 @@ export function ProfileScreen({
   const [workPlace, setWorkPlace] = useState(() => getPinnedPlace('work'))
   const [pinning, setPinning] = useState<'home' | 'work' | null>(null)
   const [pinError, setPinError] = useState<string | null>(null)
+  const [usage, setUsage] = useState<UsageInfo | null>(null)
+  const [upgradeOpen, setUpgradeOpen] = useState(false)
+
+  useEffect(() => {
+    let alive = true
+    fetchUsage()
+      .then((u) => {
+        if (alive) setUsage(u)
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [user?.id])
 
   function captureLocation(kind: 'home' | 'work') {
     if (pinning) return
@@ -365,6 +380,42 @@ export function ProfileScreen({
           </button>
         </div>
       )}
+
+      <div className="mt-3 rounded-2xl border border-line bg-surface-2/90 p-4">
+        <div className="flex items-center justify-between">
+          <p className="text-xs uppercase tracking-wide text-muted">Üyelik</p>
+          {usage && (
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+              usage.tier === 'premium'
+                ? 'bg-amber-400/20 text-amber-300'
+                : usage.tier === 'lite'
+                  ? 'bg-teal-400/20 text-teal-300'
+                  : 'bg-white/10 text-muted'
+            }`}>
+              {usage.tier === 'premium' ? 'PREMIUM' : usage.tier === 'lite' ? 'LITE' : 'ÜCRETSİZ'}
+            </span>
+          )}
+        </div>
+        {usage && (
+          <p className="mt-1.5 text-xs text-muted">
+            Bugün {usage.routes_used}
+            {usage.routes_limit >= 0 ? `/${usage.routes_limit}` : ''} rota ·{' '}
+            {usage.ai_used}
+            {usage.ai_limit >= 0 ? `/${usage.ai_limit}` : ''} AI mesajı
+          </p>
+        )}
+        {usage?.tier !== 'premium' && (
+          <button
+            type="button"
+            onClick={() => setUpgradeOpen(true)}
+            className="mt-3 w-full rounded-xl bg-teal-400 py-2.5 text-sm font-bold text-slate-900 active:scale-[0.99]"
+          >
+            Planları gör → Daha fazla rota, reklamsız
+          </button>
+        )}
+      </div>
+
+      {upgradeOpen && <UpgradeSheet onClose={() => setUpgradeOpen(false)} />}
 
       <div className="mt-3 rounded-2xl border border-line bg-surface-2/90 p-4">
         <p className="text-xs uppercase tracking-wide text-muted">Sabit konumlar</p>

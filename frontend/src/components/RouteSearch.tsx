@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from 'react'
 import { fetchPlan, reverseGeocode, type Mode, type PlanResult, type Vehicle } from '@/lib/api'
 import { addHistory, getRouteShortcuts, getWalkTolerance, saveLastCoords, setWalkTolerance, type SavedRoute } from '@/lib/storage'
 import { maybeShowInterstitial } from '@/lib/ads'
+import { getTier } from '@/lib/auth'
 import ResultsScreen from '@/components/ResultsScreen'
 import VehiclePicker, { loadRememberedVehicle } from '@/components/VehiclePicker'
+import UpgradeSheet from '@/components/UpgradeSheet'
 import type { VehicleType } from '@/lib/api'
 import PlaceInput from '@/components/PlaceInput'
 import {
@@ -78,6 +80,8 @@ export default function RouteSearch({
   const [vehicle, setVehicle] = useState<Vehicle | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [quotaHit, setQuotaHit] = useState(false)
+  const [upgradeOpen, setUpgradeOpen] = useState(false)
   const [shortcuts, setShortcuts] = useState<SavedRoute[]>(() => getRouteShortcuts())
 
   const rememberedId = loadRememberedVehicle()
@@ -95,6 +99,7 @@ export default function RouteSearch({
 
     setLoading(true)
     setError(null)
+    setQuotaHit(false)
 
     try {
       const nextPlan = await fetchPlan(
@@ -108,9 +113,11 @@ export default function RouteSearch({
       addHistory({ from: start, to: end, people, mode })
       setShortcuts(getRouteShortcuts())
       // Araya giren reklam rota ekrani hazirlanirken arkada yuklenir
-      maybeShowInterstitial().catch(() => {})
+      maybeShowInterstitial(getTier()).catch(() => {})
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Rota alınamadı.')
+      const err = e as Error & { quota?: boolean }
+      setError(err.message || 'Rota alınamadı.')
+      if (err.quota) setQuotaHit(true)
     } finally {
       setLoading(false)
     }
@@ -389,10 +396,21 @@ export default function RouteSearch({
       </button>
 
       {error && (
-        <p role="alert" className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-          {error}
-        </p>
+        <div role="alert" className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          <p>{error}</p>
+          {quotaHit && (
+            <button
+              type="button"
+              onClick={() => setUpgradeOpen(true)}
+              className="mt-2 w-full rounded-lg bg-teal-500 px-4 py-2 text-sm font-bold text-slate-900 active:scale-[0.99]"
+            >
+              Üyeliği yükselt → Sınırsız rota
+            </button>
+          )}
+        </div>
       )}
+
+      {upgradeOpen && <UpgradeSheet onClose={() => setUpgradeOpen(false)} />}
 
       {shortcuts.length > 0 && (
         <div className="mt-4">

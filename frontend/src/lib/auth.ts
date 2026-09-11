@@ -67,6 +67,12 @@ export async function handleGoogleRedirect(): Promise<boolean> {
 /** Oturum degisikligini dinleyenler icin olay adi. */
 export const AUTH_CHANGED_EVENT = 'hng-auth-changed'
 
+/** Kayitli kullanicinin uyelik katmani (yoksa free). */
+export function getTier(): 'free' | 'lite' | 'premium' {
+  const u = getStoredUser() as (AuthUser & { tier?: string }) | null
+  return u?.tier === 'lite' || u?.tier === 'premium' ? u.tier : 'free'
+}
+
 export function isAuthed(): boolean {
   return getStoredUser() !== null
 }

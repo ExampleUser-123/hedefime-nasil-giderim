@@ -92,11 +92,15 @@ export async function showRewardedAd(): Promise<boolean> {
 }
 
 // --- Araya giren reklam (interstitial) ---
-// Her INTERSTITIAL_EVERY'nci basarili rota aramasinda bir gosterilir.
-// Ilk arama asla reklam cikarmaz; iki reklam arasi en az
-// INTERSTITIAL_MIN_GAP_MS kadar bekler (kullanicisini bogmamak icin).
-const INTERSTITIAL_EVERY = 2
-const INTERSTITIAL_MIN_GAP_MS = 90_000
+// Katman bazli siklik: free -> her rota aramasinda, lite -> her 3'te bir,
+// premium -> hicbir zaman. Ilk arama asla reklam cikarmaz; iki reklam
+// arasi en az INTERSTITIAL_MIN_GAP_MS bekler (bogmamak icin).
+const INTERSTITIAL_EVERY: Record<'free' | 'lite' | 'premium', number> = {
+  free: 1,
+  lite: 3,
+  premium: Number.POSITIVE_INFINITY,
+}
+const INTERSTITIAL_MIN_GAP_MS = 45_000
 const LS_SEARCH_COUNT = 'hng-ad-search-count'
 const LS_LAST_SHOWN = 'hng-ad-interstitial-at'
 
@@ -117,17 +121,20 @@ function lsSet(key: string, value: number): void {
 }
 
 /**
- * Rota aramasi basariyla bitince cagrilir. Sayaci artirir ve sira
+ * Rota aramasi basariyla bitince cagrilir. Uyelik katmanina gore sira
  * geldiyse araya giren reklami gosterir. Hata olursa sessizce gecer.
  */
-export async function maybeShowInterstitial(): Promise<void> {
+export async function maybeShowInterstitial(tier: 'free' | 'lite' | 'premium' = 'free'): Promise<void> {
   if (!adsAvailable() || !AD_IDS.interstitial) return
+  if (tier === 'premium') return
 
   const count = lsGet(LS_SEARCH_COUNT) + 1
   lsSet(LS_SEARCH_COUNT, count)
 
+  const every = INTERSTITIAL_EVERY[tier] ?? 1
+
   // Ilk arama ve tekrar araliginda reklam yok
-  if (count === 1 || count % INTERSTITIAL_EVERY !== 0) return
+  if (count === 1 || count % every !== 0) return
   if (Date.now() - lsGet(LS_LAST_SHOWN) < INTERSTITIAL_MIN_GAP_MS) return
 
   try {

@@ -154,6 +154,30 @@ def get_user(user_id: str) -> dict | None:
     return users.get(user_id)
 
 
+def set_tier(user_id: str, tier: str) -> dict | None:
+    """Uyelik katmanini gunceller (free/lite/premium). Admin kullanimi icin."""
+
+    if tier not in ("free", "lite", "premium"):
+        return None
+
+    with _lock:
+        users = _load()
+        user = users.get(user_id)
+
+        if user is None:
+            return None
+
+        user["tier"] = tier
+        _save(users)
+        return user
+
+
+def get_tier(user: dict | None) -> str:
+    """Kullanicinin uyelik katmani (varsayilan free)."""
+    t = (user or {}).get("tier") or "free"
+    return t if t in ("free", "lite", "premium") else "free"
+
+
 def public_user(user: dict) -> dict:
     """Istemciye gonderilecek guvenli alanlar (ic sayaclar haric)."""
 
@@ -163,6 +187,7 @@ def public_user(user: dict) -> dict:
         "name": user.get("name"),
         "picture": user.get("picture"),
         "created_at": user.get("created_at"),
+        "tier": get_tier(user),
     }
 
 
