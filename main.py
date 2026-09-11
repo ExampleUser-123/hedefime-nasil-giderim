@@ -161,7 +161,21 @@ def get_current_user(
     user = user_store.get_user(payload["sub"])
 
     if user is None:
-        raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı.")
+        # Render free tier'da gecici disk resetlendiginde users.json silinir.
+        # Google kaynakli token gecerliyse kullaniciyi token bilgisiyle
+        # yeniden olustur — token zaten Google dogrulamasi sonrasi bizim
+        # tarafimizdan imzalandigi icin guven zinciri bozulmaz.
+        # E-posta+sifre kullanicilari ("em_" onekli) sifre kontrolu
+        # gerektirdiginden yeniden olusturulamaz; 401 doner.
+        if payload["sub"].startswith("em_") or not payload.get("email"):
+            raise HTTPException(status_code=401, detail="Kullanıcı bulunamadı.")
+
+        user = user_store.upsert_google_user({
+            "sub": payload["sub"],
+            "email": payload.get("email"),
+            "name": payload.get("name"),
+            "picture": payload.get("picture"),
+        })
 
     return user
 

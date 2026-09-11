@@ -169,6 +169,7 @@ def issue_app_token(user: dict) -> str:
             "sub": user["id"],
             "email": user.get("email"),
             "name": user.get("name"),
+            "picture": user.get("picture"),
             "iat": now,
             "exp": now + TOKEN_TTL_SECONDS,
         },
