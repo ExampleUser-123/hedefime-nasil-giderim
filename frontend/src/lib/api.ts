@@ -293,11 +293,13 @@ export type ServerFavorite = {
 }
 
 export function authWithGoogle(idToken: string) {
+  // Render free tier uykusundan 50-60 sn'de uyanabilir; auth istekleri
+  // soguk baslamayi bekleyecek kadar uzun zaman asimina sahip olmali.
   return request<{ token: string; user: AuthUser }>('/auth/google', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ credential: idToken }),
-  }, 20000)
+  }, 75000)
 }
 
 export function registerWithEmail(email: string, password: string, name: string) {
@@ -305,7 +307,7 @@ export function registerWithEmail(email: string, password: string, name: string)
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password, name }),
-  }, 20000)
+  }, 75000)
 }
 
 export function loginWithEmail(email: string, password: string) {
@@ -313,11 +315,11 @@ export function loginWithEmail(email: string, password: string) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
-  }, 20000)
+  }, 75000)
 }
 
 export function fetchAuthMe() {
-  return request<{ user: AuthUser }>('/auth/me', undefined, 15000)
+  return request<{ user: AuthUser }>('/auth/me', undefined, 75000)
 }
 
 // --- Kullanici veri-duzeltme bildirimi --------------------------------------
