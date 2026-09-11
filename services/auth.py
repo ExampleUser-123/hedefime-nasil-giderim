@@ -38,24 +38,32 @@ def _google_client_id() -> str | None:
     return os.getenv("GOOGLE_CLIENT_ID")
 
 
+# JWT_SECRET env'i yoksa kullanilan gecici anahtar (surec omru boyunca sabit).
+# Surec icinde degisir; deploy/restart sonrasi eski tokenlar gecersizlesir.
+_EPHEMERAL_SECRET: str | None = None
+
+
 def _jwt_secret() -> str:
+    global _EPHEMERAL_SECRET
     secret = os.getenv("JWT_SECRET")
 
     if secret:
         return secret
 
     # Render'da JWT_SECRET tanimli olacak. Tanimli degilse (lokal hizli
-    # deneme) surec icinde uretilir — deploy'lar arasi gecersiz olur,
-    # bu yuzden log'la uyariyoruz.
-    import logging
-    import secrets as _secrets
+    # deneme) SUREC BASINA BIR KEZ uretilir — aksi halde her cagri farkli
+    # anahtar uretir ve hicbir token dogrulanamaz.
+    if _EPHEMERAL_SECRET is None:
+        import logging
+        import secrets as _secrets
 
-    logging.getLogger("hng").warning(
-        "JWT_SECRET tanimli degil! Gecici anahtar uretildi; "
-        "deploy/restart sonrasi oturumlar sifirlanir."
-    )
+        logging.getLogger("hng").warning(
+            "JWT_SECRET tanimli degil! Gecici anahtar uretildi (surec boyunca "
+            "sabit); deploy/restart sonrasi oturumlar sifirlanir."
+        )
+        _EPHEMERAL_SECRET = _secrets.token_hex(32)
 
-    return _secrets.token_hex(32)
+    return _EPHEMERAL_SECRET
 
 
 # --- E-posta + sifre -------------------------------------------------------
