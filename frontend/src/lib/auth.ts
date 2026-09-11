@@ -11,6 +11,54 @@ export const GOOGLE_WEB_CLIENT_ID =
 
 let initialized = false
 
+// Web'de Google, kullaniciyi bu adrese geri yonderir (bulundugu sayfa).
+// Bu adres Google Cloud Console'daki Web client'in "Authorized redirect URIs"
+// listesinde de olmalidir.
+function webRedirectUrl(): string {
+  return window.location.origin + window.location.pathname
+}
+
+async function ensureInitialized(): Promise<void> {
+  if (initialized) return
+  const isWeb = Capacitor.getPlatform() === 'web'
+  await GoogleSignIn.initialize({
+    clientId: GOOGLE_WEB_CLIENT_ID,
+    ...(isWeb ? { redirectUrl: webRedirectUrl() } : {}),
+  })
+  initialized = true
+}
+
+/**
+ * Web'de Google'dan geri dondugumuzde URL hash'indeki id_token'i isler.
+ * Uygulama acilisinda (main.tsx) bir kez cagrilir; token varsa oturum acilir.
+ * Donus degeri: redirect akisiyla giris yapildi mi.
+ */
+export async function handleGoogleRedirect(): Promise<boolean> {
+  if (Capacitor.getPlatform() !== 'web') return false
+
+  const hash = window.location.hash
+  if (!hash || (!hash.includes('id_token=') && !hash.includes('error='))) return false
+
+  await ensureInitialized()
+
+  try {
+    const webImpl = GoogleSignIn as unknown as {
+      handleRedirectCallback: () => Promise<{ idToken?: string }>
+    }
+    const result = await webImpl.handleRedirectCallback()
+    if (!result.idToken) return false
+
+    const { token, user } = await authWithGoogle(result.idToken)
+    setAuthToken(token)
+    storeUser(user)
+    return true
+  } catch {
+    // Hatali/eksik hash temizlenir; aksi halde her yuklemede tekrar denenir
+    window.history.replaceState({}, document.title, window.location.pathname + window.location.search)
+    return false
+  }
+}
+
 export function isAuthed(): boolean {
   return getStoredUser() !== null
 }
@@ -43,10 +91,7 @@ export async function signInWithGoogle(): Promise<AuthUser> {
     )
   }
 
-  if (!initialized) {
-    await GoogleSignIn.initialize({ clientId: GOOGLE_WEB_CLIENT_ID })
-    initialized = true
-  }
+  await ensureInitialized()
 
   const result = await GoogleSignIn.signIn()
 
