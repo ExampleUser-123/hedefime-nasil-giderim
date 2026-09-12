@@ -159,3 +159,10 @@ find_karaman_route = make_finder(
     city_label="Karaman",
     hours_note_url="karaman.bel.tr",
 )
+
+find_afyon_route = make_finder(
+    "afyon_transit.json.gz",
+    source_label="Afyonkarahisar Belediye Otobüsleri",
+    city_label="Afyonkarahisar",
+    hours_note_url="afyon.bel.tr/otobus",
+)

@@ -560,6 +560,8 @@ EXTRA_CITIES = {
               "Merkez hatlari", "Tokat'ta merkez ve Gaziosmanpasa Universitesi hatlari birbirini tamamlar", "07:00-22:00"),
     "zonguldak": ("Zonguldak", "Zonguldak Belediyesi otobüsleri",
                   "Merkez hatlari", "Eregli yonu sanayi hatlari vardiya saatlerinde yogunlasir", "06:30-23:00"),
+    "afyon": ("Afyonkarahisar", "Afyonkarahisar Belediyesi otobüsleri",
+              "Merkez, universite ve otogar hatlari", "Termal turizm bolgesi oldugu icin otogar ve merkez baglantilari gucludur", "06:00-23:00"),
 }
 
 

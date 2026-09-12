@@ -481,6 +481,7 @@ def find_transit_routes(
         "Trabzon": ("services.extra_transit", "find_trabzon_route"),
         "Denizli": ("services.extra_transit", "find_denizli_route"),
         "Karaman": ("services.extra_transit", "find_karaman_route"),
+        "Afyonkarahisar": ("services.extra_transit", "find_afyon_route"),
     }
 
     provider = direct_providers.get(start_city)
