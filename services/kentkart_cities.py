@@ -63,7 +63,9 @@ find_canakkale_route = make_finder(
 )
 
 find_samsun_route = make_finder(
-    "kentkart_samsun.json.gz",
+    # kentkart_samsun.json.gz yanlislikla Kastamonu verisiydi; GTFS'ten
+    # derlenen gercek Samsun verisi kullanilir (1632 durak).
+    "samsun_transit.json.gz",
     source_label="Samsun Ulaşım",
     city_label="Samsun",
     hours_note_url="samsun.bel.tr",

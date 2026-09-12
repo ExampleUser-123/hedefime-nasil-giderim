@@ -166,3 +166,24 @@ find_afyon_route = make_finder(
     city_label="Afyonkarahisar",
     hours_note_url="afyon.bel.tr/otobus",
 )
+
+find_sanliurfa_route = make_finder(
+    "sanliurfa_transit.json.gz",
+    source_label="UrfaKart",
+    city_label="Şanlıurfa",
+    hours_note_url="urfakart.com",
+)
+
+find_kahramanmaras_route = make_finder(
+    "kahramanmaras_transit.json.gz",
+    source_label="Kahramankart",
+    city_label="Kahramanmaraş",
+    hours_note_url="kahramankart.com.tr",
+)
+
+find_kastamonu_route = make_finder(
+    "kastamonu_transit.json.gz",
+    source_label="Kastamonu Belediye Otobüsleri",
+    city_label="Kastamonu",
+    hours_note_url="kentkart.com.tr",
+)

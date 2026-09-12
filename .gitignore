@@ -20,4 +20,7 @@ data/gtfs/_*
 data/gtfs/eb_datasets.html
 data/gtfs/kb_list.html
 data/gtfs/ulasav_ego.html
+data/research_*
+mdb_gtfs.csv
+search_tmp.html
 hedefime nasıl giderim uygulaması için/

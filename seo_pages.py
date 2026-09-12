@@ -562,6 +562,12 @@ EXTRA_CITIES = {
                   "Merkez hatlari", "Eregli yonu sanayi hatlari vardiya saatlerinde yogunlasir", "06:30-23:00"),
     "afyon": ("Afyonkarahisar", "Afyonkarahisar Belediyesi otobüsleri",
               "Merkez, universite ve otogar hatlari", "Termal turizm bolgesi oldugu icin otogar ve merkez baglantilari gucludur", "06:00-23:00"),
+    "sanliurfa": ("Şanlıurfa", "UrfaKart otobüsleri",
+                  "Merkez ve kent merkezi baglanti hatlari", "Abraham'in gol cevresi ve merkez hatlari gun boyu yogundur", "06:00-23:30"),
+    "kahramanmaras": ("Kahramanmaraş", "Kahramankart otobüsleri",
+                      "Merkez ve onurkent hatlari", "Merkez hatlari B/ kodlariyla calisir, ogrenci saatlerinde yogunlasir", "06:00-23:00"),
+    "kastamonu": ("Kastamonu", "Kastamonu Belediyesi otobüsleri",
+                  "Merkez ve Kuzeykent hatlari", "Merkez ile Kuzeykent arasindaki hatlar en yogun hatlardir", "06:30-22:30"),
 }
 
 
