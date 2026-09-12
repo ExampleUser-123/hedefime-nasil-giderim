@@ -187,3 +187,24 @@ find_kastamonu_route = make_finder(
     city_label="Kastamonu",
     hours_note_url="kentkart.com.tr",
 )
+
+find_diyarbakir_route = make_finder(
+    "diyarbakir_transit.json.gz",
+    source_label="Diyarbakır Büyükşehir Belediyesi",
+    city_label="Diyarbakır",
+    hours_note_url="diyarbakir.bel.tr",
+)
+
+find_van_route = make_finder(
+    "van_transit.json.gz",
+    source_label="BelvanKart",
+    city_label="Van",
+    hours_note_url="belvankart.van.bel.tr",
+)
+
+find_alanya_route = make_finder(
+    "kentkart_alanya.json.gz",
+    source_label="Alanya KentKart",
+    city_label="Alanya",
+    hours_note_url="alanya.bel.tr",
+)

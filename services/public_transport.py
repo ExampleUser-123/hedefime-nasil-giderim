@@ -485,6 +485,9 @@ def find_transit_routes(
         "Şanlıurfa": ("services.extra_transit", "find_sanliurfa_route"),
         "Kahramanmaraş": ("services.extra_transit", "find_kahramanmaras_route"),
         "Kastamonu": ("services.extra_transit", "find_kastamonu_route"),
+        "Diyarbakır": ("services.extra_transit", "find_diyarbakir_route"),
+        "Van": ("services.extra_transit", "find_van_route"),
+        "Alanya": ("services.extra_transit", "find_alanya_route"),
     }
 
     provider = direct_providers.get(start_city)
