@@ -15,6 +15,7 @@ import {
 } from '@/lib/favorites'
 import { signOut } from '@/lib/auth'
 import UpgradeSheet from '@/components/UpgradeSheet'
+import OfflineCitiesCard from '@/components/OfflineCitiesCard'
 import { IconBell, IconClock, IconStar, IconUser } from '@/icons'
 
 const MODE_LABELS: Record<string, string> = {
@@ -438,6 +439,8 @@ export function ProfileScreen({
           Araba veya Motosiklet modunda "Hatırla" işaretlersen buradaki araç her seferinde kullanılır.
         </p>
       </div>
+
+      <OfflineCitiesCard />
 
       <div className="mt-3 rounded-2xl border border-line bg-surface-2/90 p-4">
         <p className="text-xs uppercase tracking-wide text-muted">Veri kaynakları</p>

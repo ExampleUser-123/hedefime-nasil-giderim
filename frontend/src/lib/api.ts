@@ -464,3 +464,19 @@ export async function fetchStopDepartures(
     return null
   }
 }
+
+// --- Cevrimdisi sehir verisi -------------------------------------------------
+
+export type TransitStopRaw = {
+  id: string
+  name: string
+  lat: number
+  lon: number
+  lines?: { n: string; t?: string; l?: string }[]
+}
+
+export function fetchTransitDataCity(
+  city: string,
+): Promise<{ city: string; stops: TransitStopRaw[]; count: number }> {
+  return request(`/transit-data/${encodeURIComponent(city)}`, undefined, 120000)
+}

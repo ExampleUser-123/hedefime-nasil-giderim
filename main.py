@@ -18,6 +18,7 @@ from services.fuel import get_fuel_prices, calculate_fuel_cost
 from services.vehicles import get_vehicles, get_vehicle
 from services.public_transport import find_transit_routes
 from services.location import find_province
+from services.offline_data import list_offline_cities, load_city_stops
 from services.weather import get_weather
 from services.flight import estimate_flight
 from services.train import estimate_train
@@ -841,6 +842,25 @@ def search_stops_endpoint(
         "query": query,
         "results": search_stops(query, limit)
     }
+
+
+# =========================================================
+# CEVRIMDISI VERI ENDPOINTLERI
+# =========================================================
+
+@app.get("/transit-data")
+def transit_data_cities():
+    """İndirilebilir tüm şehirlerin listesini döndürür."""
+    return {"cities": list_offline_cities()}
+
+
+@app.get("/transit-data/{city}")
+def transit_data_city(city: str):
+    """Bir şehrin tüm durak listesini döndürür (çevrimdışı kullanım için)."""
+    stops = load_city_stops(city)
+    if stops is None:
+        raise HTTPException(status_code=404, detail=f"{city} için veri bulunamadı")
+    return {"city": city, "stops": stops, "count": len(stops)}
 
 
 # =========================================================

@@ -5,6 +5,7 @@ import {
   type NearbyStop,
   type StopDeparture,
 } from '@/lib/api'
+import { listOfflineCities, type OfflineCity } from '@/lib/offlineStorage'
 import StopDetailSheet from '@/components/StopDetailSheet'
 
 function formatDistance(meters: number): string {
@@ -16,6 +17,42 @@ function formatDistance(meters: number): string {
 function timeText(minutes: number): string {
   if (minutes <= 0) return 'şimdi'
   return `${minutes} dk`
+}
+
+/** Indirilen cevrimdisi veriden en yakin duraklari hesaplar. */
+async function nearestFromOffline(
+  lat: number,
+  lon: number,
+  limit = 5,
+): Promise<(NearbyStop & { offline?: boolean })[]> {
+  let cities: OfflineCity[]
+  try {
+    cities = await listOfflineCities()
+  } catch {
+    return []
+  }
+  if (!cities.length) return []
+
+  const all: (NearbyStop & { offline?: boolean })[] = []
+  for (const c of cities) {
+    for (const s of c.stops as { id?: string; name: string; lat: number; lon: number; lines?: { n: string }[] }[]) {
+      const dx = (s.lon - lon) * 111320 * Math.cos(((lat + s.lat) / 2) * (Math.PI / 180))
+      const dy = (s.lat - lat) * 111320
+      const dist = Math.sqrt(dx * dx + dy * dy)
+      all.push({
+        city: c.city,
+        name: s.name,
+        stop_id: s.id ?? '',
+        lat: s.lat,
+        lon: s.lon,
+        distance_m: dist,
+        lines: (s.lines ?? []).map((l) => l.n).slice(0, 12),
+        offline: true,
+      })
+    }
+  }
+  all.sort((a, b) => a.distance_m - b.distance_m)
+  return all.slice(0, limit)
 }
 
 export default function NearbyStopWidget(): ReactElement {
@@ -40,11 +77,22 @@ export default function NearbyStopWidget(): ReactElement {
         const lon = position.coords.longitude
 
         try {
-          const results = await fetchNearbyStops(lat, lon, 5)
+          let results = await fetchNearbyStops(lat, lon, 5)
+          let offlineMode = false
+
+          // Sunucuya ulasilamiyorsa indirilmis sehir verisinden hesapla
+          if (results === null) {
+            const off = await nearestFromOffline(lat, lon, 5)
+            if (off.length) {
+              results = off
+              offlineMode = true
+            }
+          }
+
           const nearest = results?.[0] ?? null
           setStop(nearest)
 
-          if (nearest) {
+          if (nearest && !offlineMode) {
             const deps = await fetchStopDepartures(
               nearest.city,
               nearest.name,
@@ -53,6 +101,8 @@ export default function NearbyStopWidget(): ReactElement {
               nearest.lines,
             )
             setDepartures(deps?.slice(0, 4) ?? [])
+          } else if (nearest && offlineMode) {
+            setDepartures([])
           }
         } catch (e) {
           setError('Durak bilgisi alınamadı.')
@@ -129,7 +179,10 @@ export default function NearbyStopWidget(): ReactElement {
         <div className="min-w-0 flex-1">
           <p className="text-xs uppercase tracking-wide text-muted">En yakın durak</p>
           <p className="mt-0.5 truncate text-base font-bold">{stop.name}</p>
-          <p className="text-xs text-muted">{stop.city} · {formatDistance(stop.distance_m)}</p>
+          <p className="text-xs text-muted">
+            {stop.city} · {formatDistance(stop.distance_m)}
+            {(stop as { offline?: boolean }).offline && ' · çevrimdışı'}
+          </p>
         </div>
         <span className="shrink-0 rounded-full bg-accent/10 px-2 py-1 text-xs font-bold text-accent">Detay</span>
       </div>
