@@ -19,6 +19,7 @@ from services.vehicles import get_vehicles, get_vehicle
 from services.public_transport import find_transit_routes
 from services.location import find_province
 from services.offline_data import list_offline_cities, load_city_stops
+from services import share_store
 from services.weather import get_weather
 from services.flight import estimate_flight
 from services.train import estimate_train
@@ -1368,6 +1369,50 @@ def weather(
         "location": location_name,
         **weather_result
     }
+
+
+# =========================================================
+# PAYLASIM LINKLERI + DOLULUK BILDIRIMLERI
+# =========================================================
+
+class ShareRouteBody(BaseModel):
+    start: str = Field(min_length=1, max_length=200)
+    destination: str = Field(min_length=1, max_length=200)
+    people: int = Field(default=1, ge=1, le=50)
+    mode: str = Field(default="tumu", max_length=20)
+
+
+@app.post("/share-route")
+def share_route_create(body: ShareRouteBody):
+    rid = share_store.save_share_route(body.start, body.destination, body.people, body.mode)
+    return {"id": rid, "url": f"https://exampleuser-123.github.io/app/?share={rid}"}
+
+
+@app.get("/share-route/{rid}")
+def share_route_get(rid: str):
+    rec = share_store.get_share_route(rid)
+    if not rec:
+        raise HTTPException(status_code=404, detail="Paylasim linki gecersiz veya suresi doldu")
+    return rec
+
+
+class CrowdingBody(BaseModel):
+    city: str = Field(min_length=1, max_length=60)
+    line: str = Field(min_length=1, max_length=60)
+    level: str = Field(min_length=1, max_length=10)
+
+
+@app.post("/crowding")
+def crowding_report(body: CrowdingBody, request: Request):
+    if not share_store.save_crowding_report(body.city, body.line, body.level):
+        return JSONResponse(status_code=400, content={"error": "Gecersiz doluluk seviyesi"})
+    return {"ok": True}
+
+
+@app.get("/crowding")
+def crowding_summary(city: str, lines: str):
+    line_list = [ln.strip() for ln in lines.split(",") if ln.strip()][:12]
+    return {"summary": share_store.get_crowding_summary(city, line_list)}
 
 
 # =========================================================

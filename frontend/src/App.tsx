@@ -17,7 +17,8 @@ import {
   SavedScreen,
 } from '@/components/TabScreens'
 import { IconLogo } from '@/icons'
-import type { AuthUser, PlanResult } from '@/lib/api'
+import type { AuthUser, PlanResult, RouteIntent } from '@/lib/api'
+import { fetchShareRoute } from '@/lib/api'
 import { AUTH_CHANGED_EVENT, getStoredUser, refreshAuthState, signOut } from '@/lib/auth'
 import { rescheduleAll } from '@/lib/reminders'
 
@@ -61,6 +62,31 @@ export default function App() {
   // Gecmis sefer hatirlaticlarini temizle, gelecektekileri yeniden planla
   useEffect(() => {
     rescheduleAll().catch(() => {})
+  }, [])
+
+  // Paylasilan rota linki: ?share=ID ile acilirsa rotayi otomatik doldur
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const shareId = params.get('share')
+    if (!shareId) return
+
+    // Adres cubugunu temizle (link tekrar tetiklenmesin)
+    window.history.replaceState({}, '', window.location.pathname)
+
+    fetchShareRoute(shareId)
+      .then((rec) => {
+        setTab('home')
+        setPreset({
+          from: rec.start,
+          to: rec.destination,
+          people: rec.people,
+          mode: rec.mode as SearchPreset['mode'],
+          key: Date.now(),
+        })
+      })
+      .catch(() => {
+        // gecersiz/sure dolmus link: normal acilis
+      })
   }, [])
 
   function openLogin() {
@@ -123,6 +149,18 @@ export default function App() {
       people: entry.people,
       mode: entry.mode as SearchPreset['mode'],
       key: Date.now(),
+    })
+  }
+
+  // AI asistanindan gelen rota niyetini arama formuna dok
+  function handlePlanIntent(intent: RouteIntent) {
+    if (!intent.start || !intent.end) return
+
+    openRoute({
+      from: intent.start,
+      to: intent.end,
+      people: intent.people > 0 ? intent.people : 1,
+      mode: intent.mode ?? 'tumu',
     })
   }
 
@@ -207,6 +245,7 @@ export default function App() {
           onClose={() => setChatOpen(false)}
           onRequireLogin={openLogin}
           authOk={!!authUser}
+          onPlanIntent={handlePlanIntent}
         />
 
         <LoginSheet

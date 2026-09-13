@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
 import type { CarResult, Mode, PlanResult, TransitRoute } from '@/lib/api'
-import { reportFeedback } from '@/lib/api'
+import { createShareRoute, reportFeedback } from '@/lib/api'
 import { watchGetOff } from '@/lib/getOffAlert'
 import VoiceGuidance from '@/components/VoiceGuidance'
 import TripReport from '@/components/TripReport'
+import CrowdingCard from '@/components/CrowdingCard'
 import { loadFavorites, toggleFavorite } from '@/lib/favorites'
 import { adsAvailable, removeBanner, showBottomBanner } from '@/lib/ads'
 import {
@@ -533,6 +534,18 @@ export default function ResultsScreen({
   const [saved, setSaved] = useState(false)
   const [saving, setSaving] = useState(false)
 
+  // Doluluk bildirimi: secili rotanin otobus/minibus hatlari
+  const busLines = [...new Set(
+    (selectedRoute?.legs ?? [])
+      .filter((leg) => {
+        const t = leg.type.toUpperCase()
+        return t !== 'WALKING' && /BUS|MINIB|DOLMUS|DOLMUŞ|OTOB/.test(t)
+      })
+      .map((leg) => leg.line)
+      .filter((line): line is string => !!line),
+  )].slice(0, 3)
+  const routeCity = plan.start.split(',').pop()?.trim() ?? ''
+
   // Bu guzergah hesap favorilerinde var mi?
   useEffect(() => {
     let cancelled = false
@@ -593,11 +606,25 @@ export default function ResultsScreen({
         return `• ${option.title}: ${time}${cost}`
       })
 
+    // Paylasim linki olustur; olusmazsa metin ozeti yine de paylasilir
+    let url: string | null = null
+    try {
+      const res = await createShareRoute({
+        start: plan.start,
+        destination: plan.destination,
+        people,
+        mode,
+      })
+      url = res.url
+    } catch {
+      // link servisleri yoksa metin ozetiyle devam
+    }
+
     const text = [
       `${shortName(plan.start)} → ${shortName(plan.destination)} (${people} kişi)`,
       ...lines,
-      '',
-      'Hedefime Nasıl Giderim ile hesaplandı',
+      ...(url ? ['', url] : []),
+      url ? '' : 'Hedefime Nasıl Giderim ile hesaplandı',
     ].join('\n')
 
     try {
@@ -835,6 +862,10 @@ export default function ResultsScreen({
 
           return null
         })()}
+
+        {busLines.length > 0 && routeCity && (
+          <CrowdingCard city={routeCity} lines={busLines} />
+        )}
 
         <button
           type="button"

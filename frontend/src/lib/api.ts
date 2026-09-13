@@ -480,3 +480,44 @@ export function fetchTransitDataCity(
 ): Promise<{ city: string; stops: TransitStopRaw[]; count: number }> {
   return request(`/transit-data/${encodeURIComponent(city)}`, undefined, 120000)
 }
+
+// --- Paylasim linkleri -------------------------------------------------------
+
+export type ShareRouteParams = {
+  start: string
+  destination: string
+  people: number
+  mode: string
+}
+
+export function createShareRoute(params: ShareRouteParams): Promise<{ id: string; url: string }> {
+  return request('/share-route', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  }, 15000)
+}
+
+export function fetchShareRoute(id: string): Promise<ShareRouteParams> {
+  return request(`/share-route/${encodeURIComponent(id)}`, undefined, 15000)
+}
+
+// --- Doluluk bildirimleri ----------------------------------------------------
+
+export type CrowdingLevel = 'empty' | 'normal' | 'crowded' | 'packed'
+
+export function postCrowding(city: string, line: string, level: CrowdingLevel): Promise<{ ok: boolean }> {
+  return request('/crowding', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ city, line, level }),
+  }, 10000)
+}
+
+export function fetchCrowdingSummary(
+  city: string,
+  lines: string[],
+): Promise<Record<string, { total: number; counts: Record<string, number>; crowded_share: number }>> {
+  const params = new URLSearchParams({ city, lines: lines.slice(0, 12).join(',') })
+  return request(`/crowding?${params}`, undefined, 10000)
+}

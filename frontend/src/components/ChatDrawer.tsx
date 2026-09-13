@@ -1,24 +1,36 @@
 import { useEffect, useRef, useState } from 'react'
 import Markdown from 'react-markdown'
-import { createChatSession, sendAssistantMessage, type ChatMessage } from '@/lib/api'
+import {
+  createChatSession,
+  parseRouteIntent,
+  sendAssistantMessage,
+  type ChatMessage,
+  type RouteIntent,
+} from '@/lib/api'
 import { showRewardedAd } from '@/lib/ads'
 import { isAuthed } from '@/lib/auth'
 import { IconClose, IconGlobe, IconSend, IconSparkle } from '@/icons'
 
 const SESSION_KEY = 'hng-session-id'
 
+type ChatMessageWithAction = ChatMessage & {
+  action?: RouteIntent | null
+}
+
 export default function ChatDrawer({
   open,
   onClose,
   onRequireLogin,
   authOk,
+  onPlanIntent,
 }: {
   open: boolean
   onClose: () => void
   onRequireLogin: () => void
   authOk: boolean
+  onPlanIntent?: (intent: RouteIntent) => void
 }) {
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [messages, setMessages] = useState<ChatMessageWithAction[]>([])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -79,9 +91,20 @@ export default function ChatDrawer({
       const sessionId = await ensureSession()
       const reply = await sendAssistantMessage(sessionId, text)
 
+      // Kullanici mesaji rota istegiyse intent cikar, aksiyon butonu ekle
+      let action: RouteIntent | null = null
+      if (/gid?e?ce[ğg]im|nas[ıi]l gid|gitmek|rota|ulaşım|güzergah/i.test(text)) {
+        try {
+          const intent = await parseRouteIntent(text)
+          if (intent.start && intent.end) action = intent
+        } catch {
+          // intent cikmazsa normal sohbet olarak kalir
+        }
+      }
+
       setMessages((prev) => [
         ...prev,
-        { role: 'model', text: reply.reply, searchUsed: reply.search_used },
+        { role: 'model', text: reply.reply, searchUsed: reply.search_used, action },
       ])
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Cevap alınamadı.'
@@ -214,6 +237,20 @@ export default function ChatDrawer({
                     <IconGlobe className="h-3.5 w-3.5" />
                     İnternetten araştırıldı
                   </p>
+                )}
+
+                {message.action && message.action.start && message.action.end && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const intent = message.action!
+                      onClose()
+                      onPlanIntent?.(intent)
+                    }}
+                    className="mt-3 flex min-h-[44px] w-full items-center justify-center gap-1.5 rounded-xl bg-accent text-sm font-bold text-accent-ink transition-opacity active:opacity-90"
+                  >
+                    🧭 Rota ekranını hazırla →
+                  </button>
                 )}
               </div>
             </div>
