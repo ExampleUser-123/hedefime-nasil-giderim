@@ -19,6 +19,39 @@ function timeText(minutes: number): string {
   return `${minutes} dk`
 }
 
+/** Yuruyus suresi (dk). Konservatif 1.0 m/s = 60 m/dk. */
+function walkMinutes(distanceM: number): number {
+  return Math.max(1, Math.ceil(distanceM / 60))
+}
+
+/** Kullanicinin en yakin duraktan sonraki kalkisa yetisip yetismeyecegini hesaplar. */
+function leaveDecision(stop: NearbyStop, departure: StopDeparture): { text: string; sub: string; urgent: boolean } {
+  const walk = walkMinutes(stop.distance_m)
+  const headStart = departure.minutes_ahead - walk
+
+  if (headStart <= 0) {
+    return {
+      text: 'Hemen çık!',
+      sub: `Durağa yürüyüşün ~${walk} dk, kalkışa ${departure.minutes_ahead} dk var.`,
+      urgent: true,
+    }
+  }
+
+  if (headStart <= 3) {
+    return {
+      text: `Yaklaşık ${headStart} dk içinde çık`,
+      sub: `Yürüyüş ~${walk} dk, ${departure.line} ${departure.time}'te kalkıyor.`,
+      urgent: true,
+    }
+  }
+
+  return {
+    text: `${headStart} dk daha bekleyebilirsin`,
+    sub: `Yürüyüş ~${walk} dk, ${departure.line} ${departure.time}'te kalkıyor.`,
+    urgent: false,
+  }
+}
+
 /** Indirilen cevrimdisi veriden en yakin duraklari hesaplar. */
 async function nearestFromOffline(
   lat: number,
@@ -169,6 +202,11 @@ export default function NearbyStopWidget(): ReactElement {
     }
   }
 
+  const earliestDeparture = departures?.length
+    ? departures.reduce((best, d) => (d.minutes_ahead < best.minutes_ahead ? d : best))
+    : null
+  const decision = stop && earliestDeparture ? leaveDecision(stop, earliestDeparture) : null
+
   return (
     <button
       type="button"
@@ -205,6 +243,25 @@ export default function NearbyStopWidget(): ReactElement {
           <span className="text-xs text-muted">Yakında kalkış yok</span>
         )}
       </div>
+
+      {decision && (
+        <div
+          className={`mt-3 rounded-xl border p-3 ${
+            decision.urgent
+              ? 'border-amber-500/30 bg-amber-500/10'
+              : 'border-emerald-500/30 bg-emerald-500/10'
+          }`}
+        >
+          <p
+            className={`text-sm font-bold ${
+              decision.urgent ? 'text-amber-300' : 'text-emerald-300'
+            }`}
+          >
+            {decision.urgent ? '⏰' : '✅'} {decision.text}
+          </p>
+          <p className="mt-0.5 text-xs text-fg/80">{decision.sub}</p>
+        </div>
+      )}
     </button>
   )
 }
