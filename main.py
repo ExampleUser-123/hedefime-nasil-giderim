@@ -7,6 +7,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from fastapi import FastAPI, Request, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
@@ -255,6 +256,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Buyuk cevizleri (transit-data ~3.8MB) gzip ile ~7x kuculterek gonder;
+# mobil baglantida indirme kesilmelerini onler.
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 
 
 # =========================================================

@@ -72,12 +72,31 @@ export default function OfflineCitiesCard(): ReactElement {
   async function download(slug: string) {
     setBusy(slug)
     setError(null)
+
+    let data: Awaited<ReturnType<typeof fetchTransitDataCity>> | null = null
+    let lastMsg = ''
+
+    // Mobil baglantida buyuk indirme bazen yarida kesilir; bir kez otomatik dene
+    for (let attempt = 0; attempt < 2 && !data; attempt++) {
+      if (attempt > 0) await new Promise((r) => setTimeout(r, 1500))
+      try {
+        data = await fetchTransitDataCity(displayName(slug))
+      } catch (err) {
+        lastMsg = err instanceof Error ? err.message : ''
+      }
+    }
+
+    if (!data) {
+      setError(`${displayName(slug)} indirilemedi. ${lastMsg || 'İnternet bağlantısını kontrol et.'}`)
+      setBusy(null)
+      return
+    }
+
     try {
-      const data = await fetchTransitDataCity(displayName(slug))
       await saveOfflineCity(data.city, data.stops)
       setDownloaded(await listOfflineCities())
     } catch {
-      setError(`${displayName(slug)} indirilemedi. İnternet bağlantısını kontrol et.`)
+      setError(`${displayName(slug)} indirildi ama telefona kaydedilemedi. Telefonda biraz yer açıp tekrar dene.`)
     } finally {
       setBusy(null)
     }
