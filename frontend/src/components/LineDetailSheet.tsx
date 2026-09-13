@@ -24,12 +24,17 @@ export default function LineDetailSheet({
   line,
   lat,
   lon,
+  fallbackStops,
+  fallbackName,
   onClose,
 }: {
   city: string
   line: string
   lat?: number
   lon?: number
+  /** Rota adimindan gelen duraklar; backend'te hat bulunamazsa gosterilir */
+  fallbackStops?: string[]
+  fallbackName?: string
   onClose: () => void
 }): ReactElement {
   const [data, setData] = useState<LineDetails | null>(null)
@@ -55,6 +60,8 @@ export default function LineDetailSheet({
     }
   }, [city, line, lat, lon])
 
+  const hasFallback = !!fallbackStops?.length
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-bg" role="dialog" aria-modal="true">
       <div className="flex items-start gap-3 border-b border-line px-4 py-4">
@@ -75,21 +82,25 @@ export default function LineDetailSheet({
               <span className="text-xs font-semibold text-muted">{TYPE_LABEL[data.type.toLowerCase()]}</span>
             )}
           </p>
-          {data?.name && <p className="mt-1 break-words text-sm font-bold">{data.name}</p>}
+          <p className="mt-1 break-words text-sm font-bold">
+            {data?.name || fallbackName || line}
+          </p>
           <p className="text-xs text-muted">
-            {data ? `${data.city} · ${data.stop_count} durak` : `${city} · ${line} hattı`}
+            {data
+              ? `${data.city} · ${data.stop_count} durak`
+              : `${city} · ${line} hattı`}
           </p>
         </div>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
-        {error && (
+        {error && !hasFallback && (
           <p className="rounded-xl border border-line bg-surface-2 px-4 py-3 text-sm text-muted">
             Hat bilgisi yüklenemedi. Bağlantını kontrol edip tekrar dene.
           </p>
         )}
 
-        {!error && !data && (
+        {!error && !data && !hasFallback && (
           <div className="space-y-2">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="h-12 animate-pulse rounded-xl bg-surface-2/70" />
@@ -133,6 +144,27 @@ export default function LineDetailSheet({
                       {formatDistance(stop.distance_m)}
                     </span>
                   )}
+                </li>
+              ))}
+            </ol>
+          </>
+        )}
+
+        {!data && hasFallback && (
+          <>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
+              Bu rotadaki duraklar (sırayla)
+            </p>
+            <ol className="space-y-1.5">
+              {fallbackStops!.map((name, i) => (
+                <li
+                  key={`${name}-${i}`}
+                  className="flex items-center gap-3 rounded-xl border border-line bg-surface-2/60 px-3 py-2.5"
+                >
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/10 text-[10px] font-bold text-accent">
+                    {i + 1}
+                  </span>
+                  <p className="min-w-0 flex-1 break-words text-sm">{name}</p>
                 </li>
               ))}
             </ol>

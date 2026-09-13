@@ -20,6 +20,7 @@ import {
   WalkingDetails,
 } from '@/components/RouteResults'
 import LineDetailSheet from '@/components/LineDetailSheet'
+import { extractCity } from '@/lib/cities'
 import {
   IconBus,
   IconCar,
@@ -353,13 +354,11 @@ export default function ResultsScreen({
   useEffect(() => setShowVoice(false), [plan])
 
   // Hat detay sayfasi: rota adimlarindaki hat adina dokununca acilir
-  const [lineSheet, setLineSheet] = useState<{ city: string; line: string } | null>(null)
+  const [lineSheet, setLineSheet] = useState<{ city: string; line: string; stops?: string[]; name?: string } | null>(null)
   useEffect(() => setLineSheet(null), [plan])
 
-  // Sehir adi gelmezse baslangic noktasindan turet ("Kadıköy, İstanbul" -> "İstanbul")
-  const fallbackCity = plan.start.includes(',')
-    ? plan.start.split(',').pop()!.trim()
-    : plan.start
+  // Sehir adi gelmezse baslangic noktasindan turet (bilinen sehir listesiyle)
+  const fallbackCity = extractCity(plan.start)
 
   // --- İnme uyarisi: hedef duraga GPS ile yaklasma takibi ---
   const [offState, setOffState] = useState<'off' | 'watching' | 'arrived'>('off')
@@ -652,7 +651,7 @@ export default function ResultsScreen({
   }
 
   return (
-    <LineClickContext.Provider value={(city, line) => setLineSheet({ city: city || fallbackCity, line })}>
+    <LineClickContext.Provider value={(city, line, stops, name) => setLineSheet({ city: city || fallbackCity, line, stops, name })}>
       <div className="fixed inset-0 z-40 overflow-y-auto bg-bg">
       <div className={`mx-auto w-full max-w-xl px-4 pt-5 sm:px-6 ${withAds ? 'pb-32' : 'pb-10'}`}>
         <header className="flex items-center gap-3">
@@ -962,6 +961,8 @@ export default function ResultsScreen({
           line={lineSheet.line}
           lat={plan.start_coord.lat}
           lon={plan.start_coord.lon}
+          fallbackStops={lineSheet.stops}
+          fallbackName={lineSheet.name}
           onClose={() => setLineSheet(null)}
         />
       )}

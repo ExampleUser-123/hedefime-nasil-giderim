@@ -1,5 +1,6 @@
 import { createContext, useContext, type ReactElement } from 'react'
 import { DepartureBadge, DepartureCityContext } from '@/components/DepartureBadge'
+import { extractCity } from '@/lib/cities'
 import type { CarResult, FlightEstimate, Mode, PlanResult, TrainEstimate, TransitLeg, TransitRoute } from '@/lib/api'
 import {
   IconBus,
@@ -18,7 +19,8 @@ import {
 type Recommendations = PlanResult['recommendations']
 
 // Hat detay sayfasini acan callback; ResultsScreen saglar (hat rozetlerine dokunma)
-export const LineClickContext = createContext<(city: string, line: string) => void>(() => {})
+// stops: hattin bu rotadaki durak adlari (backend'te hat bulunamazsa yedek)
+export const LineClickContext = createContext<(city: string, line: string, stops?: string[], name?: string) => void>(() => {})
 
 function routeKey(route: TransitRoute): string {
   return JSON.stringify([
@@ -237,7 +239,7 @@ function LineTitle({
     <p className="flex flex-wrap items-center gap-1.5 text-sm font-semibold">
       <button
         type="button"
-        onClick={() => onLineClick(city, line)}
+        onClick={() => onLineClick(city, line, leg.stops, leg.name ?? undefined)}
         className="break-words text-left font-semibold text-accent underline decoration-accent/40 underline-offset-2 transition-colors hover:decoration-accent"
       >
         {label}
@@ -674,10 +676,8 @@ export default function RouteResults({
 }) {
   const recommendations = result.recommendations ?? result.public_transport.recommendations
 
-  // Sehir adini baslangic noktasindan turet ("Kadıköy, İstanbul" -> "İstanbul")
-  const city = result.start.includes(',')
-    ? result.start.split(',').pop()!.trim()
-    : result.start
+  // Sehir adini baslangic noktasindan turet (bilinen sehir listesiyle eslestir)
+  const city = extractCity(result.start)
 
   return (
     <div className="mt-4 space-y-3 rounded-2xl border border-line bg-surface-2/90 p-4" role="region" aria-label="Rota sonuçları">

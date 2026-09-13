@@ -148,6 +148,24 @@ export function setAuthToken(token: string | null) {
 }
 
 async function request<T>(path: string, init?: RequestInit, timeoutMs = 30000): Promise<T> {
+  const isGet = (init?.method ?? 'GET') === 'GET'
+  let lastError: unknown
+  // Geçici bağlantı kopmalarında GET isteklerinde bir kez daha dene
+  for (let attempt = 0; attempt < (isGet ? 2 : 1); attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 900))
+    try {
+      return await requestOnce<T>(path, init, timeoutMs)
+    } catch (err) {
+      lastError = err
+      const msg = err instanceof Error ? err.message : ''
+      // Ag hatasiysa tekrar dene; HTTP/timeout hatalarinda tekrarlama
+      if (!msg.includes('ulaşılamadı')) throw err
+    }
+  }
+  throw lastError
+}
+
+async function requestOnce<T>(path: string, init?: RequestInit, timeoutMs = 30000): Promise<T> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
 
