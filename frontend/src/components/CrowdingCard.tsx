@@ -24,13 +24,21 @@ export default function CrowdingCard({
   lines: string[]
 }): ReactElement | null {
   const [rated, setRated] = useState<string | null>(null)
+  const [punctRated, setPunctRated] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
-  const [summary, setSummary] = useState<Record<string, { total: number; counts: Record<string, number>; crowded_share: number }>>({})
+  const [summary, setSummary] = useState<Record<string, { total: number; counts: Record<string, number>; crowded_share: number; punct: Record<string, number> }>>({})
 
   const key = lines[0] ?? ''
   const throttled = (() => {
     try {
       return localStorage.getItem(`hng-crowd-${city}|${key}`) === todayKey()
+    } catch {
+      return false
+    }
+  })()
+  const punctThrottled = (() => {
+    try {
+      return localStorage.getItem(`hng-punct-${city}|${key}`) === todayKey()
     } catch {
       return false
     }
@@ -67,6 +75,24 @@ export default function CrowdingCard({
     }
   }
 
+  async function ratePunct(punct: 'on_time' | 'late') {
+    if (sending || punctRated) return
+    setSending(true)
+    try {
+      await postCrowding(city, key, '', punct)
+      setPunctRated(punct)
+      try {
+        localStorage.setItem(`hng-punct-${city}|${key}`, todayKey())
+      } catch {
+        // sessiz gec
+      }
+    } catch {
+      // sessiz gec
+    } finally {
+      setSending(false)
+    }
+  }
+
   if (!key) return null
 
   const stat = summary[key]
@@ -79,6 +105,9 @@ export default function CrowdingCard({
           ? 'Değişken'
           : 'Genelde rahat'
 
+  const punct = stat?.punct
+  const punctTotal = punct ? (punct.on_time ?? 0) + (punct.late ?? 0) : 0
+
   return (
     <div className="mt-4 rounded-2xl border border-line bg-surface-2/90 px-4 py-3">
       <p className="text-xs font-bold text-accent">👥 Topluluk doluluk bilgisi</p>
@@ -89,14 +118,15 @@ export default function CrowdingCard({
           {stat.counts.crowded + stat.counts.packed > 0 && (
             <> · %{Math.round(stat.crowded_share * 100)} kalabalık dedi</>
           )}
+          {punctTotal >= 3 && (
+            <> · %{Math.round(((punct?.on_time ?? 0) / punctTotal) * 100)} zamanında</>
+          )}
         </p>
       )}
 
       {throttled && !rated ? (
-        <p className="mt-1.5 text-xs text-muted">Bugün bu hat için bildirim yaptın — teşekkürler!</p>
-      ) : rated ? (
-        <p className="mt-1.5 text-xs text-accent">Teşekkürler! Bildirğin topluluğa kaydedildi ✓</p>
-      ) : (
+        <p className="mt-1.5 text-xs text-muted">Bugün doluluk bildirimini yaptın — teşekkürler!</p>
+      ) : rated ? null : (
         <>
           <p className="mt-1.5 text-xs text-muted">
             Bu hattı bugün kullandıysan: araç nasıldı?
@@ -116,6 +146,33 @@ export default function CrowdingCard({
             ))}
           </div>
         </>
+      )}
+
+      {(rated || throttled) && !punctRated && !punctThrottled && (
+        <>
+          <p className="mt-2 text-xs text-muted">Araç zamanında mı geldi?</p>
+          <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+            <button
+              type="button"
+              disabled={sending}
+              onClick={() => void ratePunct('on_time')}
+              className="rounded-xl border border-line py-2 text-[11px] font-bold text-muted transition-colors hover:border-accent hover:text-accent disabled:opacity-40"
+            >
+              ⏰ Zamanında
+            </button>
+            <button
+              type="button"
+              disabled={sending}
+              onClick={() => void ratePunct('late')}
+              className="rounded-xl border border-line py-2 text-[11px] font-bold text-muted transition-colors hover:border-accent hover:text-accent disabled:opacity-40"
+            >
+              😩 Gecikti
+            </button>
+          </div>
+        </>
+      )}
+      {punctRated && (
+        <p className="mt-1.5 text-xs text-accent">Dakiklik bildirimin kaydedildi ✓</p>
       )}
     </div>
   )

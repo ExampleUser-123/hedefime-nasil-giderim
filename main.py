@@ -1399,12 +1399,13 @@ def share_route_get(rid: str):
 class CrowdingBody(BaseModel):
     city: str = Field(min_length=1, max_length=60)
     line: str = Field(min_length=1, max_length=60)
-    level: str = Field(min_length=1, max_length=10)
+    level: str = Field(default="", max_length=10)
+    punctuality: str = Field(default="", max_length=10)
 
 
 @app.post("/crowding")
 def crowding_report(body: CrowdingBody, request: Request):
-    if not share_store.save_crowding_report(body.city, body.line, body.level):
+    if not share_store.save_crowding_report(body.city, body.line, body.level, body.punctuality):
         return JSONResponse(status_code=400, content={"error": "Gecersiz doluluk seviyesi"})
     return {"ok": True}
 

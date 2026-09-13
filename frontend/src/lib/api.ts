@@ -506,18 +506,23 @@ export function fetchShareRoute(id: string): Promise<ShareRouteParams> {
 
 export type CrowdingLevel = 'empty' | 'normal' | 'crowded' | 'packed'
 
-export function postCrowding(city: string, line: string, level: CrowdingLevel): Promise<{ ok: boolean }> {
+export function postCrowding(
+  city: string,
+  line: string,
+  level: CrowdingLevel | '',
+  punctuality?: 'on_time' | 'late',
+): Promise<{ ok: boolean }> {
   return request('/crowding', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ city, line, level }),
+    body: JSON.stringify({ city, line, level, punctuality: punctuality ?? '' }),
   }, 10000)
 }
 
 export function fetchCrowdingSummary(
   city: string,
   lines: string[],
-): Promise<Record<string, { total: number; counts: Record<string, number>; crowded_share: number }>> {
+): Promise<Record<string, { total: number; counts: Record<string, number>; crowded_share: number; punct: Record<string, number> }>> {
   const params = new URLSearchParams({ city, lines: lines.slice(0, 12).join(',') })
   return request(`/crowding?${params}`, undefined, 10000)
 }

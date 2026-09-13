@@ -1,1 +1,1 @@
-{"İstanbul|34A":{"city":"İstanbul","line":"34A","created":1789302136.4323626,"counts":{"empty":1,"normal":1,"crowded":2,"packed":1}}}
+{"İstanbul|34A":{"city":"İstanbul","line":"34A","created":1789302136.4323626,"counts":{"empty":1,"normal":1,"crowded":2,"packed":1}},"TestIl|T1":{"city":"TestIl","line":"T1","created":1789304033.018371,"counts":{"empty":0,"normal":1,"crowded":0,"packed":0},"punct":{"on_time":1,"late":4}},"TestIl2|T1":{"city":"TestIl2","line":"T1","created":1789304071.224747,"counts":{"empty":0,"normal":1,"crowded":0,"packed":0},"punct":{"on_time":1,"late":4}}}

@@ -23,6 +23,7 @@ _SHARE_TTL_DAYS = 30
 _CROWD_WINDOW_DAYS = 7
 
 CROWD_LEVELS = ("empty", "normal", "crowded", "packed")
+PUNCT_LEVELS = ("on_time", "late")
 
 
 def _load(path: str) -> dict:
@@ -79,8 +80,9 @@ def get_share_route(rid: str) -> Optional[dict]:
 
 # --- Doluluk bildirimleri ----------------------------------------------------
 
-def save_crowding_report(city: str, line: str, level: str) -> bool:
-    if level not in CROWD_LEVELS:
+def save_crowding_report(city: str, line: str, level: str = "", punctuality: str = "") -> bool:
+    # Ya doluluk ya dakiklik (ya da ikisi) gelmeli
+    if level not in CROWD_LEVELS and punctuality not in PUNCT_LEVELS:
         return False
     key = f"{city[:60]}|{line[:60]}"
     with _LOCK:
@@ -90,15 +92,21 @@ def save_crowding_report(city: str, line: str, level: str) -> bool:
         rec = store.get(key)
         if not rec or rec.get("created", 0) < cutoff:
             rec = {"city": city[:60], "line": line[:60], "created": time.time(),
-                   "counts": {lvl: 0 for lvl in CROWD_LEVELS}}
+                   "counts": {lvl: 0 for lvl in CROWD_LEVELS},
+                   "punct": {lvl: 0 for lvl in PUNCT_LEVELS}}
 
-        counts = rec["counts"]
-        counts[level] = counts.get(level, 0) + 1
+        if level in CROWD_LEVELS:
+            counts = rec["counts"]
+            counts[level] = counts.get(level, 0) + 1
+        if punctuality in PUNCT_LEVELS:
+            rec["punct"][punctuality] = rec["punct"].get(punctuality, 0) + 1
         # Pencere tasmasi: eski kayitlari kaba bir orana gore azalt
-        total = sum(counts.values())
+        total = sum(rec["counts"].values())
         if total > 500:
             for lvl in CROWD_LEVELS:
-                counts[lvl] = int(counts[lvl] * 0.9)
+                rec["counts"][lvl] = int(rec["counts"].get(lvl, 0) * 0.9)
+            for lvl in PUNCT_LEVELS:
+                rec["punct"][lvl] = int(rec["punct"].get(lvl, 0) * 0.9)
 
         store[key] = rec
         # Eski kayitlari temizle
@@ -118,12 +126,15 @@ def get_crowding_summary(city: str, lines: list[str]) -> dict:
             continue
         counts = rec.get("counts", {})
         total = sum(counts.values())
-        if total < 3:
+        punct = rec.get("punct", {})
+        punct_total = sum(punct.values())
+        if max(total, punct_total) < 3:
             # Az veri -> yaniltmasin
             continue
         out[line] = {
             "total": total,
             "counts": counts,
-            "crowded_share": round((counts.get("crowded", 0) + counts.get("packed", 0)) / total, 2),
+            "crowded_share": round((counts.get("crowded", 0) + counts.get("packed", 0)) / total, 2) if total else 0,
+            "punct": punct,
         }
     return out
