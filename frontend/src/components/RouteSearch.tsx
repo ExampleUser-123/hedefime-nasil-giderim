@@ -6,6 +6,7 @@ import { getTier } from '@/lib/auth'
 import ResultsScreen from '@/components/ResultsScreen'
 import VehiclePicker, { loadRememberedVehicle, loadRememberedVehicleName } from '@/components/VehiclePicker'
 import UpgradeSheet from '@/components/UpgradeSheet'
+import NearbyStopWidget from '@/components/NearbyStopWidget'
 import type { VehicleType } from '@/lib/api'
 import PlaceInput from '@/components/PlaceInput'
 import {
@@ -392,6 +393,8 @@ export default function RouteSearch({
           )}
         </div>
       )}
+
+      {!plan && <NearbyStopWidget />}
 
       {upgradeOpen && <UpgradeSheet onClose={() => setUpgradeOpen(false)} />}
 
