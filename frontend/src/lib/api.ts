@@ -465,6 +465,43 @@ export async function fetchStopDepartures(
   }
 }
 
+// --- Hat detay sayfasi --------------------------------------------------------
+
+export type LineStop = {
+  name: string
+  lat: number
+  lon: number
+  distance_m?: number | null
+}
+
+export type LineDetails = {
+  city: string
+  line: string
+  name: string | null
+  type: string | null
+  stop_count: number
+  stops: LineStop[]
+  next_departures: StopDeparture[]
+}
+
+export async function fetchLineDetails(
+  city: string,
+  line: string,
+  lat?: number,
+  lon?: number,
+): Promise<LineDetails | null> {
+  const params = new URLSearchParams({ city, line })
+  if (lat != null && lon != null) {
+    params.set('lat', String(lat))
+    params.set('lon', String(lon))
+  }
+  try {
+    return await request<LineDetails>(`/line-details?${params}`, undefined, 20000)
+  } catch {
+    return null
+  }
+}
+
 // --- Cevrimdisi sehir verisi -------------------------------------------------
 
 export type TransitStopRaw = {

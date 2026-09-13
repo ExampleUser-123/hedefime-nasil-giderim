@@ -865,6 +865,27 @@ def transit_data_city(city: str):
 
 
 # =========================================================
+# HAT DETAY SAYFASI
+# =========================================================
+
+@app.get("/line-details")
+def line_details_endpoint(
+    city: str,
+    line: str,
+    lat: float | None = None,
+    lon: float | None = None,
+):
+    """Bir hattın geçtiği durakları döndürür (konum verilirse mesafeye göre sıralı)."""
+    from services.line_pages import line_details
+
+    result = line_details(city, line, lat, lon)
+    if result is None:
+        raise HTTPException(status_code=404, detail=f"{city} için {line} hattı bulunamadı")
+    return result
+
+
+
+# =========================================================
 # EN YAKIN DURAKLAR
 # =========================================================
 

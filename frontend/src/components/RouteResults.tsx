@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react'
+import { createContext, useContext, type ReactElement } from 'react'
 import { DepartureBadge, DepartureCityContext } from '@/components/DepartureBadge'
 import type { CarResult, FlightEstimate, Mode, PlanResult, TrainEstimate, TransitLeg, TransitRoute } from '@/lib/api'
 import {
@@ -16,6 +16,9 @@ import {
 } from '@/icons'
 
 type Recommendations = PlanResult['recommendations']
+
+// Hat detay sayfasini acan callback; ResultsScreen saglar (hat rozetlerine dokunma)
+export const LineClickContext = createContext<(city: string, line: string) => void>(() => {})
 
 function routeKey(route: TransitRoute): string {
   return JSON.stringify([
@@ -188,15 +191,10 @@ function LegRow({
     <li className="flex items-start gap-3 py-2">
       <Icon className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
       <div className="min-w-0 flex-1">
-        <p className="flex flex-wrap items-center gap-1.5 text-sm font-semibold">
-          {leg.name ?? leg.line ?? 'Hat'}
-          {showDeparture && (
-            <DepartureBadge line={leg.line} stop={leg.from_stop} lat={lat} lon={lon} />
-          )}
-          {leg.alternate_lines.length > 0 && (
-            <span className="text-xs font-normal text-muted">(+{leg.alternate_lines.length} alternatif)</span>
-          )}
-        </p>
+        <LineTitle leg={leg} showDeparture={showDeparture} lat={lat} lon={lon} />
+        {leg.alternate_lines.length > 0 && (
+          <span className="text-xs font-normal text-muted">(+{leg.alternate_lines.length} alternatif)</span>
+        )}
         <p className="mt-0.5 break-words text-xs text-muted">
           {leg.from_stop} → {leg.to_stop}
           {leg.departure_time && ` · ${leg.departure_time}`}
@@ -205,6 +203,49 @@ function LegRow({
         </p>
       </div>
     </li>
+  )
+}
+
+function LineTitle({
+  leg,
+  showDeparture,
+  lat,
+  lon,
+}: {
+  leg: TransitLeg
+  showDeparture?: boolean
+  lat?: number
+  lon?: number
+}) {
+  const onLineClick = useContext(LineClickContext)
+  const city = useContext(DepartureCityContext)
+  const line = leg.line
+  const label = leg.name ?? leg.line ?? 'Hat'
+
+  if (!line || !onLineClick) {
+    return (
+      <p className="flex flex-wrap items-center gap-1.5 text-sm font-semibold">
+        {label}
+        {showDeparture && (
+          <DepartureBadge line={leg.line} stop={leg.from_stop} lat={lat} lon={lon} />
+        )}
+      </p>
+    )
+  }
+
+  return (
+    <p className="flex flex-wrap items-center gap-1.5 text-sm font-semibold">
+      <button
+        type="button"
+        onClick={() => onLineClick(city, line)}
+        className="break-words text-left font-semibold text-accent underline decoration-accent/40 underline-offset-2 transition-colors hover:decoration-accent"
+      >
+        {label}
+      </button>
+      {showDeparture && (
+        <DepartureBadge line={leg.line} stop={leg.from_stop} lat={lat} lon={lon} />
+      )}
+    </p>
   )
 }
 
