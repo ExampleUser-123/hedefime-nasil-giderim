@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { fetchPlan, reverseGeocode, type Mode, type PlanResult, type Vehicle } from '@/lib/api'
-import { addHistory, getRouteShortcuts, getWalkTolerance, saveLastCoords, setWalkTolerance, type SavedRoute } from '@/lib/storage'
+import { addHistory, getFrequentRoutes, getRouteShortcuts, getWalkTolerance, saveLastCoords, setWalkTolerance, type FrequentRoute, type SavedRoute } from '@/lib/storage'
 import { maybeShowInterstitial } from '@/lib/ads'
 import { getTier } from '@/lib/auth'
 import ResultsScreen from '@/components/ResultsScreen'
@@ -85,6 +85,7 @@ export default function RouteSearch({
   const [quotaHit, setQuotaHit] = useState(false)
   const [upgradeOpen, setUpgradeOpen] = useState(false)
   const [shortcuts, setShortcuts] = useState<SavedRoute[]>(() => getRouteShortcuts())
+  const [frequent, setFrequent] = useState<FrequentRoute[]>(() => getFrequentRoutes())
 
   // Moda uygun tur: Motosiklet modunda motosiklet, Araba modunda araba kullanılır
   const isMotoMode = mode === 'motosiklet'
@@ -119,6 +120,7 @@ export default function RouteSearch({
       onPlanChange(nextPlan)
       addHistory({ from: start, to: end, people, mode })
       setShortcuts(getRouteShortcuts())
+      setFrequent(getFrequentRoutes())
       // Araya giren reklam rota ekrani hazirlanirken arkada yuklenir
       maybeShowInterstitial(getTier()).catch(() => {})
     } catch (e) {
@@ -398,6 +400,33 @@ export default function RouteSearch({
 
       {upgradeOpen && <UpgradeSheet onClose={() => setUpgradeOpen(false)} />}
 
+      {!plan && frequent.length > 0 && !shortcuts.some((s) => s.from === frequent[0].from && s.to === frequent[0].to) && (
+        <div className="mt-4">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
+            Sık gidiyorsun
+          </p>
+          <div className="flex flex-col gap-2">
+            {frequent.map((item) => (
+              <button
+                key={`freq-${item.from}=>${item.to}`}
+                type="button"
+                onClick={() => {
+                  setFrom(item.from)
+                  setTo(item.to)
+                  search(item.from, item.to)
+                }}
+                className="flex min-h-[44px] items-center justify-between gap-2 rounded-2xl border border-accent/40 bg-accent/5 px-4 text-left transition-colors hover:border-accent"
+              >
+                <span className="truncate text-sm font-bold">
+                  🔁 {item.from} → {item.to}
+                </span>
+                <span className="shrink-0 text-xs text-muted">{item.count}x</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {shortcuts.length > 0 && (
         <div className="mt-4">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
@@ -433,6 +462,7 @@ export default function RouteSearch({
           onBack={() => {
             onPlanChange(null)
             setShortcuts(getRouteShortcuts())
+            setFrequent(getFrequentRoutes())
           }}
           routeIndex={routeIndex}
           onRouteIndexChange={onRouteIndexChange}

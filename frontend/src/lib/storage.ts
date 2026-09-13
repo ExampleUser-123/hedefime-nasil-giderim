@@ -123,6 +123,31 @@ export function getRouteShortcuts(max = 6): SavedRoute[] {
   return out
 }
 
+// --- Sık gidilen rotalar ------------------------------------------------------
+
+export type FrequentRoute = SavedRoute & { count: number }
+
+/** Gecmisde minCount veya daha fazla sorgulanmis rotalar, en sik olandan azalan. */
+export function getFrequentRoutes(minCount = 2, max = 2): FrequentRoute[] {
+  const history = getHistory()
+  const counts = new Map<string, FrequentRoute>()
+
+  for (const item of history) {
+    const key = `${item.from}=>${item.to}`
+    const cur = counts.get(key)
+    if (cur) {
+      cur.count += 1
+    } else {
+      counts.set(key, { ...item, count: 1 })
+    }
+  }
+
+  return [...counts.values()]
+    .filter((item) => item.count >= minCount)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, max)
+}
+
 // --- Yürüyüş toleransı --------------------------------------------------------
 
 const WALK_KEY = 'hng-walk-tolerance'
