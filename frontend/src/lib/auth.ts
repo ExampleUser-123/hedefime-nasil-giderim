@@ -1,8 +1,24 @@
 import { Capacitor } from '@capacitor/core'
 import { GoogleSignIn } from '@capawesome/capacitor-google-sign-in'
-import { authWithGoogle, loginWithEmail, registerWithEmail, setAuthToken, type AuthUser } from './api'
+import {
+  authWithGoogle,
+  loginWithEmail,
+  registerWithEmail,
+  verifyEmail,
+  resendVerificationCode,
+  setAuthToken,
+  hydrateAuthToken,
+  type AuthUser,
+  type RegisterResponse,
+} from './api'
+import {
+  SESSION_TOKEN_KEY,
+  SESSION_USER_KEY,
+  migrateLegacyNativeValue,
+  saveSecureValue,
+} from './secureSession'
 
-const USER_KEY = 'hng-auth-user'
+let storedUser: AuthUser | null = null
 
 // Google Cloud Console'da olusturulan WEB client ID.
 // Backend'deki GOOGLE_CLIENT_ID env'i ile AYNI olmali.
@@ -67,6 +83,23 @@ export async function handleGoogleRedirect(): Promise<boolean> {
 /** Oturum degisikligini dinleyenler icin olay adi. */
 export const AUTH_CHANGED_EVENT = 'hng-auth-changed'
 
+/** Uygulama cizilmeden once SQLCipher oturumunu bellekte hazirlar. */
+export async function hydrateAuthSession(): Promise<void> {
+  try {
+    const [token, rawUser] = await Promise.all([
+      migrateLegacyNativeValue(SESSION_TOKEN_KEY),
+      migrateLegacyNativeValue(SESSION_USER_KEY),
+    ])
+    hydrateAuthToken(token)
+    if (!rawUser) return
+    const parsed = JSON.parse(rawUser) as AuthUser
+    storedUser = parsed?.id ? parsed : null
+  } catch {
+    hydrateAuthToken(null)
+    storedUser = null
+  }
+}
+
 /** Kayitli kullanicinin uyelik katmani (yoksa free). */
 export function getTier(): 'free' | 'lite' | 'premium' {
   const u = getStoredUser() as (AuthUser & { tier?: string }) | null
@@ -78,24 +111,14 @@ export function isAuthed(): boolean {
 }
 
 export function getStoredUser(): AuthUser | null {
-  try {
-    const raw = localStorage.getItem(USER_KEY)
-    if (!raw) return null
-
-    const parsed = JSON.parse(raw) as AuthUser
-    return parsed?.id ? parsed : null
-  } catch {
-    return null
-  }
+  return storedUser
 }
 
 function storeUser(user: AuthUser | null) {
-  try {
-    if (user) localStorage.setItem(USER_KEY, JSON.stringify(user))
-    else localStorage.removeItem(USER_KEY)
-  } catch {
-    // sessizce devam
-  }
+  storedUser = user
+  void saveSecureValue(SESSION_USER_KEY, user ? JSON.stringify(user) : null).catch(() => {
+    // Yerel kalicilik hatasi oturum acmayi engellemez.
+  })
 }
 
 export async function signInWithGoogle(): Promise<AuthUser> {
@@ -130,13 +153,33 @@ export async function signInWithEmail(email: string, password: string): Promise<
   return user
 }
 
-export async function signUpWithEmail(email: string, password: string, name: string): Promise<AuthUser> {
-  const { token, user } = await registerWithEmail(email.trim(), password, name.trim())
+export async function signUpWithEmail(
+  email: string,
+  password: string,
+  name: string,
+): Promise<RegisterResponse> {
+  const res = await registerWithEmail(email.trim(), password, name.trim())
+
+  if (res.token && res.user) {
+    setAuthToken(res.token)
+    storeUser(res.user)
+  }
+
+  return res
+}
+
+export async function confirmEmailCode(email: string, code: string): Promise<AuthUser> {
+  const { token, user } = await verifyEmail(email.trim(), code.trim())
 
   setAuthToken(token)
   storeUser(user)
 
   return user
+}
+
+export async function resendCode(email: string): Promise<string> {
+  const res = await resendVerificationCode(email.trim())
+  return res.message || 'Yeni doğrulama kodu gönderildi.'
 }
 
 export async function signOut(): Promise<void> {

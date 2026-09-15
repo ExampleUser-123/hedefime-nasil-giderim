@@ -2,14 +2,18 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
 import './index.css'
-import { handleGoogleRedirect } from './lib/auth'
+import { handleGoogleRedirect, hydrateAuthSession } from './lib/auth'
 
 // Web'de Google'dan geri donus: hash'teki id_token'i isle, oturumu ac.
 // App zaten stored user'ı okudugu icin sonuc beklemeye gerek yok.
-void handleGoogleRedirect()
+async function boot() {
+  await hydrateAuthSession()
+  await handleGoogleRedirect()
+  ReactDOM.createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>,
+  )
+}
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-)
+void boot()

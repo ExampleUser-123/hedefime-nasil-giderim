@@ -8,6 +8,7 @@ data/gtfs_cache/
 # Imzalama anahtari - ASLA commit etme  
 frontend/android/keystore/
 frontend/android/keystore.properties  
+frontend/android/.gradle-cache/
 rootsite/
 site/
 
@@ -15,6 +16,7 @@ site/
 _dbg_*.py
 data/_*
 data/users.json
+data/users.enc.db
 data/quotas.json
 data/gtfs/_*
 data/gtfs/eb_datasets.html

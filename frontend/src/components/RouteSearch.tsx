@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { fetchPlan, reverseGeocode, type Mode, type PlanResult, type Vehicle } from '@/lib/api'
+import { getCurrentLocation } from '@/lib/geolocation'
 import { addHistory, getFrequentRoutes, getRouteShortcuts, getWalkTolerance, saveLastCoords, setWalkTolerance, type FrequentRoute, type SavedRoute } from '@/lib/storage'
 import { maybeShowInterstitial } from '@/lib/ads'
 import { getTier } from '@/lib/auth'
@@ -186,24 +187,20 @@ export default function RouteSearch({
   function detectLocation() {
     if (locating) return
 
-    if (!('geolocation' in navigator)) {
-      setError('Tarayıcın konum desteği sunmuyor.')
-      return
-    }
-
     setLocating(true)
     setError(null)
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
+    getCurrentLocation()
+      .then(async (res) => {
+        if (!res.ok) {
+          setError(res.message)
+          return
+        }
+
+        saveLastCoords(res.coords.lat, res.coords.lon)
+
         try {
-          saveLastCoords(position.coords.latitude, position.coords.longitude)
-
-          const place = await reverseGeocode(
-            position.coords.latitude,
-            position.coords.longitude,
-          )
-
+          const place = await reverseGeocode(res.coords.lat, res.coords.lon)
           setFrom(place.display_name.split(',').slice(0, 2).join(','))
         } catch (e) {
           setError(
@@ -211,16 +208,9 @@ export default function RouteSearch({
               ? e.message
               : 'Konumun bulunamadı. Lütfen elle yaz.',
           )
-        } finally {
-          setLocating(false)
         }
-      },
-      () => {
-        setLocating(false)
-        setError('Konum izni alınamadı. Tarayıcı ayarlarından izin verip tekrar dene.')
-      },
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 },
-    )
+      })
+      .finally(() => setLocating(false))
   }
 
   return (

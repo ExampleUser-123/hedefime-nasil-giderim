@@ -6,6 +6,7 @@ import {
   type StopDeparture,
 } from '@/lib/api'
 import { listOfflineCities, type OfflineCity } from '@/lib/offlineStorage'
+import { getCurrentLocation } from '@/lib/geolocation'
 import StopDetailSheet from '@/components/StopDetailSheet'
 
 function formatDistance(meters: number): string {
@@ -96,18 +97,19 @@ export default function NearbyStopWidget(): ReactElement {
   const [detailOpen, setDetailOpen] = useState(false)
 
   function detect() {
-    if (!('geolocation' in navigator)) {
-      setError('Cihazın konum desteği sunmuyor.')
-      return
-    }
-
     setLoading(true)
     setError(null)
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const lat = position.coords.latitude
-        const lon = position.coords.longitude
+    getCurrentLocation()
+      .then(async (res) => {
+        if (!res.ok) {
+          setError(res.message)
+          setLoading(false)
+          return
+        }
+
+        const lat = res.coords.lat
+        const lon = res.coords.lon
 
         try {
           let results = await fetchNearbyStops(lat, lon, 5)
@@ -142,13 +144,7 @@ export default function NearbyStopWidget(): ReactElement {
         } finally {
           setLoading(false)
         }
-      },
-      () => {
-        setLoading(false)
-        setError('Konum izni alınamadı.')
-      },
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 },
-    )
+      })
   }
 
   useEffect(() => {

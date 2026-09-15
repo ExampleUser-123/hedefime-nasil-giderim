@@ -113,8 +113,8 @@ def validate_email_password(email: str, password: str) -> str | None:
     if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]{2,}", email_norm):
         return "Gecerli bir e-posta adresi gir."
 
-    if len(password or "") < 6:
-        return "Sifre en az 6 karakter olmali."
+    if len(password or "") < 8:
+        return "Sifre en az 8 karakter olmali."
 
     if len(password) > 128:
         return "Sifre cok uzun."

@@ -39,6 +39,7 @@ from services.auth import (
 )
 from services import user_store
 from services import quota_store
+from services import mailer
 
 from services.gtfs import (
     search_stops,
@@ -238,6 +239,15 @@ class EmailAuthBody(BaseModel):
     email: str
     password: str
     name: str = ""
+
+
+class VerifyEmailBody(BaseModel):
+    email: str
+    code: str
+
+
+class ResendCodeBody(BaseModel):
+    email: str
 
 
 class FavoriteBody(BaseModel):
@@ -1466,20 +1476,41 @@ def auth_google(body: GoogleAuthBody):
 
 @app.post("/auth/register")
 def auth_register(body: EmailAuthBody):
-    """E-posta + sifre ile kayit. Sifre PBKDF2 ile hash'lenir, metin saklanmaz."""
+    """E-posta + şifre ile kayıt. 6 haneli doğrulama kodu e-postaya gönderilir."""
 
     error = validate_email_password(body.email, body.password)
 
     if error:
         return JSONResponse(status_code=400, content={"error": error})
 
-    email_norm = body.email.strip().lower()
-
-    if user_store.find_user_by_email(email_norm) is not None:
+    if not mailer.is_configured():
+        logger.error("SMTP_PASSWORD tanimli olmadigi icin e-posta kaydi engellendi.")
         return JSONResponse(
-            status_code=409,
-            content={"error": "Bu e-posta zaten kayitli. Giris yapmayi dene."},
+            status_code=503,
+            content={"error": "E-posta doğrulama servisi şu anda yapılandırılmamış."},
         )
+
+    email_norm = body.email.strip().lower()
+    existing = user_store.find_user_by_email(email_norm)
+
+    if existing is not None:
+        if user_store.is_user_verified(existing):
+            return JSONResponse(
+                status_code=409,
+                content={"error": "Bu e-posta zaten kayıtlı. Giriş yapmayı dene."},
+            )
+        # Daha once kayit olmus ama dogrulanmamissa tekrar gonderim limiti uygula.
+        can_send, reason, _ = user_store.can_resend_code(email_norm)
+        if not can_send:
+            return JSONResponse(status_code=429, content={"error": reason})
+        code = mailer.generate_verification_code()
+        user_store.set_verification_code(existing["id"], code)
+        mailer.send_verification_email_async(email_norm, code, existing.get("name"))
+        return {
+            "needs_verification": True,
+            "email": email_norm,
+            "message": "Doğrulama kodu e-posta adresinize gönderildi.",
+        }
 
     salt = new_salt()
     user = user_store.upsert_email_user(
@@ -1487,31 +1518,94 @@ def auth_register(body: EmailAuthBody):
         name=body.name.strip()[:40],
         password_hash=hash_password(body.password, salt),
         salt=salt,
+        is_verified=False,
     )
+
+    code = mailer.generate_verification_code()
+    user_store.set_verification_code(user["id"], code)
+    mailer.send_verification_email_async(email_norm, code, user.get("name"))
+
+    return {
+        "needs_verification": True,
+        "email": email_norm,
+        "message": "Hesabınız oluşturuldu. 6 haneli doğrulama kodu e-posta adresinize gönderildi.",
+    }
+
+
+@app.post("/auth/verify-email")
+def auth_verify_email(body: VerifyEmailBody):
+    """E-postaya gelen 6 haneli doğrulama kodunu kontrol eder ve oturum açar."""
+    ok, message, user = user_store.verify_user_code(body.email, body.code)
+
+    if not ok:
+        return JSONResponse(status_code=400, content={"error": message})
+
+    user_store.touch_last_login(user["id"])
 
     return {
         "token": issue_app_token(user),
         "user": user_store.public_user(user),
+        "message": message,
+    }
+
+
+@app.post("/auth/resend-code")
+def auth_resend_code(body: ResendCodeBody):
+    """Doğrulama kodunu tekrar gönderir (60 sn bekleme limitli)."""
+    if not mailer.is_configured():
+        return JSONResponse(
+            status_code=503,
+            content={"error": "E-posta doğrulama servisi şu anda yapılandırılmamış."},
+        )
+
+    can_send, reason, user = user_store.can_resend_code(body.email)
+
+    if not can_send:
+        return JSONResponse(status_code=400, content={"error": reason})
+
+    code = mailer.generate_verification_code()
+    user_store.set_verification_code(user["id"], code)
+    mailer.send_verification_email_async(user["email"], code, user.get("name"))
+
+    return {
+        "ok": True,
+        "message": "Yeni doğrulama kodu e-posta adresinize gönderildi.",
     }
 
 
 @app.post("/auth/login")
 def auth_login(body: EmailAuthBody):
-    """E-posta + sifre ile giris."""
+    """E-posta + şifre ile giriş."""
 
     user = user_store.find_user_by_email(body.email)
 
     if user is None or not user.get("password_hash") or not user.get("salt"):
-        # Kayit yoksa da ayni mesaj (hesap taramasina kapali)
         return JSONResponse(
             status_code=401,
-            content={"error": "E-posta veya sifre hatali."},
+            content={"error": "E-posta veya şifre hatalı."},
         )
 
     if not verify_password(body.password, user["salt"], user["password_hash"]):
         return JSONResponse(
             status_code=401,
-            content={"error": "E-posta veya sifre hatali."},
+            content={"error": "E-posta veya şifre hatalı."},
+        )
+
+    # E-posta henuz dogrulanmamissa kullaniciyi bloke et. Kod gonderirken
+    # 60 saniyelik siniri asmayiz.
+    if not user_store.is_user_verified(user):
+        can_send, _reason, _ = user_store.can_resend_code(user["email"])
+        if can_send and mailer.is_configured():
+            code = mailer.generate_verification_code()
+            user_store.set_verification_code(user["id"], code)
+            mailer.send_verification_email_async(user["email"], code, user.get("name"))
+        return JSONResponse(
+            status_code=403,
+            content={
+                "error": "E-posta adresiniz henüz doğrulanmamış. Yeni bir onay kodu gönderildi.",
+                "needs_verification": True,
+                "email": user["email"],
+            },
         )
 
     user_store.touch_last_login(user["id"])

@@ -14,6 +14,7 @@ import {
   type FavoriteView,
 } from '@/lib/favorites'
 import { signOut } from '@/lib/auth'
+import { getCurrentLocation } from '@/lib/geolocation'
 import UpgradeSheet from '@/components/UpgradeSheet'
 import OfflineCitiesCard from '@/components/OfflineCitiesCard'
 import { IconBell, IconClock, IconStar, IconUser } from '@/icons'
@@ -253,42 +254,33 @@ export function ProfileScreen({
   function captureLocation(kind: 'home' | 'work') {
     if (pinning) return
 
-    if (!('geolocation' in navigator)) {
-      setPinError('Cihazın konum desteği sunmuyor.')
-      return
-    }
-
     setPinning(kind)
     setPinError(null)
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const { latitude, longitude } = position.coords
-          let address = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`
-
-          try {
-            const place = await reverseGeocode(latitude, longitude)
-            address = place.display_name.split(',').slice(0, 3).join(',')
-          } catch {
-            // adres bulunamazsa koordinat etiketi yeterli
-          }
-
-          const next = { label: kind === 'home' ? 'Ev' : 'İş', address, lat: latitude, lon: longitude }
-          setPinnedPlace(kind, next)
-
-          if (kind === 'home') setHomePlace(next)
-          else setWorkPlace(next)
-        } finally {
-          setPinning(null)
+    getCurrentLocation()
+      .then(async (res) => {
+        if (!res.ok) {
+          setPinError(res.message)
+          return
         }
-      },
-      () => {
-        setPinning(null)
-        setPinError('Konum alınamadı. GPS iznini kontrol et.')
-      },
-      { enableHighAccuracy: true, timeout: 12000 },
-    )
+
+        const { lat, lon } = res.coords
+        let address = `${lat.toFixed(4)}, ${lon.toFixed(4)}`
+
+        try {
+          const place = await reverseGeocode(lat, lon)
+          address = place.display_name.split(',').slice(0, 3).join(',')
+        } catch {
+          // adres bulunamazsa koordinat etiketi yeterli
+        }
+
+        const next = { label: kind === 'home' ? 'Ev' : 'İş', address, lat, lon }
+        setPinnedPlace(kind, next)
+
+        if (kind === 'home') setHomePlace(next)
+        else setWorkPlace(next)
+      })
+      .finally(() => setPinning(null))
   }
 
   function pinnedRow(kind: 'home' | 'work') {

@@ -7,9 +7,13 @@ Postgres'e (orn. Supabase) tasinabilir.
 
 import os
 import json
+import hashlib
+import hmac
 import threading
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
+
+from .crypto_store import encrypt_data, decrypt_data
 
 
 DATA_DIR = os.path.join(
@@ -18,6 +22,7 @@ DATA_DIR = os.path.join(
 )
 
 USERS_FILE = os.path.join(DATA_DIR, "users.json")
+ENC_USERS_FILE = os.path.join(DATA_DIR, "users.enc.db")
 
 MAX_FAVORITES = 50
 
@@ -29,6 +34,18 @@ def _ensure_dir():
 
 
 def _load() -> dict:
+    if os.path.exists(ENC_USERS_FILE):
+        try:
+            with open(ENC_USERS_FILE, "rb") as f:
+                encrypted = f.read()
+            raw = decrypt_data(encrypted).decode("utf-8")
+            data = json.loads(raw)
+            return data if isinstance(data, dict) else {}
+        except Exception as exc:
+            # Var olan sifreli dosya cozulmuyorsa duz metin kopyaya sessizce
+            # dusmek hem veri kaybini gizler hem de guvenligi bozar.
+            raise RuntimeError("Sifreli kullanici deposu okunamadi.") from exc
+
     if not os.path.exists(USERS_FILE):
         return {}
 
@@ -36,7 +53,11 @@ def _load() -> dict:
         with open(USERS_FILE, "r", encoding="utf-8") as file:
             data = json.load(file)
 
-        return data if isinstance(data, dict) else {}
+        if not isinstance(data, dict):
+            return {}
+
+        # Eski duz metin deposunu ilk yazmada sifreli formata tasiriz.
+        return data
 
     except (json.JSONDecodeError, OSError):
         return {}
@@ -45,12 +66,20 @@ def _load() -> dict:
 def _save(users: dict):
     _ensure_dir()
 
-    tmp_path = USERS_FILE + ".tmp"
+    serialized = json.dumps(users, ensure_ascii=False)
 
-    with open(tmp_path, "w", encoding="utf-8") as file:
-        json.dump(users, file, ensure_ascii=False)
+    # AES-256-GCM sifreli tek depo. Duz metin yedegi parola hash'leri ve
+    # e-posta adreslerini diske acikta birakacagindan tutulmaz.
+    enc_bytes = encrypt_data(serialized.encode("utf-8"))
+    tmp_enc = ENC_USERS_FILE + ".tmp"
+    with open(tmp_enc, "wb") as f:
+        f.write(enc_bytes)
+    os.replace(tmp_enc, ENC_USERS_FILE)
 
-    os.replace(tmp_path, USERS_FILE)
+    # Onceki surumlerden kalan duz metin depoyu ancak sifreli yazma
+    # basariyla tamamlandiktan sonra kaldir.
+    if os.path.exists(USERS_FILE):
+        os.remove(USERS_FILE)
 
 
 def upsert_google_user(payload: dict) -> dict:
@@ -67,6 +96,7 @@ def upsert_google_user(payload: dict) -> dict:
             "created_at": now,
             "favorites": [],
             "ai_request_count": 0,
+            "is_verified": True,
         }
 
         user.update({
@@ -74,6 +104,7 @@ def upsert_google_user(payload: dict) -> dict:
             "name": payload.get("name") or "Kullanici",
             "picture": payload.get("picture"),
             "last_login": now,
+            "is_verified": True,
         })
 
         users[user_id] = user
@@ -97,7 +128,7 @@ def find_user_by_email(email: str) -> dict | None:
     return None
 
 
-def upsert_email_user(email: str, name: str, password_hash: str, salt: str) -> dict:
+def upsert_email_user(email: str, name: str, password_hash: str, salt: str, is_verified: bool = False) -> dict:
     """E-posta+sifre ile kullanici kaydeder/gunceller; user dict doner."""
 
     email_norm = email.strip().lower()
@@ -115,6 +146,7 @@ def upsert_email_user(email: str, name: str, password_hash: str, salt: str) -> d
                 "created_at": now,
                 "favorites": [],
                 "ai_request_count": 0,
+                "is_verified": is_verified,
             }
         else:
             user = users.get(user["id"]) or user
@@ -127,11 +159,127 @@ def upsert_email_user(email: str, name: str, password_hash: str, salt: str) -> d
             "salt": salt,
             "last_login": now,
         })
+        if "is_verified" not in user:
+            user["is_verified"] = is_verified
 
         users[user["id"]] = user
         _save(users)
 
     return user
+
+
+def set_verification_code(user_id: str, code: str) -> None:
+    """Kullanici icin 15 dakika gecerli 6 haneli dogrulama kodu saklar."""
+    now = datetime.now()
+    expires_at = (now + timedelta(minutes=15)).isoformat(timespec="seconds")
+    now_iso = now.isoformat(timespec="seconds")
+
+    with _lock:
+        users = _load()
+        user = users.get(user_id)
+        if user is not None:
+            # OTP'yi duz metin saklama; calinan depoda tekrar kullanilamasin.
+            user["verification_code_hash"] = hashlib.sha256(
+                str(code).strip().encode("utf-8")
+            ).hexdigest()
+            user.pop("verification_code", None)
+            user["verification_expires_at"] = expires_at
+            user["verification_attempts"] = 0
+            user["last_code_sent_at"] = now_iso
+            users[user_id] = user
+            _save(users)
+
+
+def verify_user_code(email: str, code: str) -> tuple[bool, str, dict | None]:
+    """Kullanicinin girdigi dogrulama kodunu denetler."""
+    email_norm = (email or "").strip().lower()
+    code_norm = (code or "").strip()
+    now_iso = datetime.now().isoformat(timespec="seconds")
+
+    with _lock:
+        users = _load()
+        user = None
+        for u in users.values():
+            if (u.get("email") or "").strip().lower() == email_norm:
+                user = u
+                break
+
+        if not user:
+            return False, "Kayıtlı kullanıcı bulunamadı.", None
+
+        if user.get("is_verified"):
+            return True, "E-posta adresi zaten doğrulanmış.", user
+
+        stored_code_hash = user.get("verification_code_hash")
+        expires_at = user.get("verification_expires_at")
+        attempts = int(user.get("verification_attempts") or 0)
+
+        if not stored_code_hash:
+            return False, "Aktif bir doğrulama kodu bulunamadı. Lütfen yeni kod isteyin.", None
+
+        if expires_at and now_iso > expires_at:
+            return False, "Doğrulama kodunun süresi dolmuş. Lütfen 'Tekrar Kod Gönder'e tıklayın.", None
+
+        if attempts >= 5:
+            return False, "Çok fazla hatalı kod denemesi yapıldı. Lütfen yeni kod isteyin.", None
+
+        provided_hash = hashlib.sha256(code_norm.encode("utf-8")).hexdigest()
+        if not hmac.compare_digest(str(stored_code_hash), provided_hash):
+            user["verification_attempts"] = attempts + 1
+            users[user["id"]] = user
+            _save(users)
+            remaining = 5 - (attempts + 1)
+            return False, f"Hatalı doğrulama kodu. Kalan deneme hakkı: {remaining}", None
+
+        # Doğrulama başarılı!
+        user["is_verified"] = True
+        user["verification_code_hash"] = None
+        user["verification_expires_at"] = None
+        user["verification_attempts"] = 0
+        users[user["id"]] = user
+        _save(users)
+        return True, "E-posta başarıyla doğrulandı.", user
+
+
+def can_resend_code(email: str) -> tuple[bool, str, dict | None]:
+    """Yeni kod gonderme limiti (60 sn bekleme)."""
+    email_norm = (email or "").strip().lower()
+    now = datetime.now()
+
+    with _lock:
+        users = _load()
+        user = None
+        for u in users.values():
+            if (u.get("email") or "").strip().lower() == email_norm:
+                user = u
+                break
+
+        if not user:
+            return False, "Kullanıcı bulunamadı.", None
+
+        if user.get("is_verified"):
+            return False, "E-posta adresi zaten doğrulanmış.", user
+
+        last_sent = user.get("last_code_sent_at")
+        if last_sent:
+            try:
+                last_dt = datetime.fromisoformat(last_sent)
+                diff = (now - last_dt).total_seconds()
+                if diff < 60:
+                    wait_sec = int(60 - diff)
+                    return False, f"Yeni kod istemek için lütfen {wait_sec} saniye bekleyin.", None
+            except Exception:
+                pass
+
+        return True, "", user
+
+
+def is_user_verified(user: dict | None) -> bool:
+    """Kullanicinin e-postasinin dogrulanip dogrulanmadigini kontrol eder."""
+    if not user:
+        return False
+    return bool(user.get("is_verified", False))
+
 
 
 def touch_last_login(user_id: str) -> None:
@@ -188,6 +336,7 @@ def public_user(user: dict) -> dict:
         "picture": user.get("picture"),
         "created_at": user.get("created_at"),
         "tier": get_tier(user),
+        "is_verified": is_user_verified(user),
     }
 
 

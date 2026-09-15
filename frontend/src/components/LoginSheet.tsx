@@ -1,9 +1,9 @@
-import { useState } from 'react'
-import { signInWithEmail, signInWithGoogle, signUpWithEmail } from '@/lib/auth'
+import { useState, useEffect } from 'react'
+import { signInWithEmail, signInWithGoogle, signUpWithEmail, confirmEmailCode, resendCode } from '@/lib/auth'
 import { migrateLocalFavorites } from '@/lib/favorites'
 import { IconClose, IconLogo } from '@/icons'
 
-type Mode = 'google' | 'login' | 'register'
+type Mode = 'google' | 'login' | 'register' | 'verify'
 
 export default function LoginSheet({
   open,
@@ -17,9 +17,20 @@ export default function LoginSheet({
   const [mode, setMode] = useState<Mode>('google')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [infoMessage, setInfoMessage] = useState<string | null>(null)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
+  const [code, setCode] = useState('')
+  const [countdown, setCountdown] = useState(0)
+
+  useEffect(() => {
+    if (countdown <= 0) return
+    const timer = setInterval(() => {
+      setCountdown((prev) => (prev > 0 ? prev - 1 : 0))
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [countdown])
 
   if (!open) return null
 
@@ -33,6 +44,7 @@ export default function LoginSheet({
     if (busy) return
 
     setError(null)
+    setInfoMessage(null)
     setBusy(true)
 
     try {
@@ -50,14 +62,15 @@ export default function LoginSheet({
     if (busy) return
 
     setError(null)
+    setInfoMessage(null)
 
     const emailTrim = email.trim()
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(emailTrim)) {
       setError('Geçerli bir e-posta adresi gir.')
       return
     }
-    if (password.length < 6) {
-      setError('Şifre en az 6 karakter olmalı.')
+    if (password.length < 8) {
+      setError('Şifre en az 8 karakter olmalı.')
       return
     }
 
@@ -65,7 +78,13 @@ export default function LoginSheet({
 
     try {
       if (mode === 'register') {
-        await signUpWithEmail(emailTrim, password, name)
+        const res = await signUpWithEmail(emailTrim, password, name)
+        if (res.needs_verification) {
+          setMode('verify')
+          setCountdown(60)
+          setInfoMessage(res.message || 'Doğrulama kodu e-postanıza gönderildi.')
+          return
+        }
       } else {
         await signInWithEmail(emailTrim, password)
       }
@@ -73,12 +92,61 @@ export default function LoginSheet({
     } catch (err) {
       const message = err instanceof Error ? err.message : 'İşlem başarısız oldu.'
 
+      // E-posta henüz doğrulanmamış uyarısı geldiyse doğrulama ekranına geç
+      if (message.includes('doğrulanmamış') || message.includes('dogrulanmamis')) {
+        setMode('verify')
+        setCountdown(60)
+        setInfoMessage('E-posta adresiniz henüz doğrulanmamış. Yeni bir kod gönderildi.')
+        return
+      }
+
       // Register'da 409: hesap var -> girise yonlendir
       if (mode === 'register' && message.includes('zaten kayitli')) {
         setError('Bu e-posta zaten kayıtlı. Giriş yapmayı dene.')
         return
       }
       setError(message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleVerifySubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (busy) return
+
+    const codeTrim = code.trim()
+    if (codeTrim.length < 6) {
+      setError('Lütfen 6 haneli doğrulama kodunu eksiksiz girin.')
+      return
+    }
+
+    setError(null)
+    setInfoMessage(null)
+    setBusy(true)
+
+    try {
+      await confirmEmailCode(email.trim(), codeTrim)
+      await finish()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Doğrulama başarısız oldu.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleResendCode() {
+    if (busy || countdown > 0) return
+
+    setError(null)
+    setBusy(true)
+
+    try {
+      const msg = await resendCode(email.trim())
+      setCountdown(60)
+      setInfoMessage(msg)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Kod tekrar gönderilemedi.')
     } finally {
       setBusy(false)
     }
@@ -113,117 +181,180 @@ export default function LoginSheet({
           hesaplı kullanım için giriş istiyor.
         </p>
 
-        <button
-          type="button"
-          onClick={handleSignIn}
-          disabled={busy}
-          className="mt-5 flex min-h-[48px] w-full items-center justify-center gap-3 rounded-2xl border border-line bg-surface-2 font-bold transition-colors hover:border-accent hover:text-accent disabled:opacity-50"
-        >
-          <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
-            <path
-              fill="#EA4335"
-              d="M12 5.04c1.62 0 3.06.56 4.2 1.64l3.12-3.12C17.46 1.8 14.96.75 12 .75 7.4.75 3.44 3.4 1.53 7.26l3.66 2.84C6.1 7.31 8.8 5.04 12 5.04z"
-            />
-            <path
-              fill="#4285F4"
-              d="M23.25 12.26c0-.81-.07-1.59-.21-2.34H12v4.51h6.32c-.27 1.45-1.1 2.68-2.33 3.5l3.6 2.79c2.1-1.95 3.66-4.81 3.66-8.46z"
-            />
-            <path
-              fill="#FBBC05"
-              d="M5.19 14.4a7.2 7.2 0 0 1 0-4.3L1.53 7.26a11.26 11.26 0 0 0 0 9.98l3.66-2.84z"
-            />
-            <path
-              fill="#34A853"
-              d="M12 23.25c3.04 0 5.6-1 7.46-2.72l-3.6-2.79c-1 .68-2.3 1.08-3.86 1.08-3.2 0-5.9-2.27-6.81-5.32l-3.66 2.84c1.91 3.86 5.87 6.91 10.47 6.91z"
-            />
-          </svg>
-          {busy && mode === 'google' ? 'Giriş yapılıyor…' : 'Google ile devam et'}
-        </button>
+        {mode === 'verify' ? (
+          <div className="mt-4">
+            <h2 className="text-lg font-bold">E-postanızı doğrulayın</h2>
+            <p className="mt-1 text-sm leading-relaxed text-muted">
+              <strong className="text-fg">{email}</strong> adresinize 6 haneli güvenlik kodu gönderdik. Hesabınızı aktifleştirmek için kodu girin:
+            </p>
 
-        <div className="my-4 flex items-center gap-3" aria-hidden="true">
-          <span className="h-px flex-1 bg-line" />
-          <span className="text-xs text-muted">veya e-posta ile</span>
-          <span className="h-px flex-1 bg-line" />
-        </div>
-
-        <div className="grid grid-cols-2 gap-1 rounded-xl bg-surface-2 p-1" role="tablist" aria-label="E-posta giriş türü">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === 'login'}
-            onClick={() => switchMode('login')}
-            className={`min-h-[40px] rounded-lg text-sm font-bold transition-colors ${
-              mode === 'login' ? 'bg-surface text-accent shadow-sm' : 'text-muted'
-            }`}
-          >
-            Giriş yap
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={mode === 'register'}
-            onClick={() => switchMode('register')}
-            className={`min-h-[40px] rounded-lg text-sm font-bold transition-colors ${
-              mode === 'register' ? 'bg-surface text-accent shadow-sm' : 'text-muted'
-            }`}
-          >
-            Kaydol
-          </button>
-        </div>
-
-        {mode !== 'google' && (
-          <form onSubmit={handleEmailSubmit} className="mt-4 space-y-3">
-            {mode === 'register' && (
-              <label className="block">
-                <span className="mb-1 block text-xs font-bold text-muted">Adın (isteğe bağlı)</span>
+            <form onSubmit={handleVerifySubmit} className="mt-4 space-y-4">
+              <div>
+                <label className="mb-1 block text-center text-xs font-bold tracking-wider text-muted">
+                  6 HANELİ GÜVENLİK KODU
+                </label>
                 <input
                   type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  maxLength={40}
-                  autoComplete="name"
-                  placeholder="Örn. Ömer"
-                  className="min-h-[46px] w-full rounded-xl border border-line bg-bg px-3 text-sm outline-none transition-colors focus:border-accent"
+                  required
+                  autoFocus
+                  maxLength={6}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                  placeholder="000000"
+                  className="min-h-[52px] w-full rounded-xl border border-accent/40 bg-bg text-center text-2xl font-black tracking-[8px] text-accent outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/20"
                 />
-              </label>
-            )}
+              </div>
 
-            <label className="block">
-              <span className="mb-1 block text-xs font-bold text-muted">E-posta</span>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
-                inputMode="email"
-                placeholder="ornek@mail.com"
-                className="min-h-[46px] w-full rounded-xl border border-line bg-bg px-3 text-sm outline-none transition-colors focus:border-accent"
-              />
-            </label>
+              <button
+                type="submit"
+                disabled={busy || code.length < 6}
+                className="flex min-h-[48px] w-full items-center justify-center rounded-xl bg-accent font-bold text-accent-ink transition-transform hover:scale-[1.01] disabled:opacity-50"
+              >
+                {busy ? 'Doğrulanıyor…' : 'Doğrula ve Giriş Yap'}
+              </button>
 
-            <label className="block">
-              <span className="mb-1 block text-xs font-bold text-muted">Şifre</span>
-              <input
-                type="password"
-                required
-                minLength={6}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
-                placeholder="En az 6 karakter"
-                className="min-h-[46px] w-full rounded-xl border border-line bg-bg px-3 text-sm outline-none transition-colors focus:border-accent"
-              />
-            </label>
-
+              <div className="flex items-center justify-between pt-1">
+                <button
+                  type="button"
+                  onClick={() => switchMode('login')}
+                  className="text-xs text-muted hover:text-fg"
+                >
+                  ← Girişe dön
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResendCode}
+                  disabled={busy || countdown > 0}
+                  className="text-xs font-semibold text-accent hover:underline disabled:text-muted disabled:no-underline"
+                >
+                  {countdown > 0 ? `Tekrar Gönder (${countdown}s)` : 'Tekrar Kod Gönder'}
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : (
+          <>
             <button
-              type="submit"
+              type="button"
+              onClick={handleSignIn}
               disabled={busy}
-              className="flex min-h-[48px] w-full items-center justify-center rounded-xl bg-accent font-bold text-accent-ink transition-transform hover:scale-[1.01] disabled:opacity-50"
+              className="mt-5 flex min-h-[48px] w-full items-center justify-center gap-3 rounded-2xl border border-line bg-surface-2 font-bold transition-colors hover:border-accent hover:text-accent disabled:opacity-50"
             >
-              {busy ? 'İşleniyor…' : mode === 'register' ? 'Hesap oluştur' : 'Giriş yap'}
+              <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+                <path
+                  fill="#EA4335"
+                  d="M12 5.04c1.62 0 3.06.56 4.2 1.64l3.12-3.12C17.46 1.8 14.96.75 12 .75 7.4.75 3.44 3.4 1.53 7.26l3.66 2.84C6.1 7.31 8.8 5.04 12 5.04z"
+                />
+                <path
+                  fill="#4285F4"
+                  d="M23.25 12.26c0-.81-.07-1.59-.21-2.34H12v4.51h6.32c-.27 1.45-1.1 2.68-2.33 3.5l3.6 2.79c2.1-1.95 3.66-4.81 3.66-8.46z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.19 14.4a7.2 7.2 0 0 1 0-4.3L1.53 7.26a11.26 11.26 0 0 0 0 9.98l3.66-2.84z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 23.25c3.04 0 5.6-1 7.46-2.72l-3.6-2.79c-1 .68-2.3 1.08-3.86 1.08-3.2 0-5.9-2.27-6.81-5.32l-3.66 2.84c1.91 3.86 5.87 6.91 10.47 6.91z"
+                />
+              </svg>
+              {busy && mode === 'google' ? 'Giriş yapılıyor…' : 'Google ile devam et'}
             </button>
-          </form>
+
+            <div className="my-4 flex items-center gap-3" aria-hidden="true">
+              <span className="h-px flex-1 bg-line" />
+              <span className="text-xs text-muted">veya e-posta ile</span>
+              <span className="h-px flex-1 bg-line" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-1 rounded-xl bg-surface-2 p-1" role="tablist" aria-label="E-posta giriş türü">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={mode === 'login'}
+                onClick={() => switchMode('login')}
+                className={`min-h-[40px] rounded-lg text-sm font-bold transition-colors ${
+                  mode === 'login' ? 'bg-surface text-accent shadow-sm' : 'text-muted'
+                }`}
+              >
+                Giriş yap
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={mode === 'register'}
+                onClick={() => switchMode('register')}
+                className={`min-h-[40px] rounded-lg text-sm font-bold transition-colors ${
+                  mode === 'register' ? 'bg-surface text-accent shadow-sm' : 'text-muted'
+                }`}
+              >
+                Kaydol
+              </button>
+            </div>
+
+            {mode !== 'google' && (
+              <form onSubmit={handleEmailSubmit} className="mt-4 space-y-3">
+                {mode === 'register' && (
+                  <label className="block">
+                    <span className="mb-1 block text-xs font-bold text-muted">Adın (isteğe bağlı)</span>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      maxLength={40}
+                      autoComplete="name"
+                      placeholder="Örn. Ömer"
+                      className="min-h-[46px] w-full rounded-xl border border-line bg-bg px-3 text-sm outline-none transition-colors focus:border-accent"
+                    />
+                  </label>
+                )}
+
+                <label className="block">
+                  <span className="mb-1 block text-xs font-bold text-muted">E-posta</span>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
+                    inputMode="email"
+                    placeholder="ornek@mail.com"
+                    className="min-h-[46px] w-full rounded-xl border border-line bg-bg px-3 text-sm outline-none transition-colors focus:border-accent"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="mb-1 block text-xs font-bold text-muted">Şifre</span>
+                  <input
+                    type="password"
+                    required
+                    minLength={8}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoComplete={mode === 'register' ? 'new-password' : 'current-password'}
+                    placeholder="En az 8 karakter"
+                    className="min-h-[46px] w-full rounded-xl border border-line bg-bg px-3 text-sm outline-none transition-colors focus:border-accent"
+                  />
+                </label>
+
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className="flex min-h-[48px] w-full items-center justify-center rounded-xl bg-accent font-bold text-accent-ink transition-transform hover:scale-[1.01] disabled:opacity-50"
+                >
+                  {busy ? 'İşleniyor…' : mode === 'register' ? 'Hesap oluştur' : 'Giriş yap'}
+                </button>
+              </form>
+            )}
+          </>
+        )}
+
+        {infoMessage && (
+          <p role="status" className="mt-3 rounded-xl border border-accent/30 bg-accent/10 px-4 py-3 text-sm text-accent">
+            {infoMessage}
+          </p>
         )}
 
         {error && (
@@ -233,7 +364,7 @@ export default function LoginSheet({
         )}
 
         <p className="mt-4 text-center text-xs text-muted">
-          Şifren sunucuda şifrelenmiş olarak saklanır, kimse göremez.
+          SQLCipher & AES-256 ile korunan güvenli altyapı. Şifreniz sunucuda şifrelenmiş saklanır.
         </p>
       </div>
     </div>

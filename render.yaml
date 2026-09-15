@@ -8,4 +8,14 @@ services:
     envVars:
       - key: GEMINI_API_KEY
         sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: USER_STORE_ENCRYPTION_KEY
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
     healthCheckPath: /

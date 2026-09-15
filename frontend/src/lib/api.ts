@@ -128,23 +128,23 @@ export type ChatMessage = {
   searchUsed?: boolean
 }
 
-const TOKEN_KEY = 'hng-auth-token'
+import { SESSION_TOKEN_KEY, saveSecureValue } from './secureSession'
+
+let authToken: string | null = null
 
 export function getAuthToken(): string | null {
-  try {
-    return localStorage.getItem(TOKEN_KEY)
-  } catch {
-    return null
-  }
+  return authToken
 }
 
 export function setAuthToken(token: string | null) {
-  try {
-    if (token) localStorage.setItem(TOKEN_KEY, token)
-    else localStorage.removeItem(TOKEN_KEY)
-  } catch {
-    // localStorage kapaliysa sessizce devam
-  }
+  authToken = token
+  void saveSecureValue(SESSION_TOKEN_KEY, token).catch(() => {
+    // Oturum acma islemi ag basarisini etkilemesin; sonraki acilista tekrar giris gerekir.
+  })
+}
+
+export function hydrateAuthToken(token: string | null) {
+  authToken = token
 }
 
 async function request<T>(path: string, init?: RequestInit, timeoutMs = 30000): Promise<T> {
@@ -327,16 +327,40 @@ export function authWithGoogle(idToken: string) {
   }, 75000)
 }
 
+export type RegisterResponse = {
+  needs_verification?: boolean
+  token?: string
+  user?: AuthUser
+  message?: string
+  email?: string
+}
+
 export function registerWithEmail(email: string, password: string, name: string) {
-  return request<{ token: string; user: AuthUser }>('/auth/register', {
+  return request<RegisterResponse>('/auth/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password, name }),
   }, 75000)
 }
 
+export function verifyEmail(email: string, code: string) {
+  return request<{ token: string; user: AuthUser; message: string }>('/auth/verify-email', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, code }),
+  }, 75000)
+}
+
+export function resendVerificationCode(email: string) {
+  return request<{ ok: boolean; message: string }>('/auth/resend-code', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  }, 75000)
+}
+
 export function loginWithEmail(email: string, password: string) {
-  return request<{ token: string; user: AuthUser }>('/auth/login', {
+  return request<{ token: string; user: AuthUser; needs_verification?: boolean; email?: string }>('/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
