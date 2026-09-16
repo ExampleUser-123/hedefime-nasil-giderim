@@ -1595,14 +1595,20 @@ def auth_login(body: EmailAuthBody):
     # 60 saniyelik siniri asmayiz.
     if not user_store.is_user_verified(user):
         can_send, _reason, _ = user_store.can_resend_code(user["email"])
+        code_sent = False
         if can_send and mailer.is_configured():
             code = mailer.generate_verification_code()
             user_store.set_verification_code(user["id"], code)
             mailer.send_verification_email_async(user["email"], code, user.get("name"))
+            code_sent = True
         return JSONResponse(
             status_code=403,
             content={
-                "error": "E-posta adresiniz henüz doğrulanmamış. Yeni bir onay kodu gönderildi.",
+                "error": (
+                    "E-posta adresiniz henüz doğrulanmamış. Yeni bir onay kodu gönderildi."
+                    if code_sent
+                    else "E-posta adresiniz henüz doğrulanmamış. Lütfen biraz bekleyip 'Tekrar Kod Gönder'e dokunun."
+                ),
                 "needs_verification": True,
                 "email": user["email"],
             },

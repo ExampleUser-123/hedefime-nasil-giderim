@@ -101,7 +101,7 @@ export default function LoginSheet({
       }
 
       // Register'da 409: hesap var -> girise yonlendir
-      if (mode === 'register' && message.includes('zaten kayitli')) {
+      if (mode === 'register' && (message.includes('zaten kayıt') || message.includes('zaten kayit'))) {
         setError('Bu e-posta zaten kayıtlı. Giriş yapmayı dene.')
         return
       }

@@ -7,7 +7,28 @@ diskte duz metin yerine 256-bit AES ile sifreli saklar.
 import os
 import base64
 import hashlib
+import logging
+import secrets
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
+logger = logging.getLogger("crypto_store")
+
+# Anahtar env'de yoksa uretilen gecici proses anahtari (restart'ta degisir).
+# Kalici kurulumlarda USER_STORE_ENCRYPTION_KEY tanimlanmalidir.
+_ephemeral_secret: str | None = None
+
+
+def _ephemeral() -> str:
+    global _ephemeral_secret
+    if _ephemeral_secret is None:
+        logger.warning(
+            "USER_STORE_ENCRYPTION_KEY/JWT_SECRET tanimli degil; "
+            "gecici proses anahtari kullaniliyor. Restart sonrasi eski "
+            "sifreli veriler okunamaz. Kalici kurulum icin env tanimlayin."
+        )
+        _ephemeral_secret = secrets.token_hex(32)
+    return _ephemeral_secret
+
 
 def _key_bytes() -> bytes:
     """Deployment'a ait gizli anahtardan AES-256 anahtari uretir.
@@ -23,10 +44,7 @@ def _key_bytes() -> bytes:
         or os.getenv("JWT_SECRET")
     )
     if not secret:
-        raise RuntimeError(
-            "USER_STORE_ENCRYPTION_KEY tanimli degil; kullanici verisi sifreli "
-            "olarak saklanamaz."
-        )
+        secret = _ephemeral()
     return hashlib.sha256(secret.encode("utf-8")).digest()
 
 

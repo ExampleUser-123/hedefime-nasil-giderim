@@ -17,13 +17,27 @@ logger = logging.getLogger("mailer")
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER", "hedefimenasilgiderim@gmail.com")
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+# Google uygulama sifresi "xxxx xxxx xxxx xxxx" formatinda bosluklu verilir;
+# yapistirirken kalan bosluklar SMTP login'i patlatir, temizle.
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "").replace(" ", "")
+
+# Resend: varsa birincil gonderim kanali. Anahtar yoksa SMTP'ye dusulur.
+# Domain dogrulanmadan onboarding adresi SADECE Resend hesap e-postasina gonderir.
+RESEND_FROM_DEFAULT = "Hedefime Nasıl Giderim <onboarding@resend.dev>"
 APP_NAME = "Hedefime Nasıl Giderim"
 
 
+def _resend_api_key() -> str:
+    return (os.getenv("RESEND_API_KEY") or "").strip()
+
+
+def _resend_from() -> str:
+    return (os.getenv("RESEND_FROM") or "").strip() or RESEND_FROM_DEFAULT
+
+
 def is_configured() -> bool:
-    """Gercek e-posta gonderimi icin gereken SMTP parolasi tanimli mi?"""
-    return bool(SMTP_PASSWORD)
+    """Gercek e-posta gonderimi mumkun mu (Resend anahtari veya SMTP parolasi)?"""
+    return bool(_resend_api_key() or SMTP_PASSWORD)
 
 
 def generate_verification_code() -> str:
@@ -101,8 +115,50 @@ def _build_html_body(code: str, name: str | None = None) -> str:
 """
 
 
+def _send_via_resend(to_email: str, code: str, name: str | None = None) -> bool:
+    """Resend API ile gonderim dener. Basariliysa True doner.
+
+    Anahtar asla loglanmaz; hata durumunda sadece hata turu kaydedilir.
+    """
+    api_key = _resend_api_key()
+    if not api_key:
+        return False
+
+    try:
+        import resend
+    except ImportError:
+        logger.error("resend paketi kurulu degil; Resend gonderimi atlandi.")
+        return False
+
+    resend.api_key = api_key
+    params = {
+        "from": _resend_from(),
+        "to": [to_email],
+        "subject": f"{code} — {APP_NAME} Doğrulama Kodunuz",
+        "html": _build_html_body(code, name),
+    }
+    try:
+        result = resend.Emails.send(params)
+        email_id = (result or {}).get("id") if isinstance(result, dict) else None
+        logger.info("Resend ile dogrulama e-postasi gonderildi (id=%s).", email_id)
+        return True
+    except Exception as exc:
+        # ResendError (ValidationError/RateLimit/InvalidApiKey...) dahil.
+        # Istek parametreleri ve anahtar loga yazilmaz.
+        logger.error("Resend gonderimi basarisiz oldu (%s).", type(exc).__name__)
+        return False
+
+
 def _send_smtp_worker(to_email: str, code: str, name: str | None = None):
     """Arka plan thread'inde gercek SMTP gonderimi yapar."""
+    if _send_via_resend(to_email, code, name):
+        return
+
+    if _resend_api_key():
+        # Resend varken SMTP'ye dusme: cift e-posta gitmesin, hata dondur.
+        logger.error("Resend basarisiz oldu; SMTP yedegine dusulmedi (cift gonderim onlendi).")
+        return
+
     if not SMTP_PASSWORD:
         logger.error("SMTP_PASSWORD ayarlanmamis; dogrulama e-postasi gonderilmedi.")
         return

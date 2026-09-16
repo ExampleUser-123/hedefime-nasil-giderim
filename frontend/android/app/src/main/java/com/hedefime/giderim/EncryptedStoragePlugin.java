@@ -29,6 +29,7 @@ public class EncryptedStoragePlugin extends Plugin {
     private static final String TABLE = "secure_values";
 
     private SQLiteDatabase database;
+    private String initError;
 
     @Override
     public void load() {
@@ -40,12 +41,25 @@ public class EncryptedStoragePlugin extends Plugin {
             database.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE
                 + " (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL)");
         } catch (Exception exception) {
-            throw new IllegalStateException("Sifreli yerel depo baslatilamadi.", exception);
+            // Baslatma patlarsa uygulamayi dusurme: cagrilar reject edilir,
+            // JS tarafi (hydrateAuthSession) yakalar ve kullanici yeniden giris yapar.
+            android.util.Log.e("EncryptedStorage", "Sifreli depo baslatilamadi.", exception);
+            initError = "Sifreli yerel depo kullanilamiyor.";
+            database = null;
         }
+    }
+
+    private boolean isReady(PluginCall call) {
+        if (database == null) {
+            call.reject(initError != null ? initError : "Sifreli yerel depo hazir degil.");
+            return false;
+        }
+        return true;
     }
 
     @PluginMethod
     public void get(PluginCall call) {
+        if (!isReady(call)) return;
         String key = call.getString("key");
         if (!isValidKey(key, call)) return;
 
@@ -62,6 +76,7 @@ public class EncryptedStoragePlugin extends Plugin {
 
     @PluginMethod
     public void set(PluginCall call) {
+        if (!isReady(call)) return;
         String key = call.getString("key");
         String value = call.getString("value");
         if (!isValidKey(key, call)) return;
@@ -79,6 +94,7 @@ public class EncryptedStoragePlugin extends Plugin {
 
     @PluginMethod
     public void remove(PluginCall call) {
+        if (!isReady(call)) return;
         String key = call.getString("key");
         if (!isValidKey(key, call)) return;
         database.delete(TABLE, "key = ?", new String[]{key});

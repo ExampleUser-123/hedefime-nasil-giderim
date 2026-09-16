@@ -42,9 +42,21 @@ def _load() -> dict:
             data = json.loads(raw)
             return data if isinstance(data, dict) else {}
         except Exception as exc:
-            # Var olan sifreli dosya cozulmuyorsa duz metin kopyaya sessizce
-            # dusmek hem veri kaybini gizler hem de guvenligi bozar.
-            raise RuntimeError("Sifreli kullanici deposu okunamadi.") from exc
+            # Baska anahtarla yazilmis (orn. ephemeral sonrasi restart) ya da
+            # bozuk dosya uygulamayi kilitlemesin: yedege tasinip bos baslanir.
+            import logging as _logging
+            import time as _time
+            backup = ENC_USERS_FILE + f".corrupt-{int(_time.time())}"
+            try:
+                os.replace(ENC_USERS_FILE, backup)
+            except OSError:
+                backup = "(yedekleme basarisiz)"
+            _logging.getLogger("user_store").error(
+                "Sifreli kullanici deposu okunamadi (%s); %s konumuna "
+                "yedeklendi, bos depoyla devam ediliyor.",
+                exc, backup,
+            )
+            return {}
 
     if not os.path.exists(USERS_FILE):
         return {}
@@ -208,7 +220,9 @@ def verify_user_code(email: str, code: str) -> tuple[bool, str, dict | None]:
             return False, "Kayıtlı kullanıcı bulunamadı.", None
 
         if user.get("is_verified"):
-            return True, "E-posta adresi zaten doğrulanmış.", user
+            # Guvenlik: dogrulanmis hesaba kod kontrolsuz token uretilmesin.
+            # (Aksi halde e-postayi bilen herkes sifresiz oturum acabilirdi.)
+            return False, "E-posta adresi zaten doğrulanmış. Lütfen giriş yapın.", None
 
         stored_code_hash = user.get("verification_code_hash")
         expires_at = user.get("verification_expires_at")
