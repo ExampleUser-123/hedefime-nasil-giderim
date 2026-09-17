@@ -11,10 +11,10 @@ import androidx.security.crypto.MasterKey;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
-import com.getcapacitor.annotation.PluginMethod;
 
-import net.sqlcipher.database.SQLiteDatabase;
+import net.zetetic.database.sqlcipher.SQLiteDatabase;
 
 import java.security.SecureRandom;
 
@@ -26,6 +26,8 @@ import java.security.SecureRandom;
 public class EncryptedStoragePlugin extends Plugin {
     private static final String DATABASE_NAME = "hng_secure_store.db";
     private static final String PASSPHRASE_KEY = "sqlcipher_passphrase";
+    private static final String PREFS_NAME = "hng_secure_store_key";
+    private static final String FALLBACK_PREFS_NAME = "hng_secure_store_key_fallback";
     private static final String TABLE = "secure_values";
 
     private SQLiteDatabase database;
@@ -34,13 +36,13 @@ public class EncryptedStoragePlugin extends Plugin {
     @Override
     public void load() {
         try {
-            SQLiteDatabase.loadLibs(getContext());
+            String passphrase = getPassphrase();
             database = SQLiteDatabase.openOrCreateDatabase(
-                getContext().getDatabasePath(DATABASE_NAME), getPassphrase(), null
+                getContext().getDatabasePath(DATABASE_NAME), passphrase, null, null
             );
             database.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE
                 + " (key TEXT PRIMARY KEY NOT NULL, value TEXT NOT NULL)");
-        } catch (Exception exception) {
+        } catch (Throwable exception) {
             // Baslatma patlarsa uygulamayi dusurme: cagrilar reject edilir,
             // JS tarafi (hydrateAuthSession) yakalar ve kullanici yeniden giris yapar.
             android.util.Log.e("EncryptedStorage", "Sifreli depo baslatilamadi.", exception);
@@ -111,25 +113,44 @@ public class EncryptedStoragePlugin extends Plugin {
 
     private String getPassphrase() throws Exception {
         Context context = getContext();
-        MasterKey masterKey = new MasterKey.Builder(context)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build();
-        SharedPreferences preferences = EncryptedSharedPreferences.create(
+
+        // 1. Oncelikle Android Keystore ile sifrelenmis tercihlerde ara.
+        try {
+            MasterKey masterKey = new MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build();
+            SharedPreferences preferences = EncryptedSharedPreferences.create(
                 context,
-                "hng_secure_store_key",
+                PREFS_NAME,
                 masterKey,
                 EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             );
-        String passphrase = preferences.getString(PASSPHRASE_KEY, null);
-        if (passphrase != null) return passphrase;
+            String passphrase = preferences.getString(PASSPHRASE_KEY, null);
+            if (passphrase != null) return passphrase;
 
+            passphrase = generatePassphrase();
+            preferences.edit().putString(PASSPHRASE_KEY, passphrase).commit();
+            return passphrase;
+        } catch (Throwable t) {
+            android.util.Log.w("EncryptedStorage", "Keystore/EncryptedSharedPreferences basarisiz, normal tercihlere dusuluyor.", t);
+        }
+
+        // 2. Guvenlik donanimi calismazsa duz SharedPreferences'a dus.
+        SharedPreferences fallback = context.getSharedPreferences(FALLBACK_PREFS_NAME, Context.MODE_PRIVATE);
+        String fallbackPassphrase = fallback.getString(PASSPHRASE_KEY, null);
+        if (fallbackPassphrase != null) return fallbackPassphrase;
+
+        fallbackPassphrase = generatePassphrase();
+        fallback.edit().putString(PASSPHRASE_KEY, fallbackPassphrase).commit();
+        return fallbackPassphrase;
+    }
+
+    private String generatePassphrase() {
         byte[] bytes = new byte[32];
         new SecureRandom().nextBytes(bytes);
         StringBuilder result = new StringBuilder(64);
         for (byte value : bytes) result.append(String.format("%02x", value));
-        passphrase = result.toString();
-        preferences.edit().putString(PASSPHRASE_KEY, passphrase).commit();
-        return passphrase;
+        return result.toString();
     }
 }
