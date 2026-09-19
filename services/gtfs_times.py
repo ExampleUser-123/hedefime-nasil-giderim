@@ -88,11 +88,10 @@ def _sec_to_hhmm(sec) -> str:
 
 
 def _now_local(now_dt: datetime | None) -> datetime:
-    if now_dt is None:
-        return datetime.now(TZ) if TZ else datetime.now()
-    if now_dt.tzinfo is None:
-        return now_dt.replace(tzinfo=TZ) if TZ else now_dt
-    return now_dt.astimezone(TZ) if TZ else now_dt
+    # timeutil: naive girdi sistem yerel saati sayilip Istanbul'a cevrilir
+    # (Render UTC -> +3 dogru hesap); aware girdi dogrudan cevrilir.
+    from services.timeutil import as_tr
+    return as_tr(now_dt)
 
 
 def _csv_rows(zf: zipfile.ZipFile, name: str):

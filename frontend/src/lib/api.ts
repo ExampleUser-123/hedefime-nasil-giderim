@@ -415,6 +415,7 @@ export type NextDeparture = {
   time: string
   source: 'gtfs' | 'tahmini'
   minutes_ahead: number
+  computed_at?: string
 }
 
 export type NextDeparturesResponse = {
@@ -466,6 +467,7 @@ export type StopDeparture = {
   time: string
   source: 'gtfs' | 'tahmini'
   minutes_ahead: number
+  computed_at?: string
 }
 
 // 401/404 ve network hatalarinda null doner; UI bos liste gosterir, bozulmaz.

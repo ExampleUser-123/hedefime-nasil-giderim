@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactElement } from 'react'
 import { fetchStopDepartures, type NearbyStop, type StopDeparture } from '@/lib/api'
+import { liveMinutesAhead } from '@/lib/departureTime'
 import {
   addReminder,
   cancelReminder,
@@ -19,14 +20,17 @@ function formatDistance(meters: number): string {
 }
 
 // DepartureBadge'in estetigine uyan mini sefer rozeti (bilesen yeniden kullanilmaz).
-function MiniDepartureBadge({ departure }: { departure: StopDeparture }): ReactElement {
+// Kalan sure cihaz saatine gore guncellenir; gecmise dusmusse gizlenir.
+function MiniDepartureBadge({ departure }: { departure: StopDeparture }): ReactElement | null {
+  const liveAhead = liveMinutesAhead(departure, Date.now())
+  if (liveAhead < 0) return null
   if (departure.source === 'tahmini') {
     return (
       <span
         className="rounded-full bg-bg/60 px-2 py-0.5 text-xs italic text-muted tabular-nums"
         title={`Tahmini kalkış: ${departure.time}`}
       >
-        ~{departure.minutes_ahead} dk (tahmini)
+        ~{liveAhead} dk (tahmini)
       </span>
     )
   }
@@ -36,7 +40,7 @@ function MiniDepartureBadge({ departure }: { departure: StopDeparture }): ReactE
       className="rounded-full bg-accent/15 px-2 py-0.5 text-xs font-bold text-accent tabular-nums"
       title={`Kalkış saati: ${departure.time}`}
     >
-      ⏱ {departure.minutes_ahead} dk
+      ⏱ {liveAhead} dk
     </span>
   )
 }

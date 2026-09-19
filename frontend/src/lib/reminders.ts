@@ -46,7 +46,11 @@ function readStore(): DepartureReminder[] {
 }
 
 function writeStore(list: DepartureReminder[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(list))
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(list))
+  } catch {
+    // localStorage kapali/doluyse sessizce gec
+  }
 }
 
 export function listReminders(): DepartureReminder[] {

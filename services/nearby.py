@@ -12,7 +12,6 @@ import gzip
 import json
 import math
 import threading
-from datetime import datetime
 from pathlib import Path
 
 _DATA_DIR = Path(__file__).resolve().parent.parent / "data"
@@ -130,11 +129,13 @@ def stop_departures(
     except (TypeError, ValueError):
         max_total = 6
 
-    now_dt = datetime.now()
-    merged: list[dict] = []
-
     from services.gtfs_times import next_departures, index_ready
     from services.estimate_times import estimate_departures
+    from services.timeutil import now_tr, to_iso_tr
+
+    # Istanbul su ani (sunucu UTC olsa bile dogru duvar saati)
+    now_dt = now_tr()
+    merged: list[dict] = []
 
     # Indeks cache'te yoksa GTFS'i HIC DENEME: kurulum lock'u dakikalar surebilir
     # (Render 502). Tahmini saatlerle hemen cevap ver; warm_index arka planda

@@ -7,6 +7,12 @@ import {
 } from '@/lib/api'
 import { listOfflineCities, type OfflineCity } from '@/lib/offlineStorage'
 import { getCurrentLocation } from '@/lib/geolocation'
+import {
+  CATCH_BUFFER_MIN,
+  clockAfter,
+  firstCatchable,
+  liveMinutesAhead,
+} from '@/lib/departureTime'
 import StopDetailSheet from '@/components/StopDetailSheet'
 
 function formatDistance(meters: number): string {
@@ -25,15 +31,23 @@ function walkMinutes(distanceM: number): number {
   return Math.max(1, Math.ceil(distanceM / 60))
 }
 
-/** Kullanicinin en yakin duraktan sonraki kalkisa yetisip yetismeyecegini hesaplar. */
-function leaveDecision(stop: NearbyStop, departure: StopDeparture): { text: string; sub: string; urgent: boolean } {
+/** Kullanicinin en yakin duraktan sonraki kalkisa yetisip yetismeyecegini hesaplar.
+ * minutes cihaz saatine gore guncellenir (liveAhead); varis saati Istanbul
+ * duvar saatiyle gosterilir. Tum sureler tahminidir. */
+function leaveDecision(
+  stop: NearbyStop,
+  departure: StopDeparture,
+  nowMs: number,
+): { text: string; sub: string; urgent: boolean } {
   const walk = walkMinutes(stop.distance_m)
-  const headStart = departure.minutes_ahead - walk
+  const ahead = liveMinutesAhead(departure, nowMs)
+  const arrival = clockAfter(nowMs, walk)
+  const headStart = ahead - walk
 
   if (headStart <= 0) {
     return {
       text: 'Hemen çık!',
-      sub: `Durağa yürüyüşün ~${walk} dk, kalkışa ${departure.minutes_ahead} dk var.`,
+      sub: `Durağa yürüyüşün ~${walk} dk (tahmini), kalkışa ${Math.max(0, ahead)} dk var.`,
       urgent: true,
     }
   }
@@ -41,14 +55,14 @@ function leaveDecision(stop: NearbyStop, departure: StopDeparture): { text: stri
   if (headStart <= 3) {
     return {
       text: `Yaklaşık ${headStart} dk içinde çık`,
-      sub: `Yürüyüş ~${walk} dk, ${departure.line} ${departure.time}'te kalkıyor.`,
+      sub: `~${arrival} gibi durakta olursun (tahmini). ${departure.line} ${departure.time}'te kalkıyor, ~${ahead} dk var.`,
       urgent: true,
     }
   }
 
   return {
     text: `${headStart} dk daha bekleyebilirsin`,
-    sub: `Yürüyüş ~${walk} dk, ${departure.line} ${departure.time}'te kalkıyor.`,
+    sub: `~${arrival} gibi durakta olursun (tahmini). ${departure.line} ${departure.time}'te kalkıyor, ~${ahead} dk var.`,
     urgent: false,
   }
 }
@@ -95,6 +109,13 @@ export default function NearbyStopWidget(): ReactElement {
   const [stop, setStop] = useState<NearbyStop | null>(null)
   const [departures, setDepartures] = useState<StopDeparture[] | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
+  // Gercek cihaz saati: kalan sureler her 30 sn'de yeniden hesaplanir.
+  const [nowMs, setNowMs] = useState(() => Date.now())
+
+  useEffect(() => {
+    const timer = setInterval(() => setNowMs(Date.now()), 30000)
+    return () => clearInterval(timer)
+  }, [])
 
   function detect() {
     setLoading(true)
@@ -135,7 +156,8 @@ export default function NearbyStopWidget(): ReactElement {
               nearest.lon,
               nearest.lines,
             )
-            setDepartures(deps?.slice(0, 4) ?? [])
+            setDepartures(deps ?? [])
+            setNowMs(Date.now())
           } else if (nearest && offlineMode) {
             setDepartures([])
           }
@@ -191,17 +213,24 @@ export default function NearbyStopWidget(): ReactElement {
     )
   }
 
+  // Gecmis seferleri ele (cihaz saatine gore canli), hat basi ilkini goster.
+  const liveDepartures = (departures ?? []).filter((d) => liveMinutesAhead(d, nowMs) >= 0)
   const firstByLine = new Map<string, StopDeparture>()
   if (departures) {
-    for (const d of departures) {
+    for (const d of liveDepartures) {
       if (!firstByLine.has(d.line)) firstByLine.set(d.line, d)
     }
   }
 
-  const earliestDeparture = departures?.length
-    ? departures.reduce((best, d) => (d.minutes_ahead < best.minutes_ahead ? d : best))
+  // Yetisilemeyecek otobus onerme: yurume + guvenlik payini karsilayan ilk sefer.
+  const walkForDecision = stop ? walkMinutes(stop.distance_m) : 0
+  const catchable = stop
+    ? firstCatchable(liveDepartures, walkForDecision, CATCH_BUFFER_MIN, nowMs)
     : null
-  const decision = stop && earliestDeparture ? leaveDecision(stop, earliestDeparture) : null
+  const decision =
+    stop && catchable ? leaveDecision(stop, catchable, nowMs) : null
+  const nothingCatchable =
+    stop && departures !== null && liveDepartures.length > 0 && !catchable
 
   return (
     <button
@@ -222,7 +251,7 @@ export default function NearbyStopWidget(): ReactElement {
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        {Array.from(firstByLine.values()).map((d) => (
+        {Array.from(firstByLine.values()).slice(0, 4).map((d) => (
           <span
             key={d.line}
             className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${
@@ -232,13 +261,22 @@ export default function NearbyStopWidget(): ReactElement {
             }`}
           >
             {d.line}
-            <span className="tabular-nums">{timeText(d.minutes_ahead)}</span>
+            <span className="tabular-nums">{timeText(liveMinutesAhead(d, nowMs))}</span>
           </span>
         ))}
         {departures !== null && firstByLine.size === 0 && (
-          <span className="text-xs text-muted">Yakında kalkış yok</span>
+          <span className="text-xs text-muted">Otobüs saat bilgisi şu anda güncel değil.</span>
         )}
       </div>
+
+      {nothingCatchable && (
+        <div className="mt-3 rounded-xl border border-line bg-surface p-3">
+          <p className="text-sm font-bold">🕐 Yürüyerek yetişebileceğin sefer yok</p>
+          <p className="mt-0.5 text-xs text-fg/80">
+            listedeki seferler yürüme sürene yetişmiyor. Sonraki seferler için Detay'a bak.
+          </p>
+        </div>
+      )}
 
       {decision && (
         <div

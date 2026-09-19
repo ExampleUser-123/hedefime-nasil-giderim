@@ -64,9 +64,15 @@ def estimate_departures(
 
     Dönüş: [{"time": "HH:MM", "source": "tahmini", "minutes_ahead": int}]
     Gece (01:00-05:59) veya pencere dışında boş liste döner.
+
+    now_dt verilmezse Istanbul su ani kullanilir (services.timeutil).
     """
     if now_dt is None:
-        now_dt = datetime.now()
+        from services.timeutil import now_tr
+        now_dt = now_tr()
+    else:
+        from services.timeutil import as_tr
+        now_dt = as_tr(now_dt)
 
     now_minutes = _clamp_minutes(now_dt)
     if not (PREDICT_WINDOW_START <= now_minutes <= PREDICT_WINDOW_END):

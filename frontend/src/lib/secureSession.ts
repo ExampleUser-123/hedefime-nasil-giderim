@@ -17,7 +17,11 @@ export function usesEncryptedNativeStorage(): boolean {
 
 export async function loadSecureValue(key: string): Promise<string | null> {
   if (!usesEncryptedNativeStorage()) {
-    return localStorage.getItem(key)
+    try {
+      return localStorage.getItem(key)
+    } catch {
+      return null
+    }
   }
   const result = await EncryptedStorage.get({ key })
   return result.value
@@ -25,8 +29,12 @@ export async function loadSecureValue(key: string): Promise<string | null> {
 
 export async function saveSecureValue(key: string, value: string | null): Promise<void> {
   if (!usesEncryptedNativeStorage()) {
-    if (value === null) localStorage.removeItem(key)
-    else localStorage.setItem(key, value)
+    try {
+      if (value === null) localStorage.removeItem(key)
+      else localStorage.setItem(key, value)
+    } catch {
+      // localStorage kapaliysa sessizce gec
+    }
     return
   }
 
@@ -39,9 +47,13 @@ export async function migrateLegacyNativeValue(key: string): Promise<string | nu
   const secureValue = await loadSecureValue(key)
   if (secureValue !== null || !usesEncryptedNativeStorage()) return secureValue
 
-  const legacy = localStorage.getItem(key)
-  if (legacy === null) return null
-  await saveSecureValue(key, legacy)
-  localStorage.removeItem(key)
-  return legacy
+  try {
+    const legacy = localStorage.getItem(key)
+    if (legacy === null) return null
+    await saveSecureValue(key, legacy)
+    localStorage.removeItem(key)
+    return legacy
+  } catch {
+    return null
+  }
 }

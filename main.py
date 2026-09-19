@@ -938,8 +938,9 @@ class NextDeparturesBody(BaseModel):
 def next_departures_endpoint(body: NextDeparturesBody):
     from services.gtfs_times import next_departures
     from services.estimate_times import estimate_departures
+    from services.timeutil import now_tr, to_iso_tr
 
-    now_dt = datetime.now()
+    now_dt = now_tr()
 
     departures = []
     if body.lat is not None and body.lon is not None:
@@ -953,6 +954,7 @@ def next_departures_endpoint(body: NextDeparturesBody):
         "city": body.city,
         "line": body.line,
         "stop": body.stop,
+        "computed_at": to_iso_tr(now_dt),
         "departures": departures,
     }
 
@@ -992,6 +994,7 @@ class StopDeparturesBody(BaseModel):
 @app.post("/stop-departures")
 def stop_departures_endpoint(body: StopDeparturesBody):
     from services.nearby import stop_departures
+    from services.timeutil import to_iso_tr
 
     deps = stop_departures(
         body.city,
@@ -1000,7 +1003,8 @@ def stop_departures_endpoint(body: StopDeparturesBody):
         body.lon or 0.0,
         body.lines,
     )
-    return {"city": body.city, "stop": body.stop, "departures": deps}
+    return {"city": body.city, "stop": body.stop,
+            "computed_at": to_iso_tr(), "departures": deps}
 
 
 # =========================================================
