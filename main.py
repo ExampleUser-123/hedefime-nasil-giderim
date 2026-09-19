@@ -1989,3 +1989,8 @@ def clear_cache(x_admin_key: str | None = None):
     return {
         "message": "Önbellek temizlendi."
     }
+
+
+# Vercel Serverless Python entrypoint: `app` degiskeni dosya sonunda
+# acikca disa aktarilir (@vercel/python bunu arar).
+__all__ = ["app"]
