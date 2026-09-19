@@ -1,0 +1,11 @@
+# Yerel ortam dosyaları ve önbellekler
+.next
+.venv
+node_modules
+.git
+
+# Testler, belgeler ve medya dosyaları
+*.md
+*.log
+tests/
+docs/
