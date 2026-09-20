@@ -449,13 +449,15 @@ def home():
 @app.api_route("/health", methods=["GET", "HEAD"])
 def health():
     """Mobil/uptime izleme icin minimal saglik kontrolu."""
-    return {"status": "ok"}
+    from services import mailer
+    return {"status": "ok", "mailer": mailer.is_configured()}
 
 
 @app.api_route("/api/health", methods=["GET", "HEAD"])
 def api_health():
     """Ayni saglik kontrolunun /api alt yolu (proxy on eklerine dayanikli)."""
-    return {"status": "ok"}
+    from services import mailer
+    return {"status": "ok", "mailer": mailer.is_configured()}
 
 
 @app.get("/privacy")

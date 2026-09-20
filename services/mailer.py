@@ -41,6 +41,15 @@ def is_configured() -> bool:
     return bool(_resend_api_key() or SMTP_PASSWORD)
 
 
+if not _resend_api_key() and not SMTP_PASSWORD:
+    # Import aninda tek seferlik uyari: Vercel logunda gorunur, kayit akisi
+    # fail-soft calismaya devam eder (dogrulamasiz kayit).
+    logger.warning(
+        "E-posta gonderimi yapilandirilmamis (RESEND_API_KEY / SMTP_PASSWORD yok); "
+        "kayitlar dogrulama kodu gonderilmeden tamamlanacak."
+    )
+
+
 def generate_verification_code() -> str:
     """6 haneli guvenli rastgele dogrulama kodu uretir."""
     return f"{secrets.randbelow(900000) + 100000}"
