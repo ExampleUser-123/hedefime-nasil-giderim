@@ -446,6 +446,18 @@ def home():
     }
 
 
+@app.api_route("/health", methods=["GET", "HEAD"])
+def health():
+    """Mobil/uptime izleme icin minimal saglik kontrolu."""
+    return {"status": "ok"}
+
+
+@app.api_route("/api/health", methods=["GET", "HEAD"])
+def api_health():
+    """Ayni saglik kontrolunun /api alt yolu (proxy on eklerine dayanikli)."""
+    return {"status": "ok"}
+
+
 @app.get("/privacy")
 def privacy_policy():
     from fastapi.responses import HTMLResponse
