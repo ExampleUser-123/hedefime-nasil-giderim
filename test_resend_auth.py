@@ -103,9 +103,11 @@ try:
         check("3. Resend.Emails.send cagrildi", len(SENT_PARAMS) == 1)
         p = SENT_PARAMS[0] if SENT_PARAMS else {}
         check("3b. alici dogru", p.get("to") == [email])
-        check("3c. from onboarding (domain yok)", "onboarding@resend.dev" in str(p.get("from")))
-        check("3d. konu+icerik kodu tasiyor",
-              "123456" in str(p.get("subject")) and "123456" in str(p.get("html")))
+        check("3c. from isimli onboarding", "onboarding@resend.dev" in str(p.get("from"))
+              and "Hedefime Nasil Giderim" in str(p.get("from")))
+        check("3d. konu sabit + kod html ve text icinde",
+              p.get("subject") == "Hesap Dogrulama Kodunuz - Hedefime Nasil Giderim"
+              and "123456" in str(p.get("html")) and "123456" in str(p.get("text")))
         check("3e. parametrede anahtar yok", "re_test_dummy_key" not in str(p))
 
         # 4. basarili yanit islendi (id loglandi, hata yok)

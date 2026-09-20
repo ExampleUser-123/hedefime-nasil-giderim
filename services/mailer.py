@@ -24,7 +24,9 @@ SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "").replace(" ", "")
 
 # Resend: varsa birincil gonderim kanali. Anahtar yoksa SMTP'ye dusulur.
 # Domain dogrulanmadan onboarding adresi SADECE Resend hesap e-postasina gonderir.
-RESEND_FROM_DEFAULT = "Hedefime Nasıl Giderim <onboarding@resend.dev>"
+# ASCII görünen ad + ASCII konu: spam filtreleri ve kodlama sorunlari icin.
+RESEND_FROM_DEFAULT = "Hedefime Nasil Giderim <onboarding@resend.dev>"
+RESEND_SUBJECT = "Hesap Dogrulama Kodunuz - Hedefime Nasil Giderim"
 APP_NAME = "Hedefime Nasıl Giderim"
 
 
@@ -62,57 +64,58 @@ def _build_html_body(code: str, name: str | None = None) -> str:
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>E-posta Doğrulama Kodu</title>
+  <title>Hesap Dogrulama Kodunuz</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #0f172a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #f1f5f9;">
-  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="min-height: 100vh; padding: 32px 16px;">
+<body style="margin: 0; padding: 0; background-color: #f1f5f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
+  <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="padding: 32px 16px;">
     <tr>
       <td align="center">
-        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 480px; background-color: #1e293b; border-radius: 20px; border: 1px solid #334155; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+        <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 480px; background-color: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; overflow: hidden;">
           <!-- Header -->
           <tr>
-            <td style="padding: 32px 32px 20px; text-align: center; background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(59,130,246,0.15)); border-bottom: 1px solid #334155;">
-              <h1 style="margin: 0; font-size: 22px; font-weight: 800; color: #38bdf8; letter-spacing: -0.5px;">
-                🚀 {APP_NAME}
-              </h1>
-              <p style="margin: 6px 0 0; font-size: 13px; color: #94a3b8;">
-                Hesap Güvenliği ve Doğrulama
+            <td style="padding: 24px 32px; text-align: center; background-color: #0f172a; border-bottom: 3px solid #14b8a6;">
+              <p style="margin: 0; font-size: 18px; font-weight: 800; color: #ffffff;">
+                {APP_NAME}
+              </p>
+              <p style="margin: 4px 0 0; font-size: 12px; color: #94a3b8;">
+                Hesap Dogrulama
               </p>
             </td>
           </tr>
 
           <!-- Content -->
           <tr>
-            <td style="padding: 32px;">
-              <p style="margin: 0 0 16px; font-size: 15px; color: #cbd5e1; line-height: 1.5;">
+            <td style="padding: 28px 32px;">
+              <p style="margin: 0 0 12px; font-size: 15px; color: #334155; line-height: 1.5;">
                 {user_greeting}
               </p>
-              <p style="margin: 0 0 24px; font-size: 14px; color: #94a3b8; line-height: 1.6;">
-                <strong>{APP_NAME}</strong> hesabınızı aktifleştirmek için aşağıdaki 6 haneli güvenlik kodunu uygulamadaki ekrana girin:
+              <p style="margin: 0 0 20px; font-size: 14px; color: #64748b; line-height: 1.6;">
+                {APP_NAME} hesabınızı aktifleştirmek için aşağıdaki 6 haneli
+                güvenlik kodunu uygulamadaki doğrulama ekranına girin:
               </p>
 
               <!-- Code Box -->
-              <div style="background-color: #0f172a; border: 2px dashed #0284c7; border-radius: 14px; padding: 20px; text-align: center; margin: 0 0 24px;">
-                <span style="font-family: 'Courier New', Courier, monospace; font-size: 34px; font-weight: 900; letter-spacing: 8px; color: #38bdf8; display: inline-block;">
+              <div style="background-color: #f8fafc; border: 1px solid #14b8a6; border-radius: 10px; padding: 18px; text-align: center; margin: 0 0 20px;">
+                <span style="font-family: 'Courier New', Courier, monospace; font-size: 32px; font-weight: 700; letter-spacing: 8px; color: #0f172a; display: inline-block;">
                   {code}
                 </span>
                 <p style="margin: 8px 0 0; font-size: 11px; color: #64748b;">
-                  ⏱ Bu kod 15 dakika boyunca geçerlidir.
+                  Bu kod 15 dakika boyunca geçerlidir.
                 </p>
               </div>
 
-              <p style="margin: 0 0 8px; font-size: 12px; color: #64748b; line-height: 1.5;">
-                • Bu işlemi siz yapmadıysanız, bu e-postayı güvenle yok sayabilirsiniz.<br>
-                • Kodunuzu asla başkalarıyla paylaşmayın.
+              <p style="margin: 0; font-size: 12px; color: #94a3b8; line-height: 1.5;">
+                Bu işlemi siz yapmadıysanız bu e-postayı dikkate almayın.<br>
+                Güvenlik kodunuzu kimseyle paylaşmayın.
               </p>
             </td>
           </tr>
 
           <!-- Footer -->
           <tr>
-            <td style="padding: 20px 32px; background-color: #0f172a; border-top: 1px solid #1e293b; text-align: center;">
-              <p style="margin: 0; font-size: 11px; color: #475569;">
-                © 2026 {APP_NAME} • Türkiye Geneli Akıllı Rota ve Toplu Taşıma
+            <td style="padding: 16px 32px; background-color: #f8fafc; border-top: 1px solid #e2e8f0; text-align: center;">
+              <p style="margin: 0; font-size: 11px; color: #94a3b8;">
+                {APP_NAME} • Toplu Taşıma ve Rota Planlama
               </p>
             </td>
           </tr>
@@ -123,6 +126,19 @@ def _build_html_body(code: str, name: str | None = None) -> str:
 </body>
 </html>
 """
+
+
+def _build_text_body(code: str, name: str | None = None) -> str:
+    """Spam skorunu dusuren duz-metin alternatifi (HTML ile ayni icerik)."""
+    user_greeting = f"Merhaba {name}," if name else "Merhaba,"
+    return (
+        f"{user_greeting}\n\n"
+        f"{APP_NAME} hesabinizi aktiflestirmek icin dogrulama kodunuz: {code}\n\n"
+        "Bu kodu uygulamadaki dogrulama ekranina girin. "
+        "Kod 15 dakika boyunca gecerlidir.\n\n"
+        "Bu islemi siz yapmadiysaniz bu e-postayi dikkate almayin.\n\n"
+        f"{APP_NAME}"
+    )
 
 
 def _send_via_resend(to_email: str, code: str, name: str | None = None) -> tuple[bool, str]:
@@ -155,8 +171,9 @@ def _send_via_resend(to_email: str, code: str, name: str | None = None) -> tuple
     params = {
         "from": from_addr,
         "to": [to_email],
-        "subject": f"{code} — {APP_NAME} Doğrulama Kodunuz",
+        "subject": RESEND_SUBJECT,
         "html": _build_html_body(code, name),
+        "text": _build_text_body(code, name),
     }
     print(f"--- RESEND API CAGRISI: from={from_addr} ---")
     try:
@@ -184,7 +201,7 @@ def _send_via_smtp(to_email: str, code: str, name: str | None = None) -> tuple[b
 
     try:
         msg = EmailMessage()
-        msg["Subject"] = f"{code} — {APP_NAME} Doğrulama Kodunuz"
+        msg["Subject"] = RESEND_SUBJECT
         msg["From"] = f"{APP_NAME} <{SMTP_USER}>"
         msg["To"] = to_email
         msg["Date"] = formatdate(localtime=True)
