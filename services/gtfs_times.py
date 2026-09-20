@@ -20,7 +20,15 @@ _BUILD_LOCK = threading.Lock()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 GTFS_DIR = BASE_DIR / "data" / "gtfs"
-CACHE_DIR = BASE_DIR / "data" / "gtfs_cache"
+
+
+def _cache_dir() -> Path:
+    # Vercel'de /tmp altina (salt-okunur pakete yazilamaz), digerde repo data/.
+    from services.storage_dir import writable_base_dir
+    return writable_base_dir() / "gtfs_cache"
+
+
+CACHE_DIR = _cache_dir()
 
 try:
     from zoneinfo import ZoneInfo

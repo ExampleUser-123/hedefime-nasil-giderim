@@ -18,6 +18,13 @@ import threading
 from datetime import date
 from pathlib import Path
 
+def _paths():
+    """Yazilabilir dizine gore (Vercel'de /tmp) cozulmus dosya yolu."""
+    from services.storage_dir import writable_base_dir
+    base = writable_base_dir()
+    return base, base / "quotas.json"
+
+
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 QUOTA_FILE = DATA_DIR / "quotas.json"
 
@@ -32,8 +39,9 @@ _lock = threading.Lock()
 
 
 def _load() -> dict:
+    _, quota_file = _paths()
     try:
-        with open(QUOTA_FILE, encoding="utf-8") as fh:
+        with open(quota_file, encoding="utf-8") as fh:
             data = json.load(fh)
         if data.get("date") != date.today().isoformat():
             return {"date": date.today().isoformat(), "usage": {}}
@@ -43,11 +51,11 @@ def _load() -> dict:
 
 
 def _save(data: dict) -> None:
-    DATA_DIR.mkdir(exist_ok=True)
-    tmp = QUOTA_FILE.with_suffix(".tmp")
+    _, quota_file = _paths()
+    tmp = quota_file.with_suffix(".tmp")
     with open(tmp, "w", encoding="utf-8") as fh:
         json.dump(data, fh, ensure_ascii=False)
-    tmp.replace(QUOTA_FILE)
+    tmp.replace(quota_file)
 
 
 def identity_key(user: dict | None, client_ip: str) -> str:

@@ -13,9 +13,16 @@ import time
 
 from typing import Optional
 
+from services.storage_dir import writable_base_dir
+
+
+def _paths():
+    base = str(writable_base_dir())
+    return os.path.join(base, "share_routes.json"), os.path.join(base, "crowding.json")
+
+
 _DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
-_SHARE_PATH = os.path.join(_DATA_DIR, "share_routes.json")
-_CROWD_PATH = os.path.join(_DATA_DIR, "crowding.json")
+_SHARE_PATH, _CROWD_PATH = _paths()
 
 _LOCK = threading.Lock()
 

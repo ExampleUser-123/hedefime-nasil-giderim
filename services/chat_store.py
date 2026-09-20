@@ -5,10 +5,20 @@ import uuid
 from datetime import datetime
 
 
-CHAT_DIR = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "chat_sessions"
-)
+from services.storage_dir import is_vercel, writable_subdir
+
+
+def _chat_dir() -> str:
+    # Vercel'de /tmp altina, diger ortamlarda mevcut repo klasorune (degisiklik yok).
+    if is_vercel():
+        return writable_subdir("chat_sessions")
+    return os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "chat_sessions",
+    )
+
+
+CHAT_DIR = _chat_dir()
 
 MAX_HISTORY_FOR_AI = 20
 

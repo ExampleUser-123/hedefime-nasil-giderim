@@ -14,6 +14,11 @@ import uuid
 from datetime import datetime, timedelta
 
 from .crypto_store import encrypt_data, decrypt_data
+from .storage_dir import writable_base_dir
+
+
+def _data_dir():
+    return str(writable_base_dir())
 
 
 DATA_DIR = os.path.join(
@@ -21,8 +26,8 @@ DATA_DIR = os.path.join(
     "data"
 )
 
-USERS_FILE = os.path.join(DATA_DIR, "users.json")
-ENC_USERS_FILE = os.path.join(DATA_DIR, "users.enc.db")
+USERS_FILE = os.path.join(_data_dir(), "users.json")
+ENC_USERS_FILE = os.path.join(_data_dir(), "users.enc.db")
 
 MAX_FAVORITES = 50
 
@@ -30,7 +35,7 @@ _lock = threading.Lock()
 
 
 def _ensure_dir():
-    os.makedirs(DATA_DIR, exist_ok=True)
+    os.makedirs(_data_dir(), exist_ok=True)
 
 
 def _load() -> dict:

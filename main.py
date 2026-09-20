@@ -1493,7 +1493,17 @@ def auth_google(body: GoogleAuthBody):
 @app.post("/auth/register")
 def auth_register(body: EmailAuthBody):
     """E-posta + şifre ile kayıt. 6 haneli doğrulama kodu e-postaya gönderilir."""
+    try:
+        return _auth_register_impl(body)
+    except Exception:
+        logger.exception("auth/register beklenmeyen hata")
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Sunucuda beklenmeyen bir hata oluştu."},
+        )
 
+
+def _auth_register_impl(body: EmailAuthBody):
     error = validate_email_password(body.email, body.password)
 
     if error:
@@ -1609,7 +1619,17 @@ def auth_resend_code(body: ResendCodeBody):
 @app.post("/auth/login")
 def auth_login(body: EmailAuthBody):
     """E-posta + şifre ile giriş."""
+    try:
+        return _auth_login_impl(body)
+    except Exception:
+        logger.exception("auth/login beklenmeyen hata")
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Sunucuda beklenmeyen bir hata oluştu."},
+        )
 
+
+def _auth_login_impl(body: EmailAuthBody):
     user = user_store.find_user_by_email(body.email)
 
     if user is None or not user.get("password_hash") or not user.get("salt"):

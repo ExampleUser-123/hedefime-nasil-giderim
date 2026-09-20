@@ -1,10 +1,12 @@
-"""Kullanici "bu bilgi yanlis" bildirimleri: data/reports.json"""
+"""Kullanici "bu bilgi yanlis" bildirimleri: yazilabilir data dizininde reports.json"""
 import json
 import os
 import threading
 import time
 
-_DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+from services.storage_dir import writable_base_dir
+
+_DATA_DIR = str(writable_base_dir())
 _PATH = os.path.join(_DATA_DIR, "reports.json")
 _lock = threading.Lock()
 MAX_REPORTS = 2000
