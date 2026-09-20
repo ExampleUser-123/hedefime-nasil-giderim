@@ -1511,13 +1511,14 @@ def _auth_register_impl(body: EmailAuthBody):
     if error:
         return JSONResponse(status_code=400, content={"error": error})
 
-    # E-posta gonderimi yapilandirilmamissa kaydi engelleme (fail-soft):
-    # kullanici dogrulanmis sayilir, dogrudan oturum acilir. Boylece
-    # mail servisi olmayan ortamlarda (orn. eksik Vercel env) uygulama
-    # kullanilabilir kalir. Mail aktifse normal kod akisi calisir.
-    mail_ready = mailer.is_configured()
-    if not mail_ready:
-        logger.warning("Mailer yapilandirilmamis; kayit dogrulamasiz tamamlaniyor.")
+    # E-posta gonderimi zorunludur: yapilandirma yoksa kayit engellenir (503).
+    # Sessiz gecis YOK — aksi halde kod gitmeden "gonderildi" gorunur.
+    if not mailer.is_configured():
+        logger.error("Mailer yapilandirilmamis; kayit engellendi.")
+        return JSONResponse(
+            status_code=503,
+            content={"error": "E-posta doğrulama servisi şu anda yapılandırılmamış."},
+        )
 
     email_norm = body.email.strip().lower()
     existing = user_store.find_user_by_email(email_norm)
@@ -1528,14 +1529,6 @@ def _auth_register_impl(body: EmailAuthBody):
                 status_code=409,
                 content={"error": "Bu e-posta zaten kayıtlı. Giriş yapmayı dene."},
             )
-        if not mail_ready:
-            user_store.set_verified(existing["id"])
-            user_store.touch_last_login(existing["id"])
-            return {
-                "token": issue_app_token(existing),
-                "user": user_store.public_user(existing),
-                "message": "Hesabınız oluşturuldu, giriş yapıldı.",
-            }
         # Daha once kayit olmus ama dogrulanmamissa tekrar gonderim limiti uygula.
         can_send, reason, _ = user_store.can_resend_code(email_norm)
         if not can_send:
@@ -1555,16 +1548,8 @@ def _auth_register_impl(body: EmailAuthBody):
         name=body.name.strip()[:40],
         password_hash=hash_password(body.password, salt),
         salt=salt,
-        is_verified=not mail_ready,
+        is_verified=False,
     )
-
-    if not mail_ready:
-        user_store.touch_last_login(user["id"])
-        return {
-            "token": issue_app_token(user),
-            "user": user_store.public_user(user),
-            "message": "Hesabınız oluşturuldu, giriş yapıldı.",
-        }
 
     code = mailer.generate_verification_code()
     user_store.set_verification_code(user["id"], code)

@@ -149,40 +149,48 @@ def _send_via_resend(to_email: str, code: str, name: str | None = None) -> bool:
             "Resend gonderici onboarding@resend.dev; domain dogrulanmadan "
             "yalnizca Resend hesap e-postasina iletim yapilir."
         )
+        print("--- RESEND UYARI: onboarding gonderici, sadece hesap e-postasina iletilir ---")
     params = {
         "from": from_addr,
         "to": [to_email],
         "subject": f"{code} — {APP_NAME} Doğrulama Kodunuz",
         "html": _build_html_body(code, name),
     }
+    print(f"--- RESEND API CAGRISI: from={from_addr} ---")
     try:
         result = resend.Emails.send(params)
         email_id = (result or {}).get("id") if isinstance(result, dict) else None
         logger.info("Resend ile dogrulama e-postasi gonderildi (id=%s).", email_id)
+        print(f"--- RESEND BASARILI: id={email_id} ---")
         return True
     except Exception as exc:
-        # ResendError veya ag hatasi. API key ve alici loga yazilmaz; SDK'nin
+        # ResendError veya ag hatasi. API key loga yazilmaz; SDK'nin
         # dondurdugu hata mesaji (status/reason, orn. 403 test-modu kisiti)
         # teshis icin kaydedilir.
         logger.error(
             "Resend gonderimi basarisiz oldu (%s): %s",
             type(exc).__name__, str(exc)[:300],
         )
+        print(f"--- RESEND HATA: {type(exc).__name__}: {str(exc)[:300]} ---")
         return False
 
 
 def _send_smtp_worker(to_email: str, code: str, name: str | None = None):
     """Arka plan thread'inde gercek SMTP gonderimi yapar."""
+    print(f"--- MAIL WORKER BASLADI: {to_email} ---")
     if _send_via_resend(to_email, code, name):
+        print(f"--- MAIL WORKER BITTI (Resend): {to_email} ---")
         return
 
     if _resend_api_key():
         # Resend varken SMTP'ye dusme: cift e-posta gitmesin, hata dondur.
         logger.error("Resend basarisiz oldu; SMTP yedegine dusulmedi (cift gonderim onlendi).")
+        print(f"--- MAIL WORKER HATA (Resend basarisiz, SMTP'ye dusulmedi): {to_email} ---")
         return
 
     if not SMTP_PASSWORD:
         logger.error("SMTP_PASSWORD ayarlanmamis; dogrulama e-postasi gonderilmedi.")
+        print(f"--- MAIL WORKER HATA (SMTP yapilandirilmamis): {to_email} ---")
         return
 
     try:
@@ -211,6 +219,7 @@ def _send_smtp_worker(to_email: str, code: str, name: str | None = None):
 
 def send_verification_email_async(to_email: str, code: str, name: str | None = None):
     """FastAPI'yi bloklamadan arka planda e-posta gonderir."""
+    print(f"--- RESEND MAIL GONDERILIYOR: {to_email} ---")
     thread = threading.Thread(
         target=_send_smtp_worker,
         args=(to_email, code, name),
