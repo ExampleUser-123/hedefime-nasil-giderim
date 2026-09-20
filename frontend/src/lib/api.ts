@@ -2,7 +2,7 @@
 // NOT: Varsayilan localhost OLMAMALI — .env'siz derlenen web/APK aksi halde
 // kendi makinesine istek atip "Sunucuya ulasilamadi" verir.
 const API_BASE =
-  import.meta.env.VITE_API_BASE ?? 'https://hedefime-nasil-giderim-api.onrender.com'
+  import.meta.env.VITE_API_BASE ?? 'https://hedefime-nasil-giderim.vercel.app'
 
 export { API_BASE }
 

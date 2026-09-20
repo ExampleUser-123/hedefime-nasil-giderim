@@ -31,7 +31,7 @@ import java.util.List;
  */
 public class NearestStopWidgetProvider extends AppWidgetProvider {
 
-    private static final String API_BASE = "https://hedefime-nasil-giderim-api.onrender.com";
+    private static final String API_BASE = "https://hedefime-nasil-giderim.vercel.app";
     public static final String ACTION_REFRESH = "com.hedefime.giderim.WIDGET_REFRESH";
 
     @Override
