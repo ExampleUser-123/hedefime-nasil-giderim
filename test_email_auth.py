@@ -100,14 +100,15 @@ try:
             "email": email, "password": "BaskaSifre123", "name": "X"})
         check("cift kayit -> 409", r.status_code == 409, f"HTTP {r.status_code}")
 
-        # 10. SMTP kapaliyken kayit -> 503
+        # 10. SMTP kapaliyken kayit -> fail-soft: engelleme, dogrudan oturum
     with patch("main.mailer.is_configured", return_value=False):
         from fastapi.testclient import TestClient as TC2
         from main import app as app2
         c2 = TC2(app2)
         r = c2.post("/auth/register", json={
             "email": "baska@example.com", "password": "GucluSifre123", "name": "Y"})
-        check("SMTP kapali kayit -> 503", r.status_code == 503, f"HTTP {r.status_code}")
+        check("SMTP kapali kayit -> dogrudan token (fail-soft)",
+              r.status_code == 200 and bool(r.json().get("token")), f"HTTP {r.status_code}")
 finally:
     _restore()
 
