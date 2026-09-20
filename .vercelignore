@@ -9,3 +9,9 @@ node_modules
 *.log
 tests/
 docs/
+
+# Backend API'nin calismasi icin gerekmeyen agir klasorler
+# (Vercel function 250MB limitine takilmamasi icin dagitim disi)
+frontend/
+verdent-design/
+site/
