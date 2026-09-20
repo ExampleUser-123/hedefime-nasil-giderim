@@ -141,8 +141,16 @@ def _send_via_resend(to_email: str, code: str, name: str | None = None) -> bool:
         return False
 
     resend.api_key = api_key
+    from_addr = _resend_from()
+    if "onboarding@resend.dev" in from_addr:
+        # Ucretsiz/test gonderici: SADECE Resend hesap e-postasina iletilir.
+        # Baska aliciya gonderim API'den 403 ile reddedilir (asagida loglanir).
+        logger.warning(
+            "Resend gonderici onboarding@resend.dev; domain dogrulanmadan "
+            "yalnizca Resend hesap e-postasina iletim yapilir."
+        )
     params = {
-        "from": _resend_from(),
+        "from": from_addr,
         "to": [to_email],
         "subject": f"{code} — {APP_NAME} Doğrulama Kodunuz",
         "html": _build_html_body(code, name),
@@ -153,9 +161,13 @@ def _send_via_resend(to_email: str, code: str, name: str | None = None) -> bool:
         logger.info("Resend ile dogrulama e-postasi gonderildi (id=%s).", email_id)
         return True
     except Exception as exc:
-        # ResendError (ValidationError/RateLimit/InvalidApiKey...) dahil.
-        # Istek parametreleri ve anahtar loga yazilmaz.
-        logger.error("Resend gonderimi basarisiz oldu (%s).", type(exc).__name__)
+        # ResendError veya ag hatasi. API key ve alici loga yazilmaz; SDK'nin
+        # dondurdugu hata mesaji (status/reason, orn. 403 test-modu kisiti)
+        # teshis icin kaydedilir.
+        logger.error(
+            "Resend gonderimi basarisiz oldu (%s): %s",
+            type(exc).__name__, str(exc)[:300],
+        )
         return False
 
 
