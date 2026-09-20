@@ -125,20 +125,22 @@ def _build_html_body(code: str, name: str | None = None) -> str:
 """
 
 
-def _send_via_resend(to_email: str, code: str, name: str | None = None) -> bool:
-    """Resend API ile gonderim dener. Basariliysa True doner.
+def _send_via_resend(to_email: str, code: str, name: str | None = None) -> tuple[bool, str]:
+    """Resend API ile gonderim dener. (basarili_mi, detay) doner.
 
-    Anahtar asla loglanmaz; hata durumunda sadece hata turu kaydedilir.
+    Detay istemcide gosterilebilir; anahtar ve kod icermez.
+    Domain dogrulanmamissa RESEND_FROM bos birakilmali ki varsayilan
+    onboarding@resend.dev kullanilsin (yalnizca hesap e-postasina iletilir).
     """
     api_key = _resend_api_key()
     if not api_key:
-        return False
+        return False, "RESEND_API_KEY tanimli degil."
 
     try:
         import resend
     except ImportError:
         logger.error("resend paketi kurulu degil; Resend gonderimi atlandi.")
-        return False
+        return False, "Resend kutuphanesi sunucuda kurulu degil."
 
     resend.api_key = api_key
     from_addr = _resend_from()
@@ -162,36 +164,23 @@ def _send_via_resend(to_email: str, code: str, name: str | None = None) -> bool:
         email_id = (result or {}).get("id") if isinstance(result, dict) else None
         logger.info("Resend ile dogrulama e-postasi gonderildi (id=%s).", email_id)
         print(f"--- RESEND BASARILI: id={email_id} ---")
-        return True
+        return True, f"E-posta gönderildi (id={email_id})."
     except Exception as exc:
         # ResendError veya ag hatasi. API key loga yazilmaz; SDK'nin
         # dondurdugu hata mesaji (status/reason, orn. 403 test-modu kisiti)
-        # teshis icin kaydedilir.
-        logger.error(
-            "Resend gonderimi basarisiz oldu (%s): %s",
-            type(exc).__name__, str(exc)[:300],
-        )
-        print(f"--- RESEND HATA: {type(exc).__name__}: {str(exc)[:300]} ---")
-        return False
+        # teshis icin kaydedilir ve istemciye gosterilebilir.
+        detail = str(exc)[:300] or type(exc).__name__
+        logger.error("Resend gonderimi basarisiz oldu (%s): %s", type(exc).__name__, detail)
+        print(f"--- RESEND HATA: {type(exc).__name__}: {detail} ---")
+        return False, detail
 
 
-def _send_smtp_worker(to_email: str, code: str, name: str | None = None):
-    """Arka plan thread'inde gercek SMTP gonderimi yapar."""
-    print(f"--- MAIL WORKER BASLADI: {to_email} ---")
-    if _send_via_resend(to_email, code, name):
-        print(f"--- MAIL WORKER BITTI (Resend): {to_email} ---")
-        return
-
-    if _resend_api_key():
-        # Resend varken SMTP'ye dusme: cift e-posta gitmesin, hata dondur.
-        logger.error("Resend basarisiz oldu; SMTP yedegine dusulmedi (cift gonderim onlendi).")
-        print(f"--- MAIL WORKER HATA (Resend basarisiz, SMTP'ye dusulmedi): {to_email} ---")
-        return
-
+def _send_via_smtp(to_email: str, code: str, name: str | None = None) -> tuple[bool, str]:
+    """SMTP ile senkron gonderim. (basarili_mi, detay) doner."""
     if not SMTP_PASSWORD:
         logger.error("SMTP_PASSWORD ayarlanmamis; dogrulama e-postasi gonderilmedi.")
         print(f"--- MAIL WORKER HATA (SMTP yapilandirilmamis): {to_email} ---")
-        return
+        return False, "SMTP yapılandırılmamış."
 
     try:
         msg = EmailMessage()
@@ -212,16 +201,36 @@ def _send_smtp_worker(to_email: str, code: str, name: str | None = None):
             server.send_message(msg)
 
         logger.info("Dogrulama e-postasi basariyla gonderildi.")
+        print(f"--- SMTP BASARILI: {to_email} ---")
+        return True, "E-posta gönderildi."
+    except Exception as exc:
+        logger.error("E-posta gonderilirken hata olustu (%s).", type(exc).__name__)
+        print(f"--- SMTP HATA ({type(exc).__name__}): {to_email} ---")
+        return False, f"SMTP hatası ({type(exc).__name__})."
 
-    except Exception:
-        logger.exception("E-posta gonderilirken hata olustu.")
+
+def send_verification_email(to_email: str, code: str,
+                            name: str | None = None) -> tuple[bool, str]:
+    """Senkron dogrulama e-postasi: (basarili_mi, detay).
+
+    Istek icinde cagrilir; hata detayi istemciye gosterilebilir.
+    Resend anahtari varsa Resend denenir, yoksa SMTP'ye dusulur.
+    """
+    print(f"--- RESEND MAIL GONDERILIYOR: {to_email} ---")
+    if _resend_api_key():
+        return _send_via_resend(to_email, code, name)
+    return _send_via_smtp(to_email, code, name)
 
 
 def send_verification_email_async(to_email: str, code: str, name: str | None = None):
-    """FastAPI'yi bloklamadan arka planda e-posta gonderir."""
+    """Eski asenkron arayuz (uyumluluk): sonucu beklemez, hata detayini dondurmez.
+
+    Kayit/dogrulama akislari artik senkron `send_verification_email`
+    kullanir; bu fonksiyon yalnizca bilgi amacli arka plan gonderimleri icindir.
+    """
     print(f"--- RESEND MAIL GONDERILIYOR: {to_email} ---")
     thread = threading.Thread(
-        target=_send_smtp_worker,
+        target=send_verification_email,
         args=(to_email, code, name),
         daemon=True,
     )

@@ -24,6 +24,7 @@ SENT = []
 
 def _fake_send(to_email, code, name=None):
     SENT.append({"to": to_email, "code": code})
+    return True, "gonderildi (test)"
 
 
 def _restore():
@@ -46,7 +47,7 @@ def check(name, cond, extra=""):
 
 try:
     with patch("main.mailer.is_configured", return_value=True), \
-         patch("main.mailer.send_verification_email_async", side_effect=_fake_send):
+         patch("main.mailer.send_verification_email", side_effect=_fake_send):
         from fastapi.testclient import TestClient
         from main import app
 
@@ -108,6 +109,18 @@ try:
         r = c2.post("/auth/register", json={
             "email": "baska@example.com", "password": "GucluSifre123", "name": "Y"})
         check("SMTP kapali kayit -> 503", r.status_code == 503, f"HTTP {r.status_code}")
+
+        # 11. gonderim basarisizsa istemciye 502 + detay doner
+    with patch("main.mailer.is_configured", return_value=True), \
+         patch("main.mailer.send_verification_email",
+               return_value=(False, "Can only send to registered email")):
+        from fastapi.testclient import TestClient as TC3
+        from main import app as app3
+        c3 = TC3(app3)
+        r = c3.post("/auth/register", json={
+            "email": "posta-hata@example.com", "password": "GucluSifre123", "name": "Z"})
+        check("gonderim hatasi -> 502 + detay",
+              r.status_code == 502 and "registered email" in r.text, f"HTTP {r.status_code}")
 finally:
     _restore()
 

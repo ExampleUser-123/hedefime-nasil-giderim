@@ -1535,7 +1535,14 @@ def _auth_register_impl(body: EmailAuthBody):
             return JSONResponse(status_code=429, content={"error": reason})
         code = mailer.generate_verification_code()
         user_store.set_verification_code(existing["id"], code)
-        mailer.send_verification_email_async(email_norm, code, existing.get("name"))
+        sent_ok, sent_detail = mailer.send_verification_email(
+            email_norm, code, existing.get("name"))
+        if not sent_ok:
+            print(f"--- REGISTER POSTA HATASI: {sent_detail} ---")
+            return JSONResponse(
+                status_code=502,
+                content={"error": f"E-posta gönderilemedi: {sent_detail}"},
+            )
         return {
             "needs_verification": True,
             "email": email_norm,
@@ -1553,7 +1560,14 @@ def _auth_register_impl(body: EmailAuthBody):
 
     code = mailer.generate_verification_code()
     user_store.set_verification_code(user["id"], code)
-    mailer.send_verification_email_async(email_norm, code, user.get("name"))
+    sent_ok, sent_detail = mailer.send_verification_email(
+        email_norm, code, user.get("name"))
+    if not sent_ok:
+        print(f"--- REGISTER POSTA HATASI: {sent_detail} ---")
+        return JSONResponse(
+            status_code=502,
+            content={"error": f"E-posta gönderilemedi: {sent_detail}"},
+        )
 
     return {
         "needs_verification": True,
@@ -1595,7 +1609,14 @@ def auth_resend_code(body: ResendCodeBody):
 
     code = mailer.generate_verification_code()
     user_store.set_verification_code(user["id"], code)
-    mailer.send_verification_email_async(user["email"], code, user.get("name"))
+    sent_ok, sent_detail = mailer.send_verification_email(
+        user["email"], code, user.get("name"))
+    if not sent_ok:
+        print(f"--- RESEND POSTA HATASI: {sent_detail} ---")
+        return JSONResponse(
+            status_code=502,
+            content={"error": f"E-posta gönderilemedi: {sent_detail}"},
+        )
 
     return {
         "ok": True,
@@ -1639,8 +1660,9 @@ def _auth_login_impl(body: EmailAuthBody):
         if can_send and mailer.is_configured():
             code = mailer.generate_verification_code()
             user_store.set_verification_code(user["id"], code)
-            mailer.send_verification_email_async(user["email"], code, user.get("name"))
-            code_sent = True
+            sent_ok, _ = mailer.send_verification_email(
+                user["email"], code, user.get("name"))
+            code_sent = bool(sent_ok)
         return JSONResponse(
             status_code=403,
             content={
