@@ -295,6 +295,23 @@ def is_user_verified(user: dict | None) -> bool:
     return bool(user.get("is_verified", False))
 
 
+def set_verified(user_id: str) -> dict | None:
+    """E-postayi dogrulanmis isaretler (mailer kapali ortamlarda kayit akisi)."""
+
+    with _lock:
+        users = _load()
+        user = users.get(user_id)
+        if user is None:
+            return None
+        user["is_verified"] = True
+        user["verification_code_hash"] = None
+        user["verification_expires_at"] = None
+        user["verification_attempts"] = 0
+        users[user_id] = user
+        _save(users)
+        return user
+
+
 
 def touch_last_login(user_id: str) -> None:
     """Giris anini kaydeder (hata durumunda sessizce gecer)."""
