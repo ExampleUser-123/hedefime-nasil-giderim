@@ -20,7 +20,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 GOOGLE_JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs"
 GOOGLE_ISSUERS = ("accounts.google.com", "https://accounts.google.com")
 
-TOKEN_TTL_SECONDS = 7 * 24 * 3600  # 7 gun
+TOKEN_TTL_SECONDS = 30 * 24 * 3600  # 30 gun ("beni hatirla" oturum surekliligi)
 
 # Google JWKS anahtarlari surekli degismedigi icin surekli cekmemek adina
 # PyJWKClient kendi icinde onbellekler (lifespan: 1 saat).
