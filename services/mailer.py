@@ -15,7 +15,8 @@ import threading
 logger = logging.getLogger("mailer")
 
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+smtp_port_env = os.getenv("SMTP_PORT")
+SMTP_PORT = int(smtp_port_env) if smtp_port_env and smtp_port_env.strip() else 587
 SMTP_USER = os.getenv("SMTP_USER", "hedefimenasilgiderim@gmail.com")
 # Google uygulama sifresi "xxxx xxxx xxxx xxxx" formatinda bosluklu verilir;
 # yapistirirken kalan bosluklar SMTP login'i patlatir, temizle.
