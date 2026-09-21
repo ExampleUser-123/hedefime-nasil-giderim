@@ -387,6 +387,12 @@ export function fetchAuthMe() {
   return request<{ user: AuthUser }>('/auth/me', undefined, 75000)
 }
 
+export function deleteAccount() {
+  return request<{ ok: boolean; message: string }>('/auth/delete-account', {
+    method: 'DELETE',
+  }, 30000)
+}
+
 // --- Uyelik katmani ve gunluk kota -------------------------------------------
 
 export type Tier = 'free' | 'lite' | 'premium'

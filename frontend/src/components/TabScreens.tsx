@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { API_BASE, fetchUsage, reverseGeocode, type AuthUser, type UsageInfo } from '@/lib/api'
+import { API_BASE, deleteAccount, fetchUsage, reverseGeocode, type AuthUser, type UsageInfo } from '@/lib/api'
 import {
   clearHistory,
   getHistory,
@@ -238,6 +238,28 @@ export function ProfileScreen({
   const [pinError, setPinError] = useState<string | null>(null)
   const [usage, setUsage] = useState<UsageInfo | null>(null)
   const [upgradeOpen, setUpgradeOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteBusy, setDeleteBusy] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deleteDone, setDeleteDone] = useState<string | null>(null)
+
+  async function handleDeleteAccount() {
+    if (deleteBusy) return
+    setDeleteBusy(true)
+    setDeleteError(null)
+    try {
+      const res = await deleteAccount()
+      await signOut()
+      setDeleteOpen(false)
+      setDeleteDone(res.message || 'Hesabınız silindi.')
+      onLogout()
+      onRequireLogin()
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Hesap silinemedi.')
+    } finally {
+      setDeleteBusy(false)
+    }
+  }
 
   useEffect(() => {
     let alive = true
@@ -450,6 +472,60 @@ export function ProfileScreen({
       <p className="mt-4 text-center text-xs text-muted">
         Hedefime Nasıl Giderim · v1.0
       </p>
+
+      {user && (
+        <button
+          type="button"
+          onClick={() => {
+            setDeleteError(null)
+            setDeleteDone(null)
+            setDeleteOpen(true)
+          }}
+          className="mt-4 w-full rounded-xl border border-red-500/40 py-2.5 text-xs font-bold text-red-300 transition-colors hover:bg-red-500/10"
+        >
+          Hesabımı Sil
+        </button>
+      )}
+      {deleteDone && (
+        <p role="status" className="mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+          {deleteDone}
+        </p>
+      )}
+
+      {deleteOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" role="dialog" aria-modal="true" aria-label="Hesap silme onayı">
+          <div className="absolute inset-0 bg-bg/70 backdrop-blur-sm" onClick={() => !deleteBusy && setDeleteOpen(false)} aria-hidden="true" />
+          <div className="relative w-full max-w-sm rounded-t-3xl border border-line bg-surface p-6 sm:rounded-3xl">
+            <h2 className="text-lg font-bold">Hesabınızı silmek istediğinize emin misiniz?</h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted">
+              Bu işlem geri alınamaz. Tüm kaydedilmiş rotalarınız, favorileriniz ve hesap verileriniz kalıcı olarak silinecektir.
+            </p>
+            {deleteError && (
+              <p role="alert" className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                {deleteError}
+              </p>
+            )}
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                disabled={deleteBusy}
+                onClick={() => setDeleteOpen(false)}
+                className="min-h-[48px] flex-1 rounded-xl border border-line font-bold text-sm disabled:opacity-50"
+              >
+                Vazgeç
+              </button>
+              <button
+                type="button"
+                disabled={deleteBusy}
+                onClick={handleDeleteAccount}
+                className="min-h-[48px] flex-1 rounded-xl bg-red-500 font-bold text-sm text-white disabled:opacity-50"
+              >
+                {deleteBusy ? 'Siliniyor…' : 'Evet, Hesabımı Sil'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </ScreenShell>
   )
 }

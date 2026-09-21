@@ -189,6 +189,16 @@ def delete_session(session_id: str) -> bool:
     return True
 
 
+def delete_user_sessions(user_id: str) -> int:
+    """Kullanicinin tum sohbet oturumlarini siler; silinen adedi doner."""
+
+    count = 0
+    for session in list_sessions(user_id=user_id):
+        if delete_session(session.get("id") or ""):
+            count += 1
+    return count
+
+
 def get_ai_history(session: dict) -> list:
     """
     Oturum mesajlarından AI'ya gönderilecek

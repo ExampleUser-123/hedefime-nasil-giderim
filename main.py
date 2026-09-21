@@ -1817,6 +1817,27 @@ class TierBody(BaseModel):
     tier: str
 
 
+@app.delete("/auth/delete-account")
+def auth_delete_account(user: dict = Depends(get_current_user)):
+    """Hesabi ve tum kullanici verilerini (favoriler, sohbetler, kota) siler."""
+    try:
+        user_id = user["id"]
+        from services import chat_store
+        chat_store.delete_user_sessions(user_id)
+        quota_store.delete_user_usage(user_id)
+        deleted = user_store.delete_user(user_id)
+        if not deleted:
+            return JSONResponse(
+                status_code=404, content={"error": "Kullanıcı bulunamadı."})
+        return {"ok": True, "message": "Hesabınız ve tüm verileriniz silindi."}
+    except Exception:
+        logger.exception("auth/delete-account beklenmeyen hata")
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Sunucuda beklenmeyen bir hata oluştu."},
+        )
+
+
 @app.post("/admin/tier")
 def admin_set_tier(body: TierBody, x_admin_key: str | None = None):
     """Uyelik katmanini elle ata (odeme altyapisi gelene kadar admin yolu)."""

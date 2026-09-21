@@ -96,3 +96,17 @@ def count(key: str, kind: str) -> None:
         u = data["usage"].setdefault(key, {})
         u[kind] = int(u.get(kind, 0)) + 1
         _save(data)
+
+
+def delete_user_usage(user_id: str) -> bool:
+    """Kullanicinin kota kayitlarini siler. Kayit vardiysa True doner."""
+
+    prefix = f"u:{user_id}"
+    with _lock:
+        data = _load()
+        keys = [k for k in data.get("usage", {}) if k == prefix or k.startswith(prefix + ":")]
+        for k in keys:
+            del data["usage"][k]
+        if keys:
+            _save(data)
+        return bool(keys)

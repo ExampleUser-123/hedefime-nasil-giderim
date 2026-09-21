@@ -357,6 +357,18 @@ def get_user(user_id: str) -> dict | None:
     return users.get(user_id)
 
 
+def delete_user(user_id: str) -> bool:
+    """Kullanici kaydini (favoriler dahil) tamamen siler. Varsa True doner."""
+
+    with _lock:
+        users = _load()
+        if user_id not in users:
+            return False
+        del users[user_id]
+        _save(users)
+        return True
+
+
 def set_tier(user_id: str, tier: str) -> dict | None:
     """Uyelik katmanini gunceller (free/lite/premium). Admin kullanimi icin."""
 
