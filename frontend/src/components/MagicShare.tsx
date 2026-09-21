@@ -7,6 +7,7 @@ import {
 import { getStoredUser } from '@/lib/auth'
 import { saveTarget } from '@/lib/game'
 import { consumePendingShare } from '@/lib/shareIntent'
+import { goToPlace } from '@/lib/navigate'
 import UpgradeSheet from '@/components/UpgradeSheet'
 
 export default function MagicShare({
@@ -19,6 +20,7 @@ export default function MagicShare({
   const [editName, setEditName] = useState('')
   const [editing, setEditing] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [going, setGoing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [quota, setQuota] = useState<{ used: number; limit: number } | null>(null)
   const [upgradeOpen, setUpgradeOpen] = useState(false)
@@ -73,6 +75,18 @@ export default function MagicShare({
       }
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function go() {
+    if (!result || going) return
+    setGoing(true)
+    setError(null)
+    try {
+      const res = await goToPlace(result.name, onOpenRoute)
+      if (!res.ok) setError(res.message)
+    } finally {
+      setGoing(false)
     }
   }
 
@@ -156,10 +170,11 @@ export default function MagicShare({
             </button>
             <button
               type="button"
-              onClick={() => onOpenRoute({ from: '', to: result.name, people: 1, mode: 'tumu' })}
-              className="rounded-lg bg-accent px-3 py-1.5 text-xs font-bold text-accent-ink"
+              onClick={() => void go()}
+              disabled={going}
+              className="rounded-lg bg-accent px-3 py-1.5 text-xs font-bold text-accent-ink disabled:opacity-50"
             >
-              Buraya Git
+              {going ? 'Konum alınıyor…' : 'Buraya Git'}
             </button>
             <button
               type="button"

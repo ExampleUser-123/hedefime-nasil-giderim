@@ -1,0 +1,1 @@
+import{n as e}from"./index-CUZdrLtj.js";var t=class extends e{async getPluginVersion(){return{version:`web`}}};export{t as CapacitorShareTargetWeb};

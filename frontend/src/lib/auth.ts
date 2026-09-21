@@ -85,20 +85,33 @@ export async function handleGoogleRedirect(): Promise<boolean> {
 /** Oturum degisikligini dinleyenler icin olay adi. */
 export const AUTH_CHANGED_EVENT = 'hng-auth-changed'
 
-/** Uygulama cizilmeden once SQLCipher oturumunu bellekte hazirlar. */
+/** Uygulama cizilmeden once SQLCipher oturumunu bellekte hazirlar.
+ *
+ * Native kopru acilista henuz hazir olmayabilir; tek denemede vazgecmek
+ * yerine birkac kez denenir. Tum denemeler basarisizsa oturum bosa cikar
+ * (depolanan veri silinmez, sonraki acilista tekrar denenir).
+ */
 export async function hydrateAuthSession(): Promise<void> {
-  try {
-    const [token, rawUser] = await Promise.all([
-      migrateLegacyNativeValue(SESSION_TOKEN_KEY),
-      migrateLegacyNativeValue(SESSION_USER_KEY),
-    ])
-    hydrateAuthToken(token)
-    if (!rawUser) return
-    const parsed = JSON.parse(rawUser) as AuthUser
-    storedUser = parsed?.id ? parsed : null
-  } catch {
-    hydrateAuthToken(null)
-    storedUser = null
+  const attempts = Capacitor.isNativePlatform() ? 3 : 1
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const [token, rawUser] = await Promise.all([
+        migrateLegacyNativeValue(SESSION_TOKEN_KEY),
+        migrateLegacyNativeValue(SESSION_USER_KEY),
+      ])
+      hydrateAuthToken(token)
+      if (!rawUser) return
+      const parsed = JSON.parse(rawUser) as AuthUser
+      storedUser = parsed?.id ? parsed : null
+      return
+    } catch {
+      if (i < attempts - 1) {
+        await new Promise((r) => setTimeout(r, 400))
+        continue
+      }
+      hydrateAuthToken(null)
+      storedUser = null
+    }
   }
 }
 

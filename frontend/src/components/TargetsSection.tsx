@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactElement } from 'react'
 import { loadTargets, removeTarget } from '@/lib/game'
+import { goToPlace } from '@/lib/navigate'
 import type { GameTarget } from '@/lib/api'
 import { getStoredUser } from '@/lib/auth'
 
@@ -10,6 +11,7 @@ export default function TargetsSection({
 }): ReactElement {
   const [targets, setTargets] = useState<GameTarget[]>([])
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [goError, setGoError] = useState<string | null>(null)
 
   async function refresh() {
     setTargets(await loadTargets())
@@ -25,6 +27,17 @@ export default function TargetsSection({
     setBusyId(null)
   }
 
+  async function go(name: string) {
+    setGoError(null)
+    setBusyId(`go-${name}`)
+    try {
+      const res = await goToPlace(name, onOpenRoute)
+      if (!res.ok) setGoError(res.message)
+    } finally {
+      setBusyId(null)
+    }
+  }
+
   if (targets.length === 0) return <></>
 
   return (
@@ -33,6 +46,9 @@ export default function TargetsSection({
       <p className="mt-0.5 text-xs text-muted">
         {getStoredUser() ? 'Hesabına kayıtlı hedefler' : 'Cihazdaki hedefler (giriş yapınca hesaba taşınır)'}
       </p>
+      {goError && (
+        <p role="alert" className="mt-2 text-[11px] text-red-300">{goError}</p>
+      )}
       <div className="mt-2 space-y-2">
         {targets.map((t) => (
           <div key={t.id} className="flex items-center gap-2 rounded-xl border border-line/60 bg-bg/40 px-3 py-2">
@@ -46,8 +62,9 @@ export default function TargetsSection({
             </div>
             <button
               type="button"
-              onClick={() => onOpenRoute({ from: '', to: t.name, people: 1, mode: 'tumu' })}
-              className="shrink-0 rounded-lg bg-accent px-2.5 py-1.5 text-xs font-bold text-accent-ink"
+              onClick={() => void go(t.name)}
+              disabled={busyId !== null}
+              className="shrink-0 rounded-lg bg-accent px-2.5 py-1.5 text-xs font-bold text-accent-ink disabled:opacity-50"
             >
               Git
             </button>
