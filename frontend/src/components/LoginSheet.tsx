@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
-import { signInWithEmail, signInWithGoogle, signUpWithEmail, confirmEmailCode, resendCode } from '@/lib/auth'
+import { signInWithEmail, signInWithGoogle, signUpWithEmail, confirmEmailCode, resendCode, requestPasswordReset, confirmPasswordReset } from '@/lib/auth'
 import { migrateLocalFavorites } from '@/lib/favorites'
 import { IconClose, IconLogo } from '@/icons'
 
-type Mode = 'google' | 'login' | 'register' | 'verify'
+type Mode = 'google' | 'login' | 'register' | 'verify' | 'forgot' | 'forgot-verify'
 
 export default function LoginSheet({
   open,
@@ -22,6 +22,7 @@ export default function LoginSheet({
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
+  const [newPassword, setNewPassword] = useState('')
   const [countdown, setCountdown] = useState(0)
 
   useEffect(() => {
@@ -152,6 +153,61 @@ export default function LoginSheet({
     }
   }
 
+  async function handleForgotSubmit(e?: React.SyntheticEvent) {
+    if (e) e.preventDefault()
+    if (busy) return
+
+    setError(null)
+    setInfoMessage(null)
+
+    const emailTrim = email.trim()
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(emailTrim)) {
+      setError('Geçerli bir e-posta adresi gir.')
+      return
+    }
+
+    setBusy(true)
+
+    try {
+      const msg = await requestPasswordReset(emailTrim)
+      setMode('forgot-verify')
+      setCountdown(60)
+      setInfoMessage(msg)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Kod gönderilemedi.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function handleResetSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (busy) return
+
+    const codeTrim = code.trim()
+    if (codeTrim.length < 6) {
+      setError('Lütfen 6 haneli doğrulama kodunu eksiksiz girin.')
+      return
+    }
+    if (newPassword.length < 8) {
+      setError('Yeni şifre en az 8 karakter olmalı.')
+      return
+    }
+
+    setError(null)
+    setInfoMessage(null)
+    setBusy(true)
+
+    try {
+      await confirmPasswordReset(email.trim(), codeTrim, newPassword)
+      await finish()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Şifre güncellenemedi.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   function switchMode(next: Mode) {
     setMode(next)
     setError(null)
@@ -226,6 +282,113 @@ export default function LoginSheet({
                 <button
                   type="button"
                   onClick={handleResendCode}
+                  disabled={busy || countdown > 0}
+                  className="text-xs font-semibold text-accent hover:underline disabled:text-muted disabled:no-underline"
+                >
+                  {countdown > 0 ? `Tekrar Gönder (${countdown}s)` : 'Tekrar Kod Gönder'}
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : mode === 'forgot' ? (
+          <div className="mt-4">
+            <h2 className="text-lg font-bold">Şifreni sıfırla</h2>
+            <p className="mt-1 text-sm leading-relaxed text-muted">
+              Kayıtlı e-posta adresini yaz, 6 haneli sıfırlama kodunu gönderelim:
+            </p>
+
+            <form onSubmit={handleForgotSubmit} className="mt-4 space-y-3">
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold text-muted">E-posta</span>
+                <input
+                  type="email"
+                  required
+                  autoFocus
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                  inputMode="email"
+                  placeholder="ornek@mail.com"
+                  className="min-h-[46px] w-full rounded-xl border border-line bg-bg px-3 text-sm outline-none transition-colors focus:border-accent"
+                />
+              </label>
+
+              <button
+                type="submit"
+                disabled={busy}
+                className="flex min-h-[48px] w-full items-center justify-center rounded-xl bg-accent font-bold text-accent-ink transition-transform hover:scale-[1.01] disabled:opacity-50"
+              >
+                {busy ? 'Gönderiliyor…' : 'Kod Gönder'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => switchMode('login')}
+                className="w-full pt-1 text-center text-xs text-muted hover:text-fg"
+              >
+                ← Girişe dön
+              </button>
+            </form>
+          </div>
+        ) : mode === 'forgot-verify' ? (
+          <div className="mt-4">
+            <h2 className="text-lg font-bold">Yeni şifreni belirle</h2>
+            <p className="mt-1 text-sm leading-relaxed text-muted">
+              <strong className="text-fg">{email}</strong> adresine gelen 6 haneli kodu ve yeni şifreni gir:
+            </p>
+
+            <form onSubmit={handleResetSubmit} className="mt-4 space-y-3">
+              <div>
+                <label className="mb-1 block text-center text-xs font-bold tracking-wider text-muted">
+                  6 HANELİ KOD
+                </label>
+                <input
+                  type="text"
+                  required
+                  autoFocus
+                  maxLength={6}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                  placeholder="000000"
+                  className="min-h-[52px] w-full rounded-xl border border-accent/40 bg-bg text-center text-2xl font-black tracking-[8px] text-accent outline-none transition-colors focus:border-accent focus:ring-2 focus:ring-accent/20"
+                />
+              </div>
+
+              <label className="block">
+                <span className="mb-1 block text-xs font-bold text-muted">Yeni şifre</span>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  autoComplete="new-password"
+                  placeholder="En az 8 karakter"
+                  className="min-h-[46px] w-full rounded-xl border border-line bg-bg px-3 text-sm outline-none transition-colors focus:border-accent"
+                />
+              </label>
+
+              <button
+                type="submit"
+                disabled={busy || code.length < 6 || newPassword.length < 8}
+                className="flex min-h-[48px] w-full items-center justify-center rounded-xl bg-accent font-bold text-accent-ink transition-transform hover:scale-[1.01] disabled:opacity-50"
+              >
+                {busy ? 'Güncelleniyor…' : 'Şifreyi Güncelle'}
+              </button>
+
+              <div className="flex items-center justify-between pt-1">
+                <button
+                  type="button"
+                  onClick={() => switchMode('login')}
+                  className="text-xs text-muted hover:text-fg"
+                >
+                  ← Girişe dön
+                </button>
+                <button
+                  type="button"
+                  onClick={handleForgotSubmit}
                   disabled={busy || countdown > 0}
                   className="text-xs font-semibold text-accent hover:underline disabled:text-muted disabled:no-underline"
                 >
@@ -346,6 +509,16 @@ export default function LoginSheet({
                 >
                   {busy ? 'İşleniyor…' : mode === 'register' ? 'Hesap oluştur' : 'Giriş yap'}
                 </button>
+
+                {mode === 'login' && (
+                  <button
+                    type="button"
+                    onClick={() => switchMode('forgot')}
+                    className="w-full pt-1 text-center text-xs font-semibold text-accent hover:underline"
+                  >
+                    Şifremi Unuttum?
+                  </button>
+                )}
               </form>
             )}
           </>

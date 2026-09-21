@@ -1624,6 +1624,103 @@ def auth_resend_code(body: ResendCodeBody):
     }
 
 
+class ForgotPasswordBody(BaseModel):
+    email: str
+
+
+class ResetPasswordBody(BaseModel):
+    email: str
+    code: str
+    new_password: str
+
+
+@app.post("/auth/forgot-password")
+def auth_forgot_password(body: ForgotPasswordBody):
+    """Sifre sifirlama kodunu e-postaya gonderir (hesap varsa)."""
+    try:
+        email_norm = (body.email or "").strip().lower()
+        if not email_norm:
+            return JSONResponse(status_code=400, content={"error": "E-posta adresi gir."})
+
+        generic_ok = {"ok": True, "message": "Kayıtlıysa e-posta adresinize kod gönderildi."}
+
+        user = user_store.find_user_by_email(email_norm)
+        # Sifresiz (Google) hesaplarda sifirlama anlamsiz; hesap sayimini
+        # engellemek icin ayni genel yanit doner, kod uretilmez.
+        if user is None or not user.get("password_hash"):
+            return generic_ok
+
+        if not mailer.is_configured():
+            return JSONResponse(
+                status_code=503,
+                content={"error": "E-posta doğrulama servisi şu anda yapılandırılmamış."},
+            )
+
+        # 60 sn gonderim limiti (dogrulanmis hesaplarda da gecerli)
+        last = user.get("last_code_sent_at")
+        if last:
+            try:
+                diff = (datetime.now() - datetime.fromisoformat(last)).total_seconds()
+                if diff < 60:
+                    return JSONResponse(
+                        status_code=429,
+                        content={"error": f"Yeni kod için {int(60 - diff)} sn bekleyin."},
+                    )
+            except Exception:
+                pass
+
+        code = mailer.generate_verification_code()
+        user_store.set_verification_code(user["id"], code)
+        sent_ok, sent_detail = mailer.send_verification_email(
+            user["email"], code, user.get("name"))
+        if not sent_ok:
+            print(f"--- FORGOT POSTA HATASI: {sent_detail} ---")
+            return JSONResponse(
+                status_code=502,
+                content={"error": f"E-posta gönderilemedi: {sent_detail}"},
+            )
+        return generic_ok
+    except Exception:
+        logger.exception("auth/forgot-password beklenmeyen hata")
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Sunucuda beklenmeyen bir hata oluştu."},
+        )
+
+
+@app.post("/auth/reset-password")
+def auth_reset_password(body: ResetPasswordBody):
+    """OTP dogruysa sifreyi gunceller ve oturum acar."""
+    try:
+        error = validate_email_password(body.email, body.new_password)
+        if error:
+            return JSONResponse(status_code=400, content={"error": error})
+
+        ok, message, user = user_store.verify_user_code(
+            body.email, body.code, ignore_verified=True)
+        if not ok or user is None:
+            return JSONResponse(status_code=400, content={"error": message})
+
+        salt = new_salt()
+        updated = user_store.set_password(
+            user["id"], hash_password(body.new_password, salt), salt)
+        if updated is None:
+            return JSONResponse(
+                status_code=400, content={"error": "Kullanıcı bulunamadı."})
+        user_store.touch_last_login(user["id"])
+        return {
+            "token": issue_app_token(updated),
+            "user": user_store.public_user(updated),
+            "message": "Şifreniz güncellendi, giriş yapıldı.",
+        }
+    except Exception:
+        logger.exception("auth/reset-password beklenmeyen hata")
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Sunucuda beklenmeyen bir hata oluştu."},
+        )
+
+
 @app.post("/auth/login")
 def auth_login(body: EmailAuthBody):
     """E-posta + şifre ile giriş."""

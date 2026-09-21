@@ -207,8 +207,12 @@ def set_verification_code(user_id: str, code: str) -> None:
             _save(users)
 
 
-def verify_user_code(email: str, code: str) -> tuple[bool, str, dict | None]:
-    """Kullanicinin girdigi dogrulama kodunu denetler."""
+def verify_user_code(email: str, code: str, ignore_verified: bool = False) -> tuple[bool, str, dict | None]:
+    """Kullanicinin girdigi dogrulama kodunu denetler.
+
+    ignore_verified: sifre sifirlama gibi akislar icin (kullanici zaten
+    dogrulanmis olabilir); kod kontrolu yine de zorunludur.
+    """
     email_norm = (email or "").strip().lower()
     code_norm = (code or "").strip()
     now_iso = datetime.now().isoformat(timespec="seconds")
@@ -224,7 +228,7 @@ def verify_user_code(email: str, code: str) -> tuple[bool, str, dict | None]:
         if not user:
             return False, "Kayıtlı kullanıcı bulunamadı.", None
 
-        if user.get("is_verified"):
+        if user.get("is_verified") and not ignore_verified:
             # Guvenlik: dogrulanmis hesaba kod kontrolsuz token uretilmesin.
             # (Aksi halde e-postayi bilen herkes sifresiz oturum acabilirdi.)
             return False, "E-posta adresi zaten doğrulanmış. Lütfen giriş yapın.", None
@@ -312,6 +316,21 @@ def set_verified(user_id: str) -> dict | None:
         user["verification_code_hash"] = None
         user["verification_expires_at"] = None
         user["verification_attempts"] = 0
+        users[user_id] = user
+        _save(users)
+        return user
+
+
+def set_password(user_id: str, password_hash: str, salt: str) -> dict | None:
+    """Sifreyi hash'li sekilde gunceller (sifre sifirlama akisi)."""
+
+    with _lock:
+        users = _load()
+        user = users.get(user_id)
+        if user is None:
+            return None
+        user["password_hash"] = password_hash
+        user["salt"] = salt
         users[user_id] = user
         _save(users)
         return user

@@ -359,6 +359,22 @@ export function resendVerificationCode(email: string) {
   }, 75000)
 }
 
+export function forgotPassword(email: string) {
+  return request<{ ok: boolean; message: string }>('/auth/forgot-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  }, 75000)
+}
+
+export function resetPassword(email: string, code: string, newPassword: string) {
+  return request<{ token: string; user: AuthUser; message: string }>('/auth/reset-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, code, new_password: newPassword }),
+  }, 75000)
+}
+
 export function loginWithEmail(email: string, password: string) {
   return request<{ token: string; user: AuthUser; needs_verification?: boolean; email?: string }>('/auth/login', {
     method: 'POST',

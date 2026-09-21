@@ -2,8 +2,10 @@ import { Capacitor } from '@capacitor/core'
 import { GoogleSignIn } from '@capawesome/capacitor-google-sign-in'
 import {
   authWithGoogle,
+  forgotPassword,
   loginWithEmail,
   registerWithEmail,
+  resetPassword,
   verifyEmail,
   resendVerificationCode,
   setAuthToken,
@@ -180,6 +182,24 @@ export async function confirmEmailCode(email: string, code: string): Promise<Aut
 export async function resendCode(email: string): Promise<string> {
   const res = await resendVerificationCode(email.trim())
   return res.message || 'Yeni doğrulama kodu gönderildi.'
+}
+
+export async function requestPasswordReset(email: string): Promise<string> {
+  const res = await forgotPassword(email.trim())
+  return res.message || 'Kayıtlıysa e-posta adresinize kod gönderildi.'
+}
+
+export async function confirmPasswordReset(
+  email: string,
+  code: string,
+  newPassword: string,
+): Promise<AuthUser> {
+  const { token, user } = await resetPassword(email.trim(), code.trim(), newPassword)
+
+  setAuthToken(token)
+  storeUser(user)
+
+  return user
 }
 
 export async function signOut(): Promise<void> {
