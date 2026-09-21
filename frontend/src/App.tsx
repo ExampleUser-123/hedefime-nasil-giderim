@@ -10,6 +10,9 @@ import LoginSheet from '@/components/LoginSheet'
 import MapView from '@/components/MapView'
 import BottomNav, { type Tab } from '@/components/BottomNav'
 import NearbyStops from '@/components/NearbyStops'
+import VibeCard from '@/components/VibeCard'
+import MagicShare from '@/components/MagicShare'
+import TargetsSection from '@/components/TargetsSection'
 import {
   HistoryScreen,
   NotificationsScreen,
@@ -21,6 +24,7 @@ import type { AuthUser, PlanResult, RouteIntent } from '@/lib/api'
 import { fetchShareRoute } from '@/lib/api'
 import { AUTH_CHANGED_EVENT, getStoredUser, refreshAuthState, signOut } from '@/lib/auth'
 import { rescheduleAll } from '@/lib/reminders'
+import { initShareListener } from '@/lib/shareIntent'
 
 function defaultVehicleName(): string | null {
   try {
@@ -62,6 +66,11 @@ export default function App() {
   // Gecmis sefer hatirlaticlarini temizle, gelecektekileri yeniden planla
   useEffect(() => {
     rescheduleAll().catch(() => {})
+  }, [])
+
+  // Native paylasim: baska uygulamadan gelen metni karsila (Magic Share)
+  useEffect(() => {
+    initShareListener()
   }, [])
 
   // Paylasilan rota linki: ?share=ID ile acilirsa rotayi otomatik doldur
@@ -217,12 +226,19 @@ export default function App() {
                   onRequireLogin={openLogin}
                 />
               </div>
+              <VibeCard plan={plan} city={weatherCity} />
+              <MagicShare onOpenRoute={openRoute} />
             </motion.section>
           </>
         )}
 
         {tab === 'stops' && <NearbyStops />}
-        {tab === 'saved' && <SavedScreen onOpenRoute={openRoute} />}
+        {tab === 'saved' && (
+          <>
+            <TargetsSection onOpenRoute={openRoute} />
+            <SavedScreen onOpenRoute={openRoute} />
+          </>
+        )}
         {tab === 'history' && <HistoryScreen onOpenRoute={openRoute} />}
         {tab === 'alerts' && <NotificationsScreen />}
         {tab === 'profile' && (

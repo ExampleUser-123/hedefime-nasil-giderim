@@ -496,6 +496,90 @@ def remove_favorite(user_id: str, favorite_id: str) -> list | None:
     return new_favorites
 
 
+MAX_TARGETS = 50
+
+
+def get_game(user_id: str) -> dict:
+    """Oyun durumu: {xp, badges[], cities[], targets[], counters{}}."""
+
+    with _lock:
+        users = _load()
+        user = users.get(user_id)
+        game = (user or {}).get("game") or {}
+        return {
+            "xp": int(game.get("xp", 0) or 0),
+            "badges": list(game.get("badges", []) or []),
+            "cities": list(game.get("cities", []) or []),
+            "targets": list(game.get("targets", []) or []),
+            "counters": dict(game.get("counters", {}) or {}),
+        }
+
+
+def save_game(user_id: str, game: dict) -> dict | None:
+    """Oyun durumunu yazar; guncel durumu doner."""
+
+    with _lock:
+        users = _load()
+        user = users.get(user_id)
+        if user is None:
+            return None
+        user["game"] = {
+            "xp": int(game.get("xp", 0) or 0),
+            "badges": list(game.get("badges", []) or []),
+            "cities": list(game.get("cities", []) or []),
+            "targets": list(game.get("targets", []) or []),
+            "counters": dict(game.get("counters", {}) or {}),
+        }
+        _save(users)
+        return dict(user["game"])
+
+
+def add_target(user_id: str, item: dict) -> list | None:
+    """Hedef ekler; guncel hedef listesini doner."""
+
+    now = datetime.now().isoformat(timespec="seconds")
+
+    with _lock:
+        users = _load()
+        user = users.get(user_id)
+        if user is None:
+            return None
+        game = user.setdefault("game", {})
+        targets = game.setdefault("targets", [])
+        entry = {
+            "id": uuid.uuid4().hex[:12],
+            "name": (item.get("name") or "").strip()[:80],
+            "address": (item.get("address") or "").strip()[:160],
+            "city": (item.get("city") or "").strip()[:60],
+            "lat": item.get("lat"),
+            "lon": item.get("lon"),
+            "created_at": now,
+        }
+        if len(targets) >= MAX_TARGETS:
+            return None
+        targets.append(entry)
+        _save(users)
+
+    return list(targets)
+
+
+def remove_target(user_id: str, target_id: str) -> list | None:
+    """Hedef siler; guncel hedef listesini doner."""
+
+    with _lock:
+        users = _load()
+        user = users.get(user_id)
+        if user is None:
+            return None
+        game = user.setdefault("game", {})
+        targets = game.get("targets", [])
+        remaining = [t for t in targets if t.get("id") != target_id]
+        game["targets"] = remaining
+        _save(users)
+
+    return list(remaining)
+
+
 def admin_user_overview() -> list:
     """Kotuye kullanim incelemesi icin ozet: kullanicilar + sohbet istatistikleri."""
 

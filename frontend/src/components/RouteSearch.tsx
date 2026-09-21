@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { fetchPlan, reverseGeocode, type Mode, type PlanResult, type Vehicle } from '@/lib/api'
+import { extractCity } from '@/lib/cities'
+import { award } from '@/lib/game'
 import { getCurrentLocation } from '@/lib/geolocation'
 import { addHistory, getFrequentRoutes, getRouteShortcuts, getWalkTolerance, saveLastCoords, setWalkTolerance, type FrequentRoute, type SavedRoute } from '@/lib/storage'
 import { maybeShowInterstitial } from '@/lib/ads'
@@ -120,6 +122,15 @@ export default function RouteSearch({
       )
       onPlanChange(nextPlan)
       addHistory({ from: start, to: end, people, mode })
+      // Gamification: basarili rota sonrasi sessiz XP (girissizse yok sayilir)
+      award('route_created', { city: extractCity(start) }).catch(() => {})
+      if (['otobus', 'metro', 'tramvay', 'deniz', 'tren'].includes(mode)) {
+        award('transit_used', { city: extractCity(start) }).catch(() => {})
+      } else if (mode === 'arac' || mode === 'motosiklet') {
+        award('car_used', { city: extractCity(start) }).catch(() => {})
+      } else if (mode === 'yuruyus') {
+        award('walk_used', { city: extractCity(start) }).catch(() => {})
+      }
       setShortcuts(getRouteShortcuts())
       setFrequent(getFrequentRoutes())
       // Araya giren reklam rota ekrani hazirlanirken arkada yuklenir

@@ -17,6 +17,7 @@ import { signOut } from '@/lib/auth'
 import { getCurrentLocation } from '@/lib/geolocation'
 import UpgradeSheet from '@/components/UpgradeSheet'
 import OfflineCitiesCard from '@/components/OfflineCitiesCard'
+import GameSection from '@/components/GameSection'
 import { IconBell, IconClock, IconStar, IconUser } from '@/icons'
 
 const MODE_LABELS: Record<string, string> = {
@@ -431,6 +432,8 @@ export function ProfileScreen({
       </div>
 
       {upgradeOpen && <UpgradeSheet onClose={() => setUpgradeOpen(false)} />}
+
+      <GameSection />
 
       <div className="mt-3 rounded-2xl border border-line bg-surface-2/90 p-4">
         <p className="text-xs uppercase tracking-wide text-muted">Sabit konumlar</p>

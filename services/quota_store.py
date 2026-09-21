@@ -30,9 +30,9 @@ QUOTA_FILE = DATA_DIR / "quotas.json"
 
 # Katman limitleri (None = sinirsiz)
 TIERS: dict[str, dict] = {
-    "free": {"routes": 7, "ai": 7},
-    "lite": {"routes": 20, "ai": 30},
-    "premium": {"routes": None, "ai": None},
+    "free": {"routes": 7, "ai": 7, "magic": 2},
+    "lite": {"routes": 20, "ai": 30, "magic": 10},
+    "premium": {"routes": None, "ai": None, "magic": None},
 }
 
 _lock = threading.Lock()
@@ -74,7 +74,11 @@ def get_usage(key: str) -> dict:
     with _lock:
         data = _load()
         u = data["usage"].get(key) or {}
-        return {"routes": int(u.get("routes", 0)), "ai": int(u.get("ai", 0))}
+        return {
+            "routes": int(u.get("routes", 0)),
+            "ai": int(u.get("ai", 0)),
+            "magic": int(u.get("magic", 0)),
+        }
 
 
 def limits_for(tier: str) -> dict:

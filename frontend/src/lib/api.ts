@@ -403,10 +403,121 @@ export type UsageInfo = {
   routes_limit: number // -1 = sinirsiz
   ai_used: number
   ai_limit: number // -1 = sinirsiz
+  magic_used?: number
+  magic_limit?: number // -1 = sinirsiz
 }
 
 export function fetchUsage(): Promise<UsageInfo> {
   return request<UsageInfo>('/usage', undefined, 30000)
+}
+
+// --- Magic Share + Vibe + Gamification ---------------------------------------
+
+export type MagicResult = {
+  name: string
+  address: string
+  city: string
+  lat: number
+  lon: number
+  confidence: 'high' | 'medium'
+  needs_review: boolean
+  usage?: { used: number; limit: number }
+}
+
+export function resolveMagicShare(text: string): Promise<MagicResult> {
+  return request<MagicResult>('/magic-share', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  }, 30000)
+}
+
+export function fetchMagicUsage(): Promise<{ tier: Tier; used: number; limit: number }> {
+  return request('/magic-share/usage', undefined, 15000)
+}
+
+export type VibeMood = 'sakin' | 'ekonomik' | 'manzarali' | 'kahve'
+
+export type VibeResponse = {
+  mood: VibeMood
+  order: string[]
+  notes: string[]
+  highlights: Record<string, string>
+  pois: { name: string; detail: string; lat: number; lon: number }[]
+  transit_routes: unknown[]
+  car: unknown
+}
+
+export function fetchVibeRoutes(args: {
+  start_lat: number; start_lon: number; end_lat: number; end_lon: number
+  city?: string; people?: number; vehicle?: string; mood: VibeMood
+}): Promise<VibeResponse> {
+  return request<VibeResponse>('/vibe-routes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(args),
+  }, 45000)
+}
+
+export type GameProfile = {
+  xp: number
+  level: number
+  progress: number
+  badges: { id: string; name: string; icon: string; desc: string }[]
+  badge_ids: string[]
+  cities: string[]
+  targets_count: number
+  xp_gain?: number
+  new_badges?: { id: string; name: string; icon: string; desc: string }[]
+}
+
+export function fetchGameProfile(): Promise<GameProfile> {
+  return request('/gamification/profile', undefined, 15000)
+}
+
+export function fetchGameBadges(): Promise<{
+  badges: ({ id: string; name: string; icon: string; desc: string; owned: boolean })[]
+}> {
+  return request('/gamification/badges', undefined, 15000)
+}
+
+export function postGameEvent(type: string, meta: Record<string, unknown> = {}): Promise<GameProfile | null> {
+  return request<GameProfile>('/gamification/event', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ type, meta }),
+  }, 15000).catch(() => null)
+}
+
+export type GameTarget = {
+  id: string
+  name: string
+  address: string
+  city: string
+  lat: number | null
+  lon: number | null
+  created_at: string
+}
+
+export function fetchTargets(): Promise<GameTarget[]> {
+  return request<{ targets: GameTarget[] }>('/targets', undefined, 15000)
+    .then((d) => d.targets ?? [])
+    .catch(() => [])
+}
+
+export function addTarget(t: {
+  name: string; lat?: number | null; lon?: number | null; address?: string; city?: string
+}): Promise<{ targets: GameTarget[]; profile: GameProfile } | null> {
+  return request<{ targets: GameTarget[]; profile: GameProfile }>('/targets', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(t),
+  }, 15000).catch(() => null)
+}
+
+export function deleteTarget(id: string): Promise<{ targets: GameTarget[] } | null> {
+  return request<{ targets: GameTarget[] }>(`/targets/${encodeURIComponent(id)}`, { method: 'DELETE' }, 15000)
+    .catch(() => null)
 }
 
 // --- Kullanici veri-duzeltme bildirimi --------------------------------------

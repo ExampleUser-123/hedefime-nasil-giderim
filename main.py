@@ -212,7 +212,11 @@ def _quota_guard(request: Request, user: dict | None, kind: str) -> dict:
     ok, used, limit = quota_store.check(key, tier, kind)
 
     if not ok:
-        kind_tr = "rota arama" if kind == "routes" else "AI mesajı"
+        kind_tr = (
+            "rota arama" if kind == "routes"
+            else "AI mesajı" if kind == "ai"
+            else "Magic Share"
+        )
         raise HTTPException(
             status_code=429,
             detail=(
@@ -1809,7 +1813,228 @@ def usage(request: Request, user: dict | None = Depends(_optional_user)):
         "routes_limit": limits["routes"] if limits["routes"] is not None else -1,
         "ai_used": u["ai"],
         "ai_limit": limits["ai"] if limits["ai"] is not None else -1,
+        "magic_used": u["magic"],
+        "magic_limit": limits["magic"] if limits["magic"] is not None else -1,
     }
+
+
+class MagicShareBody(BaseModel):
+    text: str
+
+
+class VibeRoutesBody(BaseModel):
+    start_lat: float
+    start_lon: float
+    end_lat: float
+    end_lon: float
+    city: str = ""
+    people: int = 1
+    vehicle: str = "toyota_corolla"
+    mood: str = "sakin"
+
+
+class GameEventBody(BaseModel):
+    type: str
+    meta: dict = Field(default_factory=dict)
+
+
+class TargetBody(BaseModel):
+    name: str
+    lat: float | None = None
+    lon: float | None = None
+    address: str = ""
+    city: str = ""
+
+
+def _upgrade_required(message: str) -> JSONResponse:
+    return JSONResponse(status_code=403, content={
+        "error": message,
+        "upgrade_required": True,
+    })
+
+
+@app.post("/magic-share")
+def magic_share(body: MagicShareBody, request: Request,
+                user: dict = Depends(get_current_user)):
+    """Paylasilmis link/metni konum adayina cozer (gunluk kotali)."""
+    from services import magic_share as ms
+
+    guard = _quota_guard(request, user, "magic")
+    result = ms.resolve_shared_text(body.text or "")
+    if "error" in result:
+        return JSONResponse(status_code=400, content=result)
+    _quota_count(guard, "magic")
+    tier = user_store.get_tier(user)
+    key = quota_store.identity_key(user, request.client.host if request.client else "")
+    u = quota_store.get_usage(key)
+    limits = quota_store.limits_for(tier)
+    result["usage"] = {
+        "used": u["magic"],
+        "limit": limits["magic"] if limits["magic"] is not None else -1,
+    }
+    return result
+
+
+@app.get("/magic-share/usage")
+def magic_share_usage(request: Request, user: dict = Depends(get_current_user)):
+    """Magic Share gunluk kullanim durumu."""
+    tier = user_store.get_tier(user)
+    key = quota_store.identity_key(user, request.client.host if request.client else "")
+    u = quota_store.get_usage(key)
+    limits = quota_store.limits_for(tier)
+    return {
+        "tier": tier,
+        "used": u["magic"],
+        "limit": limits["magic"] if limits["magic"] is not None else -1,
+    }
+
+
+@app.post("/vibe-routes")
+def vibe_routes(body: VibeRoutesBody, request: Request,
+                user: dict | None = Depends(_optional_user)):
+    """Moda gore rota onerisi (koordinat tabanli, cizelge kopyasi yok)."""
+    from services import vibe_routing as vibe
+    from services.routing import calculate_route
+    from services.vehicles import get_vehicle
+    from services.fuel import calculate_fuel_cost
+    from services.public_transport import find_transit_routes
+    from services.location import find_province
+
+    mood = (body.mood or "").strip().lower()
+    if mood not in vibe.MOODS:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Geçersiz mod. Sakin, ekonomik, manzaralı veya kahve seçin."},
+        )
+    tier = user_store.get_tier(user)
+    if not vibe.mood_allowed(mood, tier):
+        return _upgrade_required(
+            "Bu mod Lite ve Premium üyelikte açık. "
+            "Bu özelliği sınırsız kullanmak için Lite veya Premium'a geç."
+        )
+
+    people = max(1, min(8, int(body.people or 1)))
+    city = (body.city or "").strip()
+    province = find_province(city) if city else None
+
+    transit_result: dict = {"status": "no_route", "routes": []}
+    try:
+        transit_result = find_transit_routes(
+            body.start_lat, body.start_lon, body.end_lat, body.end_lon,
+            province, province,
+        ) or transit_result
+    except Exception:
+        logger.warning("vibe transit hesaplanamadi", exc_info=True)
+
+    car_result: dict | None = None
+    try:
+        route = calculate_route(
+            body.start_lat, body.start_lon, body.end_lat, body.end_lon)
+        vehicle = get_vehicle(body.vehicle) or get_vehicle("toyota_corolla")
+        fuel = None
+        if route and vehicle:
+            fuel = calculate_fuel_cost(
+                distance_km=route.get("distance_km", 0),
+                fuel_type=vehicle.get("fuel_type", "Benzin"),
+                fuel_consumption=vehicle.get("consumption", 7.0),
+                people=people)
+        car_result = {
+            "duration_minutes": (route or {}).get("duration_minutes"),
+            "distance_km": (route or {}).get("distance_km"),
+            "total_cost": (fuel or {}).get("total_cost"),
+            "cost_per_person": (fuel or {}).get("cost_per_person"),
+            "vehicle": (vehicle or {}).get("name") if isinstance(vehicle, dict) else vehicle,
+        }
+    except Exception:
+        logger.warning("vibe arac hesaplanamadi", exc_info=True)
+
+    plan = {"car": car_result, "public_transport": transit_result}
+    ranked = vibe.rank_for_mood(plan, mood)
+
+    pois: list[dict] = []
+    if mood in ("kahve", "manzarali"):
+        mid_lat = (body.start_lat + body.end_lat) / 2
+        mid_lon = (body.start_lon + body.end_lon) / 2
+        pois = vibe.suggest_pois(mid_lat, mid_lon, city, mood)
+
+    transit_routes = (transit_result.get("routes") or [])[:3]
+    return {
+        "mood": mood,
+        "order": ranked["order"],
+        "notes": ranked["notes"],
+        "highlights": ranked["highlights"],
+        "pois": pois,
+        "transit_routes": transit_routes,
+        "car": car_result,
+    }
+
+
+@app.get("/gamification/profile")
+def game_profile(user: dict = Depends(get_current_user)):
+    """XP, seviye, rozetler (tum planlarda acik)."""
+    from services import gamification
+    return gamification.profile(user["id"])
+
+
+@app.get("/gamification/badges")
+def game_badges(user: dict = Depends(get_current_user)):
+    """Tum rozetler + kazanilanlar."""
+    from services import gamification
+    from services.gamification import BADGES
+    owned = set(gamification.profile(user["id"]).get("badge_ids", []))
+    return {
+        "badges": [
+            {"id": bid, **info, "owned": bid in owned}
+            for bid, info in BADGES.items()
+        ],
+    }
+
+
+@app.post("/gamification/event")
+def game_event(body: GameEventBody, user: dict = Depends(get_current_user)):
+    """Oyun olayi isle (XP + rozet). Tur beyaz listeyle sinirli."""
+    from services import gamification
+    try:
+        return gamification.award(user["id"], (body.type or "").strip(), body.meta or {})
+    except ValueError as exc:
+        return JSONResponse(status_code=400, content={"error": str(exc)})
+    except Exception:
+        logger.exception("gamification/event beklenmeyen hata")
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Sunucuda beklenmeyen bir hata oluştu."},
+        )
+
+
+@app.get("/targets")
+def list_targets(user: dict = Depends(get_current_user)):
+    """Hedeflerim listesi."""
+    return {"targets": user_store.get_game(user["id"]).get("targets", [])}
+
+
+@app.post("/targets")
+def add_target(body: TargetBody, user: dict = Depends(get_current_user)):
+    """Hedef ekle (+10 XP + Kasif sayaci)."""
+    from services import gamification
+    targets = user_store.add_target(user["id"], {
+        "name": body.name, "lat": body.lat, "lon": body.lon,
+        "address": body.address, "city": body.city,
+    })
+    if targets is None:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Hedef eklenemedi (liste dolu olabilir)."})
+    profile = gamification.award(user["id"], "target_added")
+    return {"targets": targets, "profile": profile}
+
+
+@app.delete("/targets/{target_id}")
+def delete_target(target_id: str, user: dict = Depends(get_current_user)):
+    """Hedef sil."""
+    targets = user_store.remove_target(user["id"], target_id)
+    if targets is None:
+        return JSONResponse(status_code=404, content={"error": "Hedef bulunamadı."})
+    return {"targets": targets}
 
 
 class TierBody(BaseModel):
