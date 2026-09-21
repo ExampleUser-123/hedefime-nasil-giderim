@@ -335,11 +335,11 @@ export type RegisterResponse = {
   email?: string
 }
 
-export function registerWithEmail(email: string, password: string, name: string) {
+export function registerWithEmail(email: string, password: string, name: string, inviteCode?: string) {
   return request<RegisterResponse>('/auth/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, name }),
+    body: JSON.stringify({ email, password, name, invite_code: inviteCode ?? '' }),
   }, 75000)
 }
 
@@ -518,6 +518,76 @@ export function addTarget(t: {
 export function deleteTarget(id: string): Promise<{ targets: GameTarget[] } | null> {
   return request<{ targets: GameTarget[] }>(`/targets/${encodeURIComponent(id)}`, { method: 'DELETE' }, 15000)
     .catch(() => null)
+}
+
+// --- Marketplace + Davet + XP Store ------------------------------------------
+
+export type CommunityRoute = {
+  id: string
+  user_id: string
+  user_name: string
+  title: string
+  description: string
+  from: string
+  to: string
+  mode: string
+  people: number
+  place: { name: string; address: string; city: string; lat: number | null; lon: number | null }
+  image_urls: string[]
+  created: number
+}
+
+export function fetchMarketplace(limit = 20, offset = 0): Promise<CommunityRoute[]> {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) })
+  return request<{ routes: CommunityRoute[] }>(`/marketplace?${params}`, undefined, 15000)
+    .then((d) => d.routes ?? [])
+    .catch(() => [])
+}
+
+export function publishMarketplace(item: {
+  title: string; description?: string; from?: string; to?: string; mode?: string
+  people?: number; place?: { name?: string; address?: string; city?: string; lat?: number | null; lon?: number | null }
+  image_urls?: string[]
+}): Promise<{ route: CommunityRoute; profile: GameProfile } | null> {
+  return request<{ route: CommunityRoute; profile: GameProfile }>('/marketplace', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(item),
+  }, 20000).catch(() => null)
+}
+
+export function deleteMarketplace(id: string): Promise<boolean> {
+  return request<{ ok: boolean }>(`/marketplace/${encodeURIComponent(id)}`, { method: 'DELETE' }, 15000)
+    .then((d) => !!d.ok)
+    .catch(() => false)
+}
+
+export function fetchInviteCode(): Promise<{ code: string | null }> {
+  return request<{ code: string | null }>('/invite/code', undefined, 15000).catch(() => ({ code: null }))
+}
+
+export type XpStoreItem = {
+  id: string
+  name: string
+  desc: string
+  cost: number
+  owned: boolean
+}
+
+export function fetchXpStore(): Promise<{ xp: number; items: XpStoreItem[] }> {
+  return request<{ xp: number; items: XpStoreItem[] }>('/xp-store/items', undefined, 15000).catch(() => ({ xp: 0, items: [] }))
+}
+
+export function redeemXpStore(item: string): Promise<{
+  ok: boolean; effect: string; profile: GameProfile; perks: Record<string, unknown>
+} | null> {
+  return request<{
+    ok: boolean; effect: string; profile: GameProfile; perks: Record<string, unknown>
+  }>('/xp-store/redeem', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ item }),
+  }, 20000).catch(() => null)
 }
 
 // --- Kullanici veri-duzeltme bildirimi --------------------------------------

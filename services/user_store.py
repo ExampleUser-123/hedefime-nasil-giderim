@@ -357,6 +357,31 @@ def get_user(user_id: str) -> dict | None:
     return users.get(user_id)
 
 
+def set_pending_invite(user_id: str, referrer_id: str) -> None:
+    """Davet kodunu bekleyen olarak isaretler (dogrulamada odullendirilir)."""
+
+    with _lock:
+        users = _load()
+        user = users.get(user_id)
+        if user is None:
+            return
+        user["pending_invite"] = referrer_id
+        _save(users)
+
+
+def take_pending_invite(user_id: str) -> str | None:
+    """Bekleyen daveti tek seferlik alir (okuyup temizler)."""
+
+    with _lock:
+        users = _load()
+        user = users.get(user_id)
+        if user is None:
+            return None
+        code = user.pop("pending_invite", None)
+        _save(users)
+        return code or None
+
+
 def delete_user(user_id: str) -> bool:
     """Kullanici kaydini (favoriler dahil) tamamen siler. Varsa True doner."""
 
@@ -388,9 +413,117 @@ def set_tier(user_id: str, tier: str) -> dict | None:
 
 
 def get_tier(user: dict | None) -> str:
-    """Kullanicinin uyelik katmani (varsayilan free)."""
-    t = (user or {}).get("tier") or "free"
+    """Kullanicinin uyelik katmani (varsayilan free).
+
+    XP Store'dan alinmis gunluk Lite denemesi suruyorsa lite doner.
+    """
+    if not user:
+        return "free"
+    perks = user.get("perks") or {}
+    lite_until = perks.get("lite_until") or ""
+    try:
+        if lite_until and lite_until >= datetime.now().isoformat(timespec="seconds")[:10]:
+            return "lite"
+    except Exception:
+        pass
+    t = user.get("tier") or "free"
     return t if t in ("free", "lite", "premium") else "free"
+
+
+def get_perks(user_id: str) -> dict:
+    """XP Store haklari: {bonus_routes, bonus_ai, bonus_magic,
+    vibe_unlock, lite_until}. Yoksa sifir degerler."""
+
+    user = get_user(user_id) or {}
+    perks = (user.get("perks") or {})
+    return {
+        "bonus_routes": int(perks.get("bonus_routes", 0) or 0),
+        "bonus_ai": int(perks.get("bonus_ai", 0) or 0),
+        "bonus_magic": int(perks.get("bonus_magic", 0) or 0),
+        "vibe_unlock": bool(perks.get("vibe_unlock", False)),
+        "lite_until": perks.get("lite_until") or "",
+    }
+
+
+def grant_perk(user_id: str, key: str, value) -> dict | None:
+    """Tekil hak tanimlar (vibe_unlock / lite_until); guncel perks doner."""
+
+    with _lock:
+        users = _load()
+        user = users.get(user_id)
+        if user is None:
+            return None
+        perks = user.setdefault("perks", {})
+        perks[key] = value
+        _save(users)
+        return get_perks(user_id)
+
+
+def add_bonus(user_id: str, kind: str, amount: int) -> dict | None:
+    """Bonus kullanim hakki ekler (bonus_routes/ai/magic)."""
+
+    if kind not in ("bonus_routes", "bonus_ai", "bonus_magic"):
+        return None
+    with _lock:
+        users = _load()
+        user = users.get(user_id)
+        if user is None:
+            return None
+        perks = user.setdefault("perks", {})
+        perks[kind] = int(perks.get(kind, 0) or 0) + max(0, int(amount or 0))
+        _save(users)
+        return get_perks(user_id)
+
+
+def get_or_create_invite_code(user_id: str) -> str | None:
+    """Kullanicinin davet kodunu dondurur (yoksa uretir, benzersiz)."""
+
+    with _lock:
+        users = _load()
+        user = users.get(user_id)
+        if user is None:
+            return None
+        code = (user.get("invite_code") or "").strip()
+        if code:
+            return code
+        taken = {str(u.get("invite_code") or "") for u in users.values()}
+        for _ in range(20):
+            code = uuid.uuid4().hex[:8]
+            if code not in taken:
+                break
+        user["invite_code"] = code
+        _save(users)
+        return code
+
+
+def find_user_by_invite(code: str) -> dict | None:
+    """Davet kodundan kullanici bulur."""
+
+    code = (code or "").strip().lower()
+    if not code:
+        return None
+    for user in _load().values():
+        if str(user.get("invite_code") or "").strip().lower() == code:
+            return user
+    return None
+
+
+def record_referral(referrer_id: str, new_user_id: str) -> bool:
+    """Davet odulu bir kez verilsin diye isaretler. Ilk sefer True."""
+
+    with _lock:
+        users = _load()
+        ref = users.get(referrer_id)
+        new_user = users.get(new_user_id)
+        if ref is None or new_user is None:
+            return False
+        awarded = ref.setdefault("referrals_awarded", [])
+        if new_user_id in awarded:
+            return False
+        awarded.append(new_user_id)
+        new_user["referred_by"] = referrer_id
+        _save(users)
+        return True
 
 
 def public_user(user: dict) -> dict:

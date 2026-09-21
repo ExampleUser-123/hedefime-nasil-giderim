@@ -25,6 +25,8 @@ XP_TABLE = {
     "target_added": 10,
     "city_explored": 25,
     "night_route": 15,
+    "route_published": 30,
+    "referral": 50,
 }
 
 LEVEL_STEP = 200
@@ -73,6 +75,18 @@ def level_for_xp(xp: int) -> dict:
     base = (level - 1) * LEVEL_STEP
     progress = min(100, int(((int(xp or 0) - base) / LEVEL_STEP) * 100))
     return {"level": level, "progress": progress}
+
+
+def spend_xp(user_id: str, amount: int) -> tuple[bool, dict]:
+    """XP harcar. (basarili_mi, guncel_profil) doner; yetersizse (False, profil)."""
+
+    amount = max(0, int(amount or 0))
+    game = user_store.get_game(user_id)
+    if game["xp"] < amount:
+        return False, profile(user_id)
+    game["xp"] = game["xp"] - amount
+    user_store.save_game(user_id, game)
+    return True, profile(user_id)
 
 
 def _is_night(now: datetime | None = None) -> bool:

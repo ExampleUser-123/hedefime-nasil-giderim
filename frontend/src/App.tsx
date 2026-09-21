@@ -13,6 +13,7 @@ import NearbyStops from '@/components/NearbyStops'
 import VibeCard from '@/components/VibeCard'
 import MagicShare from '@/components/MagicShare'
 import TargetsSection from '@/components/TargetsSection'
+import MarketplaceScreen from '@/components/MarketplaceScreen'
 import {
   HistoryScreen,
   NotificationsScreen,
@@ -23,6 +24,7 @@ import { IconLogo } from '@/icons'
 import type { AuthUser, PlanResult, RouteIntent } from '@/lib/api'
 import { fetchShareRoute } from '@/lib/api'
 import { AUTH_CHANGED_EVENT, getStoredUser, refreshAuthState, signOut } from '@/lib/auth'
+import { INVITE_CODE_KEY } from '@/lib/auth'
 import { rescheduleAll } from '@/lib/reminders'
 import { initShareListener } from '@/lib/shareIntent'
 
@@ -71,6 +73,21 @@ export default function App() {
   // Native paylasim: baska uygulamadan gelen metni karsila (Magic Share)
   useEffect(() => {
     initShareListener()
+  }, [])
+
+  // Davet linki: ?ref=KOD ile gelinirse kayit sirasinda kullanilmak uzere sakla
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const ref = (params.get('ref') || '').trim()
+    if (!ref) return
+    try {
+      localStorage.setItem(INVITE_CODE_KEY, ref.slice(0, 16))
+    } catch {
+      // sessizce gec
+    }
+    params.delete('ref')
+    const rest = params.toString()
+    window.history.replaceState({}, '', window.location.pathname + (rest ? `?${rest}` : ''))
   }, [])
 
   // Paylasilan rota linki: ?share=ID ile acilirsa rotayi otomatik doldur
@@ -233,6 +250,7 @@ export default function App() {
         )}
 
         {tab === 'stops' && <NearbyStops />}
+        {tab === 'explore' && <MarketplaceScreen onOpenRoute={openRoute} />}
         {tab === 'saved' && (
           <>
             <TargetsSection onOpenRoute={openRoute} />

@@ -2,13 +2,14 @@ import type { ReactElement } from 'react'
 import {
   IconBell,
   IconClock,
+  IconGlobe,
   IconHome,
   IconSparkle,
   IconStar,
   IconUser,
 } from '@/icons'
 
-export type Tab = 'home' | 'saved' | 'history' | 'stops' | 'alerts' | 'profile'
+export type Tab = 'home' | 'saved' | 'history' | 'stops' | 'alerts' | 'profile' | 'explore'
 
 function IconStop({ className }: { className?: string }) {
   return (
@@ -32,6 +33,7 @@ const TABS: TabItem[] = [
 
 const AFTER_TABS: TabItem[] = [
   { id: 'stops', label: 'Duraklar', icon: IconStop },
+  { id: 'explore', label: 'Keşfet', icon: IconGlobe },
   { id: 'alerts', label: 'Bildirimler', icon: IconBell },
   { id: 'profile', label: 'Profil', icon: IconUser },
 ]

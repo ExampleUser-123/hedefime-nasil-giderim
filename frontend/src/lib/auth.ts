@@ -155,12 +155,31 @@ export async function signInWithEmail(email: string, password: string): Promise<
   return user
 }
 
+export const INVITE_CODE_KEY = 'hng-invite-code'
+
+export function getInviteCode(): string | null {
+  try {
+    return localStorage.getItem(INVITE_CODE_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function clearInviteCode(): void {
+  try {
+    localStorage.removeItem(INVITE_CODE_KEY)
+  } catch {
+    // sessizce gec
+  }
+}
+
 export async function signUpWithEmail(
   email: string,
   password: string,
   name: string,
 ): Promise<RegisterResponse> {
-  const res = await registerWithEmail(email.trim(), password, name.trim())
+  const res = await registerWithEmail(email.trim(), password, name.trim(), getInviteCode() ?? undefined)
+  clearInviteCode()
 
   if (res.token && res.user) {
     setAuthToken(res.token)

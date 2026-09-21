@@ -18,11 +18,15 @@ from services.storage_dir import writable_base_dir
 
 def _paths():
     base = str(writable_base_dir())
-    return os.path.join(base, "share_routes.json"), os.path.join(base, "crowding.json")
+    return (
+        os.path.join(base, "share_routes.json"),
+        os.path.join(base, "crowding.json"),
+        os.path.join(base, "community_routes.json"),
+    )
 
 
 _DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
-_SHARE_PATH, _CROWD_PATH = _paths()
+_SHARE_PATH, _CROWD_PATH, _COMMUNITY_PATH = _paths()
 
 _LOCK = threading.Lock()
 
@@ -145,3 +149,71 @@ def get_crowding_summary(city: str, lines: list[str]) -> dict:
             "punct": punct,
         }
     return out
+
+
+# --- Topluluk rotalari (Marketplace / Kesfet) ----------------------------------
+
+_MAX_COMMUNITY = 500
+
+
+def publish_community_route(user_id: str, user_name: str, item: dict) -> dict | None:
+    """Topluluga rota/mekan yayinlar; kaydi doner. Baslik + guzergah zorunlu."""
+
+    title = (item.get("title") or "").strip()[:80]
+    if not title:
+        return None
+    images = [str(u)[:300] for u in (item.get("image_urls") or [])[:3]]
+    place = item.get("place") or {}
+    entry = {
+        "id": secrets.token_urlsafe(6),
+        "user_id": user_id,
+        "user_name": (user_name or "Gezgin")[:40],
+        "title": title,
+        "description": (item.get("description") or "").strip()[:500],
+        "from": (item.get("from") or "").strip()[:160],
+        "to": (item.get("to") or "").strip()[:160],
+        "mode": (item.get("mode") or "tumu").strip()[:20],
+        "people": max(1, min(int(item.get("people") or 1), 50)),
+        "place": {
+            "name": str(place.get("name") or "")[:80],
+            "address": str(place.get("address") or "")[:160],
+            "city": str(place.get("city") or "")[:60],
+            "lat": place.get("lat"),
+            "lon": place.get("lon"),
+        },
+        "image_urls": images,
+        "created": time.time(),
+    }
+    with _LOCK:
+        store = _load(_COMMUNITY_PATH)
+        store[entry["id"]] = entry
+        if len(store) > _MAX_COMMUNITY:
+            oldest = sorted(store, key=lambda k: store[k].get("created", 0))
+            for k in oldest[: len(store) - _MAX_COMMUNITY]:
+                del store[k]
+        _save(_COMMUNITY_PATH, store)
+    return entry
+
+
+def list_community_routes(limit: int = 20, offset: int = 0) -> list[dict]:
+    """En yeniden eskiye topluluk rotalari (sayfali)."""
+
+    limit = max(1, min(int(limit or 20), 50))
+    offset = max(0, int(offset or 0))
+    with _LOCK:
+        store = _load(_COMMUNITY_PATH)
+    ordered = sorted(store.values(), key=lambda e: e.get("created", 0), reverse=True)
+    return ordered[offset: offset + limit]
+
+
+def delete_community_route(entry_id: str, user_id: str) -> bool:
+    """Sadece sahibi silebilir."""
+
+    with _LOCK:
+        store = _load(_COMMUNITY_PATH)
+        rec = store.get(entry_id)
+        if not rec or rec.get("user_id") != user_id:
+            return False
+        del store[entry_id]
+        _save(_COMMUNITY_PATH, store)
+    return True

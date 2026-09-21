@@ -1,11 +1,13 @@
 import { useEffect, useState, type ReactElement } from 'react'
-import { fetchGameProfile, fetchMagicUsage, type GameProfile } from '@/lib/api'
+import { fetchGameProfile, fetchInviteCode, fetchMagicUsage, type GameProfile } from '@/lib/api'
 import { getStoredUser } from '@/lib/auth'
 
 /** Profil ici gamification ozeti: XP, seviye, rozetler, Magic hakki. */
 export default function GameSection(): ReactElement {
   const [profile, setProfile] = useState<GameProfile | null>(null)
   const [magic, setMagic] = useState<{ used: number; limit: number } | null>(null)
+  const [invite, setInvite] = useState<string | null>(null)
+  const [inviteMsg, setInviteMsg] = useState<string | null>(null)
 
   useEffect(() => {
     if (!getStoredUser()) return
@@ -20,10 +22,37 @@ export default function GameSection(): ReactElement {
         if (alive) setMagic({ used: u.used, limit: u.limit })
       })
       .catch(() => {})
+    fetchInviteCode()
+      .then((d) => {
+        if (alive && d.code) setInvite(d.code)
+      })
+      .catch(() => {})
     return () => {
       alive = false
     }
   }, [])
+
+  async function shareInvite() {
+    if (!invite) return
+    const url = `${window.location.origin}${window.location.pathname}?ref=${invite}`
+    const text = `Hedefime Nasıl Giderim'e katıl, birlikte gezelim! Davet kodum: ${invite}`
+    try {
+      const nav = navigator as Navigator & { share?: (d: { title: string; text: string; url: string }) => Promise<void> }
+      if (typeof nav.share === 'function') {
+        await nav.share({ title: 'Hedefime Nasıl Giderim', text, url })
+        setInviteMsg('Paylaşıldı! Arkadaşın kayıt olursa +50 XP kazanırsın.')
+        return
+      }
+      throw new Error('paylasim yok')
+    } catch {
+      try {
+        await navigator.clipboard.writeText(`${text} ${url}`)
+        setInviteMsg('Davet linki panoya kopyalandı! Arkadaşın kayıt olursa +50 XP.')
+      } catch {
+        setInviteMsg(`Davet kodun: ${invite}`)
+      }
+    }
+  }
 
   if (!getStoredUser()) return <></>
 
@@ -71,6 +100,21 @@ export default function GameSection(): ReactElement {
         <p className="mt-3 border-t border-line/60 pt-2 text-xs text-muted">
           📍 Magic Share hakkı: {magic.limit < 0 ? 'sınırsız' : `${Math.max(0, magic.limit - magic.used)}/${magic.limit} kaldı`}
         </p>
+      )}
+
+      {invite && (
+        <div className="mt-2">
+          <button
+            type="button"
+            onClick={() => void shareInvite()}
+            className="w-full rounded-xl border border-accent/40 py-2 text-xs font-bold text-accent"
+          >
+            🎁 Arkadaşınla Paylaş / Davet Et (+50 XP)
+          </button>
+          {inviteMsg && (
+            <p role="status" className="mt-2 text-[11px] text-muted">{inviteMsg}</p>
+          )}
+        </div>
       )}
     </div>
   )

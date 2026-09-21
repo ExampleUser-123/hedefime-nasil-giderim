@@ -102,6 +102,21 @@ def count(key: str, kind: str) -> None:
         _save(data)
 
 
+def grant_bonus(key: str, kind: str, amount: int) -> None:
+    """XP Store bonusu: gunluk kullanimi geriye dusurur (ek hak etkisi).
+
+    Sinirsiz kotalarda etkisizdir; sayac sifirin altina inmez.
+    """
+
+    if kind not in ("routes", "ai", "magic"):
+        return
+    with _lock:
+        data = _load()
+        u = data["usage"].setdefault(key, {})
+        u[kind] = max(0, int(u.get(kind, 0)) - max(0, int(amount or 0)))
+        _save(data)
+
+
 def delete_user_usage(user_id: str) -> bool:
     """Kullanicinin kota kayitlarini siler. Kayit vardiysa True doner."""
 

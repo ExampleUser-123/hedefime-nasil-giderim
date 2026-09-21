@@ -243,6 +243,7 @@ class EmailAuthBody(BaseModel):
     email: str
     password: str
     name: str = ""
+    invite_code: str = ""
 
 
 class VerifyEmailBody(BaseModel):
@@ -1562,6 +1563,13 @@ def _auth_register_impl(body: EmailAuthBody):
         is_verified=False,
     )
 
+    # Davet kodu varsa (kendine davet gecersiz) dogrulamada odullendirilir.
+    invite = (body.invite_code or "").strip()
+    if invite:
+        referrer = user_store.find_user_by_invite(invite)
+        if referrer is not None and referrer["id"] != user["id"]:
+            user_store.set_pending_invite(user["id"], referrer["id"])
+
     code = mailer.generate_verification_code()
     user_store.set_verification_code(user["id"], code)
     sent_ok, sent_detail = mailer.send_verification_email(
@@ -1587,6 +1595,15 @@ def auth_verify_email(body: VerifyEmailBody):
 
     if not ok:
         return JSONResponse(status_code=400, content={"error": message})
+
+    # Davet odulu: dogrulama tamamlaninca davet edene +50 XP (tek seferlik).
+    try:
+        from services import gamification
+        referrer_id = user_store.take_pending_invite(user["id"])
+        if referrer_id and user_store.record_referral(referrer_id, user["id"]):
+            gamification.award(referrer_id, "referral")
+    except Exception:
+        logger.warning("referral odulu verilemedi", exc_info=True)
 
     user_store.touch_last_login(user["id"])
 
@@ -1907,7 +1924,11 @@ def vibe_routes(body: VibeRoutesBody, request: Request,
             content={"error": "Geçersiz mod. Sakin, ekonomik, manzaralı veya kahve seçin."},
         )
     tier = user_store.get_tier(user)
-    if not vibe.mood_allowed(mood, tier):
+    vibe_open = vibe.mood_allowed(mood, tier)
+    if not vibe_open and user is not None:
+        # XP Store'dan "Temel Rota Modlari Acilisi" alanlar tum modlari kullanir.
+        vibe_open = bool(user_store.get_perks(user["id"]).get("vibe_unlock"))
+    if not vibe_open:
         return _upgrade_required(
             "Bu mod Lite ve Premium üyelikte açık. "
             "Bu özelliği sınırsız kullanmak için Lite veya Premium'a geç."
@@ -2035,6 +2056,147 @@ def delete_target(target_id: str, user: dict = Depends(get_current_user)):
     if targets is None:
         return JSONResponse(status_code=404, content={"error": "Hedef bulunamadı."})
     return {"targets": targets}
+
+
+class CommunityPublishBody(BaseModel):
+    title: str
+    description: str = ""
+    from_: str = Field(default="", alias="from")
+    to: str = ""
+    mode: str = "tumu"
+    people: int = 1
+    place: dict = Field(default_factory=dict)
+    image_urls: list[str] = Field(default_factory=list)
+
+    model_config = {"populate_by_name": True}
+
+
+class RedeemBody(BaseModel):
+    item: str
+
+
+XP_STORE_ITEMS = {
+    "route_ai_pack": {
+        "name": "+1 Rota Arama + 1 AI Mesaj Paketi",
+        "desc": "Günlük kotana anında +1 rota ve +1 AI mesajı ekler.",
+        "cost": 150,
+    },
+    "magic_pack": {
+        "name": "+1 Magic Share Çözdürme Hakkı",
+        "desc": "Günlük Magic Share kotana +1 hak ekler.",
+        "cost": 250,
+    },
+    "vibe_unlock": {
+        "name": "Temel Rota Modları Açılışı",
+        "desc": "Manzaralı ve Kahve Molalı modlarını kalıcı olarak açar.",
+        "cost": 300,
+    },
+    "lite_trial": {
+        "name": "1 Günlük Lite Deneme Paketi",
+        "desc": "24 saat boyunca Lite limitleri (20 rota, 30 AI, 10 Magic).",
+        "cost": 1000,
+    },
+}
+
+
+@app.get("/marketplace")
+def marketplace_list(limit: int = 20, offset: int = 0):
+    """Topluluk rotalari (herkese acik, sayfali)."""
+    from services import share_store
+    return {"routes": share_store.list_community_routes(limit, offset)}
+
+
+@app.post("/marketplace")
+def marketplace_publish(body: CommunityPublishBody,
+                        user: dict = Depends(get_current_user)):
+    """Topluluga rota/mekan yayinla (+30 XP)."""
+    from services import gamification, share_store
+    entry = share_store.publish_community_route(
+        user["id"], user.get("name") or "Gezgin", {
+            "title": body.title, "description": body.description,
+            "from": body.from_, "to": body.to, "mode": body.mode,
+            "people": body.people, "place": body.place,
+            "image_urls": body.image_urls,
+        })
+    if entry is None:
+        return JSONResponse(
+            status_code=400, content={"error": "Başlık gerekli."})
+    profile = gamification.award(user["id"], "route_published")
+    return {"route": entry, "profile": profile}
+
+
+@app.delete("/marketplace/{entry_id}")
+def marketplace_delete(entry_id: str, user: dict = Depends(get_current_user)):
+    """Yayini sil (sadece sahibi)."""
+    from services import share_store
+    if not share_store.delete_community_route(entry_id, user["id"]):
+        return JSONResponse(
+            status_code=404, content={"error": "Kayıt bulunamadı."})
+    return {"ok": True}
+
+
+@app.get("/invite/code")
+def invite_code(user: dict = Depends(get_current_user)):
+    """Kullanicinin davet kodu (+50 XP kazandirir)."""
+    code = user_store.get_or_create_invite_code(user["id"])
+    return {"code": code}
+
+
+@app.get("/xp-store/items")
+def xp_store_items(user: dict = Depends(get_current_user)):
+    """Magaza katalogu + bakiye + sahiplik."""
+    from services import gamification
+    profile = gamification.profile(user["id"])
+    perks = user_store.get_perks(user["id"])
+    owned = {
+        "vibe_unlock": bool(perks.get("vibe_unlock")),
+        "lite_trial": bool(perks.get("lite_until") or ""),
+    }
+    return {
+        "xp": profile["xp"],
+        "items": [
+            {"id": item_id, **info, "owned": owned.get(item_id, False)}
+            for item_id, info in XP_STORE_ITEMS.items()
+        ],
+    }
+
+
+@app.post("/xp-store/redeem")
+def xp_store_redeem(body: RedeemBody, request: Request,
+                    user: dict = Depends(get_current_user)):
+    """XP harca, hakki hesaba tanimla."""
+    from datetime import date, timedelta
+    from services import gamification
+
+    item_id = (body.item or "").strip()
+    info = XP_STORE_ITEMS.get(item_id)
+    if info is None:
+        return JSONResponse(status_code=400, content={"error": "Geçersiz ürün."})
+
+    ok, profile = gamification.spend_xp(user["id"], info["cost"])
+    if not ok:
+        return JSONResponse(
+            status_code=400,
+            content={"error": f"Yetersiz XP (gerekli: {info['cost']})."})
+
+    key = quota_store.identity_key(user, request.client.host if request.client else "")
+    effect = ""
+    if item_id == "route_ai_pack":
+        quota_store.grant_bonus(key, "routes", 1)
+        quota_store.grant_bonus(key, "ai", 1)
+        effect = "Kotana +1 rota ve +1 AI mesajı eklendi."
+    elif item_id == "magic_pack":
+        quota_store.grant_bonus(key, "magic", 1)
+        effect = "Magic Share kotana +1 hak eklendi."
+    elif item_id == "vibe_unlock":
+        user_store.grant_perk(user["id"], "vibe_unlock", True)
+        effect = "Manzaralı ve Kahve Molalı modlar açıldı."
+    elif item_id == "lite_trial":
+        until = (date.today() + timedelta(days=1)).isoformat()
+        user_store.grant_perk(user["id"], "lite_until", until)
+        effect = f"Lite denemen {until} tarihine kadar aktif."
+    return {"ok": True, "effect": effect, "profile": profile,
+            "perks": user_store.get_perks(user["id"])}
 
 
 class TierBody(BaseModel):
