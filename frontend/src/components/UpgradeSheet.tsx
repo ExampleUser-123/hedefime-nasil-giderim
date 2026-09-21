@@ -21,7 +21,12 @@ const PLANS: Plan[] = [
     routes: 'Günde 7 rota',
     ai: 'Günde 7 AI mesajı',
     ads: 'Her rota aramasında kısa reklam',
-    extras: ['Tüm şehirler', 'Durak saatleri'],
+    extras: [
+      'Tüm şehirler',
+      'Durak saatleri',
+      '🪄 Günde 2 Akıllı Paylaşım (Magic Share)',
+      '🌿 Temel Rota Modları (Sakin & Ekonomik)',
+    ],
   },
   {
     id: 'lite',
@@ -32,7 +37,13 @@ const PLANS: Plan[] = [
     routes: 'Günde 20 rota',
     ai: 'Günde 30 AI mesajı',
     ads: 'Her 3 aramada bir reklam',
-    extras: ['Tüm şehirler', 'Durak saatleri', 'Öncelikli destek'],
+    extras: [
+      'Tüm şehirler',
+      'Durak saatleri',
+      'Öncelikli destek',
+      '🪄 Günde 10 Akıllı Paylaşım (Magic Share)',
+      '🌅 Tüm Rota Modları (Manzaralı & Kahve Molalı)',
+    ],
   },
   {
     id: 'premium',
@@ -41,7 +52,14 @@ const PLANS: Plan[] = [
     routes: 'Sınırsız rota',
     ai: 'Sınırsız AI sohbet',
     ads: 'Reklamsız deneyim',
-    extras: ['Tüm şehirler', 'Durak saatleri', 'Öncelikli destek', 'Yeni özelliklere erken erişim'],
+    extras: [
+      'Tüm şehirler',
+      'Durak saatleri',
+      'Öncelikli destek',
+      'Yeni özelliklere erken erişim',
+      '🪄 Sınırsız Akıllı Paylaşım (Magic Share)',
+      '🌟 Tüm Rota Modları + Yeni Modlara Erken Erişim',
+    ],
   },
 ]
 
