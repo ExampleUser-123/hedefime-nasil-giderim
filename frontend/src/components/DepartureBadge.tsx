@@ -6,11 +6,11 @@ import { liveMinutesAhead } from '@/lib/departureTime'
 export const DepartureCityContext = createContext<string>('')
 
 // Promise cache (90 sn TTL): ayni sehir/hat/durak icin tekrar istek atilmaz,
-// ancak veri bayatlayinca tazelenir.
+// ancak veri bayatlayinca tazelenir. LegTimetable ile paylasilir.
 const CACHE_TTL_MS = 90000
 const departureCache = new Map<string, { at: number; promise: Promise<NextDeparture[] | null> }>()
 
-function getDepartures(
+export function fetchDepartureList(
   city: string,
   line: string,
   stop: string,
@@ -57,7 +57,7 @@ export function DepartureBadge({
 
     if (!city || !line || !stop) return undefined
 
-    getDepartures(city, line, stop, lat, lon).then((departures) => {
+    fetchDepartureList(city, line, stop, lat, lon).then((departures) => {
       if (aliveRef.current && departures && departures.length > 0) {
         setDeparture(departures[0])
       }

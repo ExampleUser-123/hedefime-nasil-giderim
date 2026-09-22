@@ -1,5 +1,6 @@
-import { createContext, useContext, type ReactElement } from 'react'
-import { DepartureBadge, DepartureCityContext } from '@/components/DepartureBadge'
+import { createContext, useContext, useEffect, useState, type ReactElement } from 'react'
+import { DepartureBadge, DepartureCityContext, fetchDepartureList } from '@/components/DepartureBadge'
+import type { NextDeparture } from '@/lib/api'
 import { extractCity } from '@/lib/cities'
 import type { CarResult, FlightEstimate, Mode, PlanResult, TrainEstimate, TransitLeg, TransitRoute } from '@/lib/api'
 import {
@@ -162,6 +163,46 @@ function firstBusLegKeys(routes: TransitRoute[], limit = 3): Set<string> {
   return keys
 }
 
+// Hatin sonraki 3 kalkisi (zaman cizelgesi). Veri yoksa hicbir sey cizmez.
+function LegTimetable({
+  line,
+  stop,
+  lat,
+  lon,
+}: {
+  line: string | null
+  stop: string | null
+  lat?: number
+  lon?: number
+}) {
+  const city = useContext(DepartureCityContext)
+  const [times, setTimes] = useState<NextDeparture[] | null>(null)
+
+  useEffect(() => {
+    if (!city || !line || !stop) return
+    let alive = true
+    fetchDepartureList(city, line, stop, lat, lon)
+      .then((departures) => {
+        if (alive) setTimes(departures?.slice(0, 3) ?? [])
+      })
+      .catch(() => {
+        if (alive) setTimes([])
+      })
+    return () => {
+      alive = false
+    }
+  }, [city, line, stop, lat, lon])
+
+  if (!times || times.length === 0) return null
+
+  return (
+    <p className="mt-1 text-[11px] text-muted tabular-nums">
+      Sonraki seferler: {times.map((d) => d.time).join(', ')}
+      {times[0]?.source === 'tahmini' && ' (tahmini)'}
+    </p>
+  )
+}
+
 function LegRow({
   leg,
   showDeparture,
@@ -176,11 +217,14 @@ function LegRow({
   const Icon = legIcon(leg)
 
   if (leg.type === 'walking') {
+    // Sehir ici yürüme hizi ~70 m/dk (tahmini).
+    const walkMin = leg.distance_m ? Math.max(1, Math.round(leg.distance_m / 70)) : null
     return (
       <li className="flex items-center gap-3 py-2">
         <Icon className="h-4 w-4 shrink-0 text-muted" />
         <p className="text-sm text-muted">
           {leg.distance_m ? `${Math.round(leg.distance_m)} m yürü` : 'Yürü'}
+          {walkMin != null && ` (~${walkMin} dk, tahmini)`}
           <span className="mx-1.5 text-line" aria-hidden="true">·</span>
           {leg.from_stop ?? ''}
           {leg.to_stop && ` → ${leg.to_stop}`}
@@ -194,6 +238,9 @@ function LegRow({
       <Icon className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
       <div className="min-w-0 flex-1">
         <LineTitle leg={leg} showDeparture={showDeparture} lat={lat} lon={lon} />
+        {showDeparture && (
+          <LegTimetable line={leg.line} stop={leg.from_stop} lat={lat} lon={lon} />
+        )}
         {leg.alternate_lines.length > 0 && (
           <span className="text-xs font-normal text-muted">(+{leg.alternate_lines.length} alternatif)</span>
         )}

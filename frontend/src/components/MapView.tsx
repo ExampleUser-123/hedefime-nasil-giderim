@@ -56,6 +56,74 @@ function stopIcon(lineCount: number) {
   })
 }
 
+function transferIcon() {
+  return L.divIcon({
+    className: '',
+    html: `<span style="display:block;width:12px;height:12px;border-radius:9999px;background:#e6edf7;border:3px solid ${ACCENT};box-shadow:0 0 0 2px rgba(45,212,191,.3)"></span>`,
+    iconSize: [12, 12],
+    iconAnchor: [6, 6],
+  })
+}
+
+type TransferPin = {
+  position: LatLng
+  title: string
+}
+
+/** Secili rotanin binis/inis duraklari (aktarma noktalari dahil). */
+function buildTransferPins(
+  plan: PlanResult,
+  mode: MapMode,
+  routeIndex: number,
+): TransferPin[] {
+  if (mode === 'arac' || mode === 'motosiklet' || mode === 'yuruyus' || mode === 'ucak') {
+    return []
+  }
+
+  let routes = plan.public_transport.routes
+
+  if (mode === 'deniz') {
+    const ferry = routes.filter(isFerryRoute)
+    if (ferry.length) routes = ferry
+  }
+
+  if (mode === 'tramvay') {
+    const tram = routes.filter(isTramRoute)
+    if (tram.length) routes = tram
+  }
+
+  if (mode === 'metro') {
+    const rail = routes.filter(isRailRoute)
+    if (rail.length) routes = rail
+  }
+
+  const route = routes[routeIndex] ?? routes[0]
+  if (!route) return []
+
+  const pins: TransferPin[] = []
+  const seen = new Set<string>()
+
+  for (const leg of route.legs) {
+    if (leg.type === 'walking') continue
+    const coords = leg.coords ?? []
+    if (coords.length < 2) continue
+    const line = leg.line ?? leg.name ?? ''
+    const stops: [LatLng, string | null][] = [
+      [coords[0], leg.from_stop],
+      [coords[coords.length - 1], leg.to_stop],
+    ]
+    for (const [position, stop] of stops) {
+      const key = `${position[0].toFixed(5)},${position[1].toFixed(5)}|${line}|${stop ?? ''}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      const title = [line, stop].filter(Boolean).join(' · ') || 'Durak'
+      pins.push({ position, title })
+    }
+  }
+
+  return pins
+}
+
 function buildPaths(plan: PlanResult, mode: MapMode, routeIndex: number): Path[] {
   const straight: Path = {
     positions: [
@@ -194,6 +262,13 @@ export default function MapView({
 
     L.marker(start, { icon: startIcon() }).addTo(routeLayer)
     L.marker(end, { icon: endIcon() }).addTo(routeLayer)
+
+    // Secili rotanin binis/inis/aktarma pinleri (hat + durak adi)
+    for (const pin of buildTransferPins(plan, mode, routeIndex)) {
+      L.marker(pin.position, { icon: transferIcon(), keyboard: false })
+        .bindTooltip(pin.title, { direction: 'top', offset: [0, -6] })
+        .addTo(routeLayer)
+    }
 
     map.fitBounds(L.latLngBounds(paths.flatMap((path) => path.positions).concat([start, end])), {
       padding: [70, 70],
