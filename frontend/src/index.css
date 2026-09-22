@@ -90,3 +90,19 @@ input::placeholder {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Rota sonuclari bottom sheet giris animasyonu */
+@keyframes sheet-enter {
+  from {
+    transform: translateY(48px);
+    opacity: 0.6;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.sheet-enter {
+  animation: sheet-enter 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}

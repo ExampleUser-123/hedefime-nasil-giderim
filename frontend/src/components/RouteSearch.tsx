@@ -228,6 +228,9 @@ export default function RouteSearch({
 
   return (
     <div>
+      {/* Rota acikken sonuclar bottom sheet'te gosterilir; form gizlenir (state korunur) */}
+      {!plan && (
+      <>
       <div className="rounded-2xl border border-line bg-surface-2/90 p-4 backdrop-blur-sm">
         <div className="relative">
           <span className="absolute left-4 top-8 -bottom-8 w-px border-l border-dashed border-line" aria-hidden="true" />
@@ -400,6 +403,8 @@ export default function RouteSearch({
           )}
         </div>
       )}
+      </>
+      )}
 
       {!plan && <NearbyStopWidget />}
 
@@ -432,7 +437,7 @@ export default function RouteSearch({
         </div>
       )}
 
-      {shortcuts.length > 0 && (
+      {!plan && shortcuts.length > 0 && (
         <div className="mt-4">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
             Sık kullanılan

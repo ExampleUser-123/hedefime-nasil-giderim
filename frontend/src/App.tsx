@@ -259,7 +259,7 @@ export default function App() {
               transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
               className="relative z-10 mx-auto w-full max-w-xl px-4 pb-24 sm:px-6"
             >
-              <div className="rounded-3xl border border-line bg-surface/85 p-5 shadow-2xl shadow-black/40 backdrop-blur-md sm:p-6">
+              <div className={plan ? 'contents' : 'rounded-3xl border border-line bg-surface/85 p-5 shadow-2xl shadow-black/40 backdrop-blur-md sm:p-6'}>
                 <RouteSearch
                   mode={mode}
                   onModeChange={setMode}
@@ -272,9 +272,14 @@ export default function App() {
                   city={weatherCity}
                 />
               </div>
+              {/* Rota acikken sonuclar bottom sheet'tedir; alt kartlar gizlenir, harita tam gorunur */}
+              {!plan && (
+              <>
               <VibeCard plan={plan} city={weatherCity} />
               <MagicShare onOpenRoute={openRoute} />
               <NightCard onOpenRoute={openRoute} />
+              </>
+              )}
             </motion.section>
           </>
         )}

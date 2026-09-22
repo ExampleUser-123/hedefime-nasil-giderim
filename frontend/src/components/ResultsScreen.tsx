@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactElement } from 'react'
 import type { CarResult, Mode, PlanResult, TransitRoute } from '@/lib/api'
 import { createShareRoute, reportFeedback } from '@/lib/api'
 import { watchGetOff } from '@/lib/getOffAlert'
@@ -32,6 +32,10 @@ import {
   IconTrain,
   IconWalk,
 } from '@/icons'
+
+// Bottom sheet yukseklikleri (dvh): yari acik / tam acik
+const SHEET_PEEK = 46
+const SHEET_FULL = 90
 
 const MODE_LABELS: Record<Mode, string> = {
   tumu: 'Tümü',
@@ -356,7 +360,39 @@ export default function ResultsScreen({
 
   // Hat detay sayfasi: rota adimlarindaki hat adina dokununca acilir
   const [lineSheet, setLineSheet] = useState<{ city: string; line: string; stops?: string[]; name?: string } | null>(null)
-  useEffect(() => setLineSheet(null), [plan])
+  useEffect(() => {
+    setLineSheet(null)
+    setSheetH(SHEET_PEEK)
+  }, [plan])
+
+  // Bottom sheet: yari acik (harita gorunur) / tam acik. Tutamactan surukle ya da dokun.
+  const [sheetH, setSheetH] = useState(SHEET_PEEK)
+  const gripStart = useRef<{ y: number; h: number } | null>(null)
+  const gripMoved = useRef(false)
+
+  function onGripDown(e: ReactPointerEvent<HTMLDivElement>) {
+    gripStart.current = { y: e.clientY, h: sheetH }
+    gripMoved.current = false
+  }
+  function onGripMove(e: ReactPointerEvent<HTMLDivElement>) {
+    const start = gripStart.current
+    if (!start) return
+    if (Math.abs(e.clientY - start.y) > 6) gripMoved.current = true
+    const delta = ((start.y - e.clientY) / window.innerHeight) * 100
+    setSheetH(Math.min(SHEET_FULL, Math.max(28, start.h + delta)))
+  }
+  function onGripUp() {
+    if (!gripStart.current) return
+    gripStart.current = null
+    setSheetH((h) => (h > (SHEET_PEEK + SHEET_FULL) / 2 ? SHEET_FULL : SHEET_PEEK))
+  }
+  function onGripClick() {
+    if (gripMoved.current) {
+      gripMoved.current = false
+      return
+    }
+    setSheetH((h) => (h > (SHEET_PEEK + SHEET_FULL) / 2 ? SHEET_PEEK : SHEET_FULL))
+  }
 
   // Sehir adi gelmezse baslangic noktasindan turet (bilinen sehir listesiyle)
   const fallbackCity = extractCity(plan.start)
@@ -653,8 +689,27 @@ export default function ResultsScreen({
 
   return (
     <LineClickContext.Provider value={(city, line, stops, name) => setLineSheet({ city: city || fallbackCity, line, stops, name })}>
-      <div className="fixed inset-0 z-40 overflow-y-auto bg-bg">
-      <div className={`mx-auto w-full max-w-xl px-4 pt-5 sm:px-6 ${withAds ? 'pb-32' : 'pb-10'}`}>
+      {/* Seffaf kok: ustte harita gorunur ve dokunulabilir, sonuclar alttan acilir panelde */}
+      <div className="pointer-events-none fixed inset-0 z-40">
+      <section
+        className="sheet-enter pointer-events-auto absolute inset-x-0 bottom-0 mx-auto flex w-full max-w-xl flex-col overflow-hidden rounded-t-3xl border-x border-t border-line bg-bg shadow-2xl shadow-black/60"
+        style={{ height: `${sheetH}dvh` }}
+        role="dialog"
+        aria-label="Rota sonuçları"
+      >
+      <div
+        className="shrink-0 cursor-grab touch-none select-none pb-1 pt-2.5 active:cursor-grabbing"
+        onPointerDown={onGripDown}
+        onPointerMove={onGripMove}
+        onPointerUp={onGripUp}
+        onPointerCancel={onGripUp}
+        onClick={onGripClick}
+        role="button"
+        aria-label={sheetH > (SHEET_PEEK + SHEET_FULL) / 2 ? 'Paneli küçült' : 'Paneli büyüt'}
+      >
+        <div className="mx-auto h-1.5 w-12 rounded-full bg-line" aria-hidden="true" />
+      </div>
+      <div className={`min-h-0 flex-1 overflow-y-auto px-4 sm:px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${withAds ? 'pb-32' : 'pb-10'}`}>
         <header className="flex items-center gap-3">
           <button
             type="button"
@@ -901,7 +956,7 @@ export default function ResultsScreen({
       </div>
 
       {showReport && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center" role="dialog" aria-modal="true">
+        <div className="pointer-events-auto fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center" role="dialog" aria-modal="true">
           <div className="w-full max-w-md rounded-t-3xl border border-line bg-surface p-5 sm:rounded-3xl">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-extrabold">Bu bilgi yanlış mı?</h3>
@@ -961,6 +1016,7 @@ export default function ResultsScreen({
       )}
 
       {lineSheet && (
+        <div className="pointer-events-auto">
         <LineDetailSheet
           city={lineSheet.city}
           line={lineSheet.line}
@@ -970,7 +1026,9 @@ export default function ResultsScreen({
           fallbackName={lineSheet.name}
           onClose={() => setLineSheet(null)}
         />
+        </div>
       )}
+      </section>
       </div>
     </LineClickContext.Provider>
   )
