@@ -16,14 +16,16 @@ def _normalize(city: str) -> str:
 def city_data_path(city: str) -> Optional[str]:
     """Şehir adına karşılık gelen transit veri dosyasını döndürür.
 
+    Once `{sehir}_transit.json.gz`, yoksa KentKart derlemesi
+    `kentkart_{sehir}.json.gz` denenir (ayni durak-hat semasi).
     Not: GTFS tabanlı sehirler (istanbul, izmir, antalya, adana, gaziantep,
-    kocaeli, samsun, konya) zip paketidir; cevrimdisi indirme su asamada
-    sadece hazir `_transit.json.gz` dosyalarini sunar.
+    kocaeli, samsun, konya) zip paketidir; ham GTFS sunulmaz.
     """
     norm = _normalize(city)
-    p = os.path.join(DATA_DIR, f"{norm}_transit.json.gz")
-    if os.path.exists(p):
-        return p
+    for fname in (f"{norm}_transit.json.gz", f"kentkart_{norm}.json.gz"):
+        p = os.path.join(DATA_DIR, fname)
+        if os.path.exists(p):
+            return p
     return None
 
 
@@ -38,9 +40,11 @@ def load_city_stops(city: str):
 
 
 def list_offline_cities():
-    """İndirilebilir tüm şehirleri listeler."""
-    cities = []
+    """İndirilebilir tüm şehirleri listeler (transit + KentKart, tekil)."""
+    cities = set()
     for fname in os.listdir(DATA_DIR):
         if fname.endswith("_transit.json.gz"):
-            cities.append(fname.replace("_transit.json.gz", ""))
-    return cities
+            cities.add(fname.replace("_transit.json.gz", ""))
+        elif fname.startswith("kentkart_") and fname.endswith(".json.gz"):
+            cities.add(fname[len("kentkart_"): -len(".json.gz")])
+    return sorted(cities)

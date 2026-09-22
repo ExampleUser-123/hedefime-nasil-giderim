@@ -765,6 +765,12 @@ export function fetchTransitDataCity(
   return request(`/transit-data/${encodeURIComponent(city)}`, undefined, 120000)
 }
 
+export function fetchOfflineCityList(): Promise<string[]> {
+  return request<{ cities: string[] }>('/transit-data', undefined, 15000)
+    .then((d) => d.cities ?? [])
+    .catch(() => [])
+}
+
 // --- Paylasim linkleri -------------------------------------------------------
 
 export type ShareRouteParams = {

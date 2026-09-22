@@ -19,6 +19,7 @@ import UpgradeSheet from '@/components/UpgradeSheet'
 import OfflineCitiesCard from '@/components/OfflineCitiesCard'
 import GameSection from '@/components/GameSection'
 import XpStore from '@/components/XpStore'
+import { APP_VERSION } from '@/lib/version'
 import { IconBell, IconClock, IconStar, IconUser } from '@/icons'
 
 const MODE_LABELS: Record<string, string> = {
@@ -475,7 +476,7 @@ export function ProfileScreen({
       </div>
 
       <p className="mt-4 text-center text-xs text-muted">
-        Hedefime Nasıl Giderim · v1.0
+        Hedefime Nasıl Giderim · v{APP_VERSION}
       </p>
 
       {user && (

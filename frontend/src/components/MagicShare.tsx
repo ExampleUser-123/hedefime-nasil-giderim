@@ -8,6 +8,7 @@ import { getStoredUser } from '@/lib/auth'
 import { saveTarget } from '@/lib/game'
 import { consumePendingShare } from '@/lib/shareIntent'
 import { goToPlace } from '@/lib/navigate'
+import PlaceInput from '@/components/PlaceInput'
 import UpgradeSheet from '@/components/UpgradeSheet'
 
 export default function MagicShare({
@@ -114,17 +115,19 @@ export default function MagicShare({
       </p>
 
       <div className="mt-3 flex gap-2">
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Google Maps / Apple Maps linki veya adres"
-          className="min-h-[44px] flex-1 rounded-xl border border-line bg-bg px-3 text-sm outline-none transition-colors focus:border-accent"
-        />
+        <div className="min-w-0 flex-1">
+          <PlaceInput
+            value={text}
+            onChange={setText}
+            placeholder="Google Maps / Apple Maps linki veya adres"
+            onSubmit={() => void resolve()}
+          />
+        </div>
         <button
           type="button"
           onClick={() => void resolve()}
           disabled={loading || !text.trim()}
-          className="shrink-0 rounded-xl bg-accent px-4 text-sm font-bold text-accent-ink disabled:opacity-50"
+          className="h-[46px] shrink-0 rounded-xl bg-accent px-4 text-sm font-bold text-accent-ink disabled:opacity-50"
         >
           {loading ? '…' : 'Bul'}
         </button>

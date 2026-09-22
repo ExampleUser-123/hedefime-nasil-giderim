@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactElement } from 'react'
-import { fetchTransitDataCity } from '@/lib/api'
+import { fetchOfflineCityList, fetchTransitDataCity } from '@/lib/api'
 import {
   listOfflineCities,
   saveOfflineCity,
@@ -39,7 +39,6 @@ function displayName(slug: string): string {
     gaziantep: 'Gaziantep',
     mugla: 'Muğla',
     sivas: 'Sivas',
-    dugun: 'Düzce',
     duzce: 'Düzce',
     erzurum: 'Erzurum',
     ordu: 'Ordu',
@@ -59,14 +58,32 @@ function displayName(slug: string): string {
   return special[slug] ?? slug.charAt(0).toLocaleUpperCase('tr-TR') + slug.slice(1)
 }
 
+// Backend erisilemezse kullanilan yedek liste (backend /transit-data ile esit)
+const FALLBACK_CITIES = [
+  'adana', 'afyon', 'alanya', 'ankara', 'antalya', 'balikesir', 'bartin',
+  'bolu', 'burdur', 'bursa', 'canakkale', 'denizli', 'diyarbakir', 'duzce',
+  'edirne', 'erzurum', 'gaziantep', 'hatay', 'isparta', 'kahramanmaras',
+  'karabuk', 'karaman', 'kastamonu', 'kayseri', 'kirklareli', 'kocaeli',
+  'konya', 'malatya', 'manisa', 'mardin', 'mersin', 'mugla', 'nigde',
+  'ordu', 'osmaniye', 'rize', 'samsun', 'sanliurfa', 'sivas', 'tekirdag',
+  'tokat', 'trabzon', 'van', 'zonguldak',
+]
+
 export default function OfflineCitiesCard(): ReactElement {
   const [downloaded, setDownloaded] = useState<OfflineCity[]>([])
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [input, setInput] = useState('')
+  const [available, setAvailable] = useState<string[]>(FALLBACK_CITIES)
 
   useEffect(() => {
     listOfflineCities().then(setDownloaded).catch(() => setDownloaded([]))
+    // İndirilebilir il listesini backend ile senkron tut
+    fetchOfflineCityList()
+      .then((cities) => {
+        if (cities.length > 0) setAvailable(cities)
+      })
+      .catch(() => {})
   }, [])
 
   async function download(slug: string) {
@@ -112,12 +129,6 @@ export default function OfflineCitiesCard(): ReactElement {
     }
   }
 
-  const available = [
-    'adana', 'afyon', 'ankara', 'antalya', 'balikesir', 'bursa', 'denizli',
-    'diyarbakir', 'hatay', 'isparta', 'kahramanmaras', 'karaman', 'kastamonu',
-    'kayseri', 'kocaeli', 'konya', 'malatya', 'manisa', 'mersin', 'nigde',
-    'rize', 'samsun', 'sanliurfa', 'tekirdag', 'trabzon', 'van',
-  ]
   const notDownloaded = available.filter(
     (c) => !downloaded.some((d) => d.city.toLowerCase() === c),
   )
