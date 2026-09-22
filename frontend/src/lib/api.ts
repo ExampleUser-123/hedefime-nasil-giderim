@@ -522,6 +522,13 @@ export function deleteTarget(id: string): Promise<{ targets: GameTarget[] } | nu
 
 // --- Marketplace + Davet + XP Store ------------------------------------------
 
+export type CommunityComment = {
+  user_id: string
+  user_name: string
+  text: string
+  created: number
+}
+
 export type CommunityRoute = {
   id: string
   user_id: string
@@ -535,13 +542,39 @@ export type CommunityRoute = {
   place: { name: string; address: string; city: string; lat: number | null; lon: number | null }
   image_urls: string[]
   created: number
+  rating_avg?: number
+  rating_count?: number
+  comments?: CommunityComment[]
+  comment_count?: number
 }
 
-export function fetchMarketplace(limit = 20, offset = 0): Promise<CommunityRoute[]> {
-  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) })
+export function fetchMarketplace(limit = 20, offset = 0, sort: 'new' | 'top' = 'new'): Promise<CommunityRoute[]> {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset), sort })
   return request<{ routes: CommunityRoute[] }>(`/marketplace?${params}`, undefined, 15000)
     .then((d) => d.routes ?? [])
     .catch(() => [])
+}
+
+export function rateMarketplace(id: string, stars: number): Promise<{
+  route: CommunityRoute; profile: GameProfile | null
+} | null> {
+  return request<{ route: CommunityRoute; profile: GameProfile | null }>(
+    `/marketplace/${encodeURIComponent(id)}/rate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stars }),
+    }, 15000).catch(() => null)
+}
+
+export function commentMarketplace(id: string, text: string): Promise<{
+  route: CommunityRoute; profile: GameProfile | null
+} | null> {
+  return request<{ route: CommunityRoute; profile: GameProfile | null }>(
+    `/marketplace/${encodeURIComponent(id)}/comments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    }, 15000).catch(() => null)
 }
 
 export function publishMarketplace(item: {

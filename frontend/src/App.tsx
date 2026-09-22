@@ -25,6 +25,8 @@ import type { AuthUser, PlanResult, RouteIntent } from '@/lib/api'
 import { fetchShareRoute } from '@/lib/api'
 import { AUTH_CHANGED_EVENT, getStoredUser, refreshAuthState, signOut } from '@/lib/auth'
 import { INVITE_CODE_KEY } from '@/lib/auth'
+import { getPinnedPlace } from '@/lib/storage'
+import { goToPlace } from '@/lib/navigate'
 import { rescheduleAll } from '@/lib/reminders'
 import { initShareListener } from '@/lib/shareIntent'
 
@@ -73,6 +75,31 @@ export default function App() {
   // Native paylasim: baska uygulamadan gelen metni karsila (Magic Share)
   useEffect(() => {
     initShareListener()
+  }, [])
+
+  // Widget kisayollari: hng://go?target=home|work -> sabit konuma rota
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+    let handle: PluginListenerHandle | null = null
+    CapacitorApp.addListener('appUrlOpen', (event: { url: string }) => {
+      try {
+        const u = new URL(event.url)
+        if (u.protocol !== 'hng:' || u.host !== 'go') return
+        const target = u.searchParams.get('target')
+        if (target !== 'home' && target !== 'work') return
+        const place = getPinnedPlace(target)
+        setTab('home')
+        if (!place) return
+        void goToPlace(place.address, openRoute).catch(() => {})
+      } catch {
+        // bozuk link: normal acilis
+      }
+    }).then((h) => {
+      handle = h
+    }).catch(() => {})
+    return () => {
+      handle?.remove()
+    }
   }, [])
 
   // Davet linki: ?ref=KOD ile gelinirse kayit sirasinda kullanilmak uzere sakla

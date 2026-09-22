@@ -2100,10 +2100,12 @@ XP_STORE_ITEMS = {
 
 
 @app.get("/marketplace")
-def marketplace_list(limit: int = 20, offset: int = 0):
-    """Topluluk rotalari (herkese acik, sayfali)."""
+def marketplace_list(limit: int = 20, offset: int = 0, sort: str = "new"):
+    """Topluluk rotalari (herkese acik, sayfali; sort=new|top)."""
     from services import share_store
-    return {"routes": share_store.list_community_routes(limit, offset)}
+    if sort not in ("new", "top"):
+        sort = "new"
+    return {"routes": share_store.list_community_routes(limit, offset, sort)}
 
 
 @app.post("/marketplace")
@@ -2133,6 +2135,68 @@ def marketplace_delete(entry_id: str, user: dict = Depends(get_current_user)):
         return JSONResponse(
             status_code=404, content={"error": "Kayıt bulunamadı."})
     return {"ok": True}
+
+
+class RateBody(BaseModel):
+    stars: int
+
+
+class CommentBody(BaseModel):
+    text: str
+
+
+@app.post("/marketplace/{entry_id}/rate")
+def marketplace_rate(entry_id: str, body: RateBody,
+                     user: dict = Depends(get_current_user)):
+    """1-5 puan ver (kisi basi tek oy). Ilk oy +10 XP."""
+    from services import gamification, share_store
+    try:
+        entry, first = share_store.rate_community_route(
+            entry_id, user["id"], body.stars)
+    except Exception:
+        logger.exception("marketplace/rate beklenmeyen hata")
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Sunucuda beklenmeyen bir hata oluştu."},
+        )
+    if entry is None:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Geçersiz puan veya kayıt bulunamadı."})
+    profile = None
+    if first:
+        try:
+            profile = gamification.award(user["id"], "rated_route")
+        except Exception:
+            logger.warning("rated_route odulu verilemedi", exc_info=True)
+    return {"route": entry, "profile": profile}
+
+
+@app.post("/marketplace/{entry_id}/comments")
+def marketplace_comment(entry_id: str, body: CommentBody,
+                        user: dict = Depends(get_current_user)):
+    """Kisa yorum ekle. Ilk yorum +10 XP."""
+    from services import gamification, share_store
+    try:
+        entry, first = share_store.comment_community_route(
+            entry_id, user["id"], user.get("name"), body.text)
+    except Exception:
+        logger.exception("marketplace/comments beklenmeyen hata")
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Sunucuda beklenmeyen bir hata oluştu."},
+        )
+    if entry is None:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Yorum eklenemedi (boş olmasın, kayıt bulunsun)."})
+    profile = None
+    if first:
+        try:
+            profile = gamification.award(user["id"], "commented_route")
+        except Exception:
+            logger.warning("commented_route odulu verilemedi", exc_info=True)
+    return {"route": entry, "profile": profile}
 
 
 @app.get("/invite/code")

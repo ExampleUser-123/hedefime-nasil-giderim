@@ -1,8 +1,10 @@
 import { useEffect, useState, type ReactElement } from 'react'
 import {
+  commentMarketplace,
   deleteMarketplace,
   fetchMarketplace,
   publishMarketplace,
+  rateMarketplace,
   type CommunityRoute,
 } from '@/lib/api'
 import { getStoredUser } from '@/lib/auth'
@@ -22,19 +24,28 @@ export default function MarketplaceScreen({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
+  const [sort, setSort] = useState<'new' | 'top'>('new')
+  const [commentFor, setCommentFor] = useState<string | null>(null)
+  const [commentText, setCommentText] = useState('')
 
   const loggedIn = !!getStoredUser()
   const myId = getStoredUser()?.id
 
-  async function refresh() {
+  async function refresh(activeSort: 'new' | 'top' = sort) {
     setLoading(true)
-    setRoutes(await fetchMarketplace(20, 0))
+    setRoutes(await fetchMarketplace(20, 0, activeSort))
     setLoading(false)
   }
 
   useEffect(() => {
     void refresh()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  function switchSort(next: 'new' | 'top') {
+    setSort(next)
+    void refresh(next)
+  }
 
   async function publish() {
     if (!title.trim() || busy) return
@@ -65,6 +76,38 @@ export default function MarketplaceScreen({
   async function remove(id: string) {
     await deleteMarketplace(id)
     await refresh()
+  }
+
+  async function rate(id: string, stars: number) {
+    if (!loggedIn) {
+      setError('Puan vermek için giriş yapmalısınız.')
+      return
+    }
+    const res = await rateMarketplace(id, stars)
+    if (!res) {
+      setError('Puan kaydedilemedi. Lütfen tekrar deneyin.')
+      return
+    }
+    setRoutes((prev) => prev.map((r) => (r.id === id ? res.route : r)))
+    if (res.profile?.new_badges?.length) {
+      setInfo(`+10 XP! Yeni rozet: ${res.profile.new_badges.map((b) => b.name).join(', ')}`)
+    }
+  }
+
+  async function sendComment(id: string) {
+    const text = commentText.trim()
+    if (!text || !loggedIn) return
+    const res = await commentMarketplace(id, text)
+    if (!res) {
+      setError('Yorum kaydedilemedi. Lütfen tekrar deneyin.')
+      return
+    }
+    setRoutes((prev) => prev.map((r) => (r.id === id ? res.route : r)))
+    setCommentText('')
+    setCommentFor(null)
+    if (res.profile?.new_badges?.length) {
+      setInfo(`+10 XP! Yeni rozet: ${res.profile.new_badges.map((b) => b.name).join(', ')}`)
+    }
   }
 
   return (
@@ -144,6 +187,22 @@ export default function MarketplaceScreen({
         )}
 
         <div className="mt-4 space-y-3">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => switchSort('new')}
+              className={`flex-1 rounded-xl border py-2 text-xs font-bold ${sort === 'new' ? 'border-accent bg-accent/10 text-accent' : 'border-line text-muted'}`}
+            >
+              🆕 En Yeniler
+            </button>
+            <button
+              type="button"
+              onClick={() => switchSort('top')}
+              className={`flex-1 rounded-xl border py-2 text-xs font-bold ${sort === 'top' ? 'border-accent bg-accent/10 text-accent' : 'border-line text-muted'}`}
+            >
+              ⭐ En Çok Beğenilenler
+            </button>
+          </div>
           {loading && <p className="text-sm text-muted">Yükleniyor…</p>}
           {!loading && routes.length === 0 && (
             <p className="rounded-2xl border border-line bg-surface-2/90 px-4 py-6 text-center text-sm text-muted">
@@ -180,6 +239,71 @@ export default function MarketplaceScreen({
               )}
               {r.place?.name && (
                 <p className="mt-1 text-xs">📍 {r.place.name}</p>
+              )}
+
+              <div className="mt-2 flex items-center justify-between gap-2 border-t border-line/60 pt-2">
+                <div className="flex items-center gap-1" role="group" aria-label="Puan ver">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => void rate(r.id, s)}
+                      aria-label={`${s} yıldız ver`}
+                      className="text-base leading-none text-amber-300/90 transition-transform hover:scale-125"
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] text-muted tabular-nums">
+                  {(r.rating_avg ?? 0) > 0 ? `★ ${r.rating_avg!.toFixed(1)}` : 'Puan yok'}
+                  {(r.rating_count ?? 0) > 0 && ` (${r.rating_count} oy)`}
+                  {(r.comment_count ?? 0) > 0 && ` · 💬 ${r.comment_count}`}
+                </p>
+              </div>
+
+              {(r.comments ?? []).length > 0 && (
+                <div className="mt-2 space-y-1.5 border-t border-line/60 pt-2">
+                  {(r.comments ?? []).slice(-3).map((c, i) => (
+                    <p key={i} className="text-[11px] leading-relaxed">
+                      <strong>{c.user_name}:</strong>{' '}
+                      <span className="text-fg/85">{c.text}</span>
+                    </p>
+                  ))}
+                </div>
+              )}
+
+              {loggedIn && (
+                commentFor === r.id ? (
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      maxLength={300}
+                      placeholder="Yorumun…"
+                      className="min-h-[38px] flex-1 rounded-lg border border-line bg-bg px-2.5 text-xs outline-none focus:border-accent"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void sendComment(r.id)}
+                      disabled={!commentText.trim()}
+                      className="shrink-0 rounded-lg bg-accent px-3 text-xs font-bold text-accent-ink disabled:opacity-50"
+                    >
+                      Gönder
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCommentFor(r.id)
+                      setCommentText('')
+                    }}
+                    className="mt-2 text-[11px] font-semibold text-accent hover:underline"
+                  >
+                    💬 Yorum yaz
+                  </button>
+                )
               )}
               <button
                 type="button"

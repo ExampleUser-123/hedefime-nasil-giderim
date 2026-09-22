@@ -5,6 +5,7 @@
     <string name="package_name">com.hedefime.giderim</string>
     <string name="custom_url_scheme">com.hedefime.giderim</string>
     <string name="widget_desc">En yakın durağı ve sonraki kalkışları gösterir</string>
+    <string name="widget_shortcuts_desc">Tek tıkla Eve Git ve İşe Git kısayolları</string>
     <string name="widget_loading">Yükleniyor…</string>
     <string name="widget_open_app">Konum için uygulamayı aç</string>
     <string name="widget_no_stop">Yakında durak bulunamadı</string>

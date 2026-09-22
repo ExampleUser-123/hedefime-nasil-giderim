@@ -26,6 +26,13 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
             </intent-filter>
+            <!-- Kisayol widget'i: hng://go?target=home|work derin baglantisi -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="hng" android:host="go" />
+            </intent-filter>
         </activity>
 
         <provider
@@ -48,6 +55,19 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/nearest_stop_widget_info" />
+        </receiver>
+
+        <!-- Kisayol widget'i: Eve Git / Ise Git -->
+        <receiver
+            android:name=".HomeShortcutsWidgetProvider"
+            android:exported="false"
+            android:label="Eve / İşe Git">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/home_shortcuts_widget_info" />
         </receiver>
 
         <!-- AdMob: gercek uygulama kimligi -->

@@ -150,6 +150,34 @@ try:
     before = quota_store.get_usage(key)["magic"]
     quota_store.grant_bonus(key, "magic", 1)
     check("bonus kotayi dusurur", quota_store.get_usage(key)["magic"] == max(0, before - 1))
+
+    # --- oylama & yorum ---
+    r = c.post("/marketplace", json={"title": "Oy test rotasi"}, headers=h).json()
+    rid2 = r["route"]["id"]
+    xp0 = c.get("/gamification/profile", headers=h).json()["xp"]
+    r = c.post(f"/marketplace/{rid2}/rate", json={"stars": 5}, headers=h)
+    check("5 yildiz", r.status_code == 200 and r.json()["route"]["rating_avg"] == 5.0,
+          str(r.status_code))
+    xp1 = c.get("/gamification/profile", headers=h).json()["xp"]
+    check("ilk oy +10 XP", xp1 == xp0 + 10, f"{xp0}->{xp1}")
+    r = c.post(f"/marketplace/{rid2}/rate", json={"stars": 3}, headers=h).json()
+    check("oy guncelleme (tekrar odul yok)",
+          r["route"]["rating_avg"] == 3.0
+          and c.get("/gamification/profile", headers=h).json()["xp"] == xp1)
+    r = c.post(f"/marketplace/{rid2}/rate", json={"stars": 9}, headers=h)
+    check("gecersiz puan 400", r.status_code == 400, str(r.status_code))
+    r = c.post(f"/marketplace/{rid2}/comments", json={"text": "Harika rota!"}, headers=h)
+    check("yorum + ilk +10 XP",
+          r.status_code == 200 and r.json()["route"]["comment_count"] == 1
+          and c.get("/gamification/profile", headers=h).json()["xp"] == xp1 + 10,
+          str(r.status_code))
+    r = c.post(f"/marketplace/{rid2}/comments", json={"text": "  "}, headers=h)
+    check("bos yorum 400", r.status_code == 400, str(r.status_code))
+    r = c.get("/marketplace?sort=top", headers=h).json()
+    tops = [x["id"] for x in r.get("routes", [])]
+    check("top siralama", rid2 in tops, str(tops[:3]))
+    check("authsuz oy 401",
+          TestClient(app).post(f"/marketplace/{rid2}/rate", json={"stars": 5}).status_code == 401)
 finally:
     _restore()
 

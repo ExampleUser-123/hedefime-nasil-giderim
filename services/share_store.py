@@ -195,14 +195,18 @@ def publish_community_route(user_id: str, user_name: str, item: dict) -> dict | 
     return entry
 
 
-def list_community_routes(limit: int = 20, offset: int = 0) -> list[dict]:
-    """En yeniden eskiye topluluk rotalari (sayfali)."""
+def list_community_routes(limit: int = 20, offset: int = 0, sort: str = "new") -> list[dict]:
+    """Topluluk rotalari: new (varsayilan) veya top (ortalama puan)."""
 
     limit = max(1, min(int(limit or 20), 50))
     offset = max(0, int(offset or 0))
     with _LOCK:
         store = _load(_COMMUNITY_PATH)
-    ordered = sorted(store.values(), key=lambda e: e.get("created", 0), reverse=True)
+    items = [_with_rating(e) for e in store.values()]
+    if sort == "top":
+        ordered = sorted(items, key=lambda e: (-e["rating_avg"], -e.get("created", 0)))
+    else:
+        ordered = sorted(items, key=lambda e: e.get("created", 0), reverse=True)
     return ordered[offset: offset + limit]
 
 
@@ -217,3 +221,65 @@ def delete_community_route(entry_id: str, user_id: str) -> bool:
         del store[entry_id]
         _save(_COMMUNITY_PATH, store)
     return True
+
+
+def _with_rating(entry: dict) -> dict:
+    """Kopyaya ortalama puan + oy sayisi ekler (ham kayit degismez)."""
+
+    ratings = entry.get("ratings") or {}
+    vals = [int(v) for v in ratings.values()
+            if isinstance(v, int) and 1 <= v <= 5]
+    out = dict(entry)
+    out["rating_avg"] = round(sum(vals) / len(vals), 1) if vals else 0.0
+    out["rating_count"] = len(vals)
+    comments = entry.get("comments") or []
+    out["comments"] = comments[-10:]
+    out["comment_count"] = len(comments)
+    return out
+
+
+def rate_community_route(entry_id: str, user_id: str, stars: int) -> tuple[dict | None, bool]:
+    """1-5 puan verir (kisi basi tek oy, guncellenebilir).
+
+    Donus: (guncel kayit, ilk_kez_mi). Ilk oyda +10 XP icin ilk_kez kullanilir.
+    """
+
+    if not isinstance(stars, int) or not 1 <= stars <= 5:
+        return None, False
+    # bool int'in alt sinifi; True/False oy olmasin
+    if isinstance(stars, bool):
+        return None, False
+    with _LOCK:
+        store = _load(_COMMUNITY_PATH)
+        rec = store.get(entry_id)
+        if not rec:
+            return None, False
+        ratings = rec.setdefault("ratings", {})
+        first = user_id not in ratings
+        ratings[user_id] = stars
+        _save(_COMMUNITY_PATH, store)
+        return _with_rating(rec), first
+
+
+def comment_community_route(entry_id: str, user_id: str, user_name: str,
+                            text: str) -> tuple[dict | None, bool]:
+    """Kisa yorum ekler. Donus: (guncel kayit, ilk_yorum_mu)."""
+
+    text = (text or "").strip()[:300]
+    if not text:
+        return None, False
+    with _LOCK:
+        store = _load(_COMMUNITY_PATH)
+        rec = store.get(entry_id)
+        if not rec:
+            return None, False
+        comments = rec.setdefault("comments", [])
+        first = not any(c.get("user_id") == user_id for c in comments)
+        comments.append({
+            "user_id": user_id,
+            "user_name": (user_name or "Gezgin")[:40],
+            "text": text,
+            "created": time.time(),
+        })
+        _save(_COMMUNITY_PATH, store)
+        return _with_rating(rec), first

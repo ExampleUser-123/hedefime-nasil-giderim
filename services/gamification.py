@@ -27,6 +27,8 @@ XP_TABLE = {
     "night_route": 15,
     "route_published": 30,
     "referral": 50,
+    "rated_route": 10,
+    "commented_route": 10,
 }
 
 LEVEL_STEP = 200
