@@ -6,10 +6,11 @@ import { isFerryRoute, isRailRoute, isTramRoute } from '@/components/RouteResult
 
 const ACCENT = '#2dd4bf'
 
+// Sokak/mahalle etiketli canli harita (ucretsiz, anahtarsiz)
 const TILE_URL =
-  'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
+  'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
 const TILE_ATTRIBUTION =
-  'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ &mdash; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
 
 export type MapMode = 'tumu' | 'otobus' | 'metro' | 'tramvay' | 'yuruyus' | 'arac' | 'motosiklet' | 'ucak' | 'tren' | 'deniz'
 
@@ -211,12 +212,16 @@ export default function MapView({
 
     const map = L.map(container, {
       zoomControl: false,
-      scrollWheelZoom: false,
+      scrollWheelZoom: true,
       doubleClickZoom: true,
       attributionControl: true,
     })
 
-    L.tileLayer(TILE_URL, { attribution: TILE_ATTRIBUTION }).addTo(map)
+    L.tileLayer(TILE_URL, {
+      attribution: TILE_ATTRIBUTION,
+      subdomains: 'abcd',
+      maxZoom: 20,
+    }).addTo(map)
     routeLayerRef.current = L.layerGroup().addTo(map)
     stopsLayerRef.current = L.layerGroup().addTo(map)
     mapRef.current = map
@@ -263,10 +268,11 @@ export default function MapView({
     L.marker(start, { icon: startIcon() }).addTo(routeLayer)
     L.marker(end, { icon: endIcon() }).addTo(routeLayer)
 
-    // Secili rotanin binis/inis/aktarma pinleri (hat + durak adi)
+    // Secili rotanin binis/inis/aktarma pinleri (hat + durak adi; tiklanabilir)
     for (const pin of buildTransferPins(plan, mode, routeIndex)) {
       L.marker(pin.position, { icon: transferIcon(), keyboard: false })
         .bindTooltip(pin.title, { direction: 'top', offset: [0, -6] })
+        .bindPopup(pin.title)
         .addTo(routeLayer)
     }
 
@@ -293,6 +299,7 @@ export default function MapView({
       })
 
       marker.bindTooltip(stop.name, { direction: 'top', offset: [0, -8] })
+      marker.bindPopup(stop.name)
 
       if (onSelectStop) {
         marker.on('click', () => onSelectStop(stop))

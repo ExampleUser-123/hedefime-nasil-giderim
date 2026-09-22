@@ -3,6 +3,7 @@ import json
 from datetime import datetime
 
 from services.cache import cached
+from services.routing import snap_to_road
 
 
 IETT_ROUTER_URL = "https://nasilgiderim.iett.gov.tr/router"
@@ -106,9 +107,10 @@ def _decode_polyline(encoded):
     return coords
 
 
-def _get_leg_coords(leg, stops):
+def _get_leg_coords(leg, stops, road_profile=None):
     """Leg geometrisini sections polyline'larından çözer,
-    yoksa durak noktalarına düşer."""
+    yoksa durakları gerçek yollara oturtur (OSRM snap-to-road),
+    o da olmazsa durak noktalarına düşer."""
 
     coords = []
 
@@ -118,10 +120,23 @@ def _get_leg_coords(leg, stops):
         if polyline:
             coords.extend(_decode_polyline(polyline))
 
-    if not coords:
-        coords = _get_stop_coords(stops)
+    if coords:
+        return coords
 
-    return coords
+    stop_coords = _get_stop_coords(stops)
+
+    if road_profile and len(stop_coords) >= 2:
+        try:
+            snapped = snap_to_road(
+                tuple(tuple(p) for p in stop_coords),
+                road_profile,
+            )
+        except Exception:
+            snapped = None
+        if snapped:
+            return snapped
+
+    return stop_coords
 
 
 def _parse_leg(leg):
@@ -137,7 +152,10 @@ def _parse_leg(leg):
 
     stops = leg.get("stops", [])
     stop_names = _get_stop_names(stops)
-    leg_coords = _get_leg_coords(leg, stops)
+    # Yürüme ayakları patikaya (foot), araçlı ayaklar yola (driving) oturtulur
+    leg_coords = _get_leg_coords(
+        leg, stops, "foot" if route_id == "walking" else "driving"
+    )
 
     # Yürüme ayağı
     if route_id == "walking":

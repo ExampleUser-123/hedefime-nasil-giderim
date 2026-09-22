@@ -17,6 +17,17 @@ import json
 import math
 import re
 
+from services.routing import snap_to_road
+
+
+def _foot_path(a_lat, a_lon, b_lat, b_lon):
+    """İki nokta arasını yürüme yoluna oturtur; olmazsa düz çizer."""
+    try:
+        snapped = snap_to_road(((a_lat, a_lon), (b_lat, b_lon)), "foot")
+    except Exception:
+        snapped = None
+    return snapped or [[a_lat, a_lon], [b_lat, b_lon]]
+
 LINE_SPEED_KMH = {
     "subway": 33,
     "tram": 18,
@@ -260,7 +271,7 @@ def find_rail_route(start_lat, start_lon, end_lat, end_lon, max_routes=3, max_wa
                 "to_stop": first["name"],
                 "stops": [],
                 "alternate_lines": [],
-                "coords": [[start_lat, start_lon], [first["lat"], first["lon"]]],
+                "coords": _foot_path(start_lat, start_lon, first["lat"], first["lon"]),
             })
 
         # Rayli ayaklari hattara gore grupla (binis istasyonu = onceki dugum)
@@ -324,7 +335,7 @@ def find_rail_route(start_lat, start_lon, end_lat, end_lon, max_routes=3, max_wa
                 "to_stop": None,
                 "stops": [],
                 "alternate_lines": [],
-                "coords": [[last["lat"], last["lon"]], [end_lat, end_lon]],
+                "coords": _foot_path(last["lat"], last["lon"], end_lat, end_lon),
             })
 
         walk_total = sum(l["distance_m"] for l in legs if l["type"] == "walking")
