@@ -12,6 +12,7 @@ import BottomNav, { type Tab } from '@/components/BottomNav'
 import NearbyStops from '@/components/NearbyStops'
 import VibeCard from '@/components/VibeCard'
 import MagicShare from '@/components/MagicShare'
+import NightCard from '@/components/NightCard'
 import TargetsSection from '@/components/TargetsSection'
 import MarketplaceScreen from '@/components/MarketplaceScreen'
 import {
@@ -268,10 +269,12 @@ export default function App() {
                   routeIndex={routeIndex}
                   onRouteIndexChange={setRouteIndex}
                   onRequireLogin={openLogin}
+                  city={weatherCity}
                 />
               </div>
               <VibeCard plan={plan} city={weatherCity} />
               <MagicShare onOpenRoute={openRoute} />
+              <NightCard onOpenRoute={openRoute} />
             </motion.section>
           </>
         )}

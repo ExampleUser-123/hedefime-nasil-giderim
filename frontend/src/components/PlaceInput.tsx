@@ -18,6 +18,7 @@ export default function PlaceInput({
   accent,
   endSlot,
   onSubmit,
+  city,
 }: {
   value: string
   onChange: (next: string) => void
@@ -26,6 +27,7 @@ export default function PlaceInput({
   accent?: boolean
   endSlot?: React.ReactNode
   onSubmit?: () => void
+  city?: string
 }) {
   const [text, setText] = useState(value)
   const [items, setItems] = useState<PlaceSuggestion[]>([])
@@ -87,8 +89,9 @@ export default function PlaceInput({
 
     debounceRef.current = setTimeout(() => {
       // Kayitli cihaz konumu varsa onerileri o bolgeye bicimlendir
-      // ("fatih mahallesi" -> kullaniciya en yakin Fatih Mahallesi)
-      fetchSuggestions(trimmed, getLastCoords() ?? undefined)
+      // ("fatih mahallesi" -> kullaniciya en yakin Fatih Mahallesi).
+      // Sehir baglami varsa (örn. "Kocaeli") kurum/okul adlarinda isabeti artirir.
+      fetchSuggestions(trimmed, getLastCoords() ?? undefined, 6000, city)
         .then((suggestions) => {
           setItems(suggestions)
         })

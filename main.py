@@ -1,4 +1,5 @@
 import logging
+import json
 import os
 import time
 
@@ -511,14 +512,17 @@ def search_place_endpoint(q: str):
 
 
 @app.get("/suggest-places")
-def suggest_places_endpoint(q: str, lat: float | None = None, lon: float | None = None):
+def suggest_places_endpoint(q: str, lat: float | None = None, lon: float | None = None,
+                            city: str | None = None):
     """Yazarken öneri listesi (autocomplete).
 
     lat/lon verilirse (cihaz konumu) sonuclar o bolgeye onceliklendirilir.
+    city verilirse (örn. "Kocaeli") sorgu arka planda zenginlestirilir;
+    okul/hastane/AVM gibi uzun kurum adlarinda isabeti artirir.
     """
 
     try:
-        suggestions = suggest_places(q, lat=lat, lon=lon)
+        suggestions = suggest_places(q, lat=lat, lon=lon, city=city)
     except Exception:
         # Öneri servisi kritik degil; hata durumunda bos liste
         # donup arama akisini bozmayalim.
@@ -2135,6 +2139,134 @@ def marketplace_delete(entry_id: str, user: dict = Depends(get_current_user)):
         return JSONResponse(
             status_code=404, content={"error": "Kayıt bulunamadı."})
     return {"ok": True}
+
+
+class LiveTripBody(BaseModel):
+    from_: str = Field(default="", alias="from")
+    destination: str = ""
+    dest_lat: float | None = None
+    dest_lon: float | None = None
+    lat: float | None = None
+    lon: float | None = None
+    eta_min: int | None = None
+
+    model_config = {"populate_by_name": True}
+
+
+class LiveTripPingBody(BaseModel):
+    update_key: str = ""
+    lat: float | None = None
+    lon: float | None = None
+    eta_min: int | None = None
+
+
+@app.post("/live-trips")
+def live_trip_create(body: LiveTripBody, user: dict = Depends(get_current_user)):
+    """Canli takip oturumu acar; ping icin update_key doner."""
+    from services import share_store
+    try:
+        return share_store.create_live_trip(user["id"], user.get("name"), {
+            "from": body.from_, "destination": body.destination,
+            "dest_lat": body.dest_lat, "dest_lon": body.dest_lon,
+            "lat": body.lat, "lon": body.lon, "eta_min": body.eta_min,
+        })
+    except Exception:
+        logger.exception("live-trips/create beklenmeyen hata")
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Sunucuda beklenmeyen bir hata oluştu."},
+        )
+
+
+@app.post("/live-trips/{trip_id}/ping")
+def live_trip_ping(trip_id: str, body: LiveTripPingBody):
+    """Konum gunceller (kimlik: update_key, giris gerekmez)."""
+    from services import share_store
+    rec = share_store.ping_live_trip(
+        trip_id, body.update_key, body.lat, body.lon, body.eta_min)
+    if rec is None:
+        return JSONResponse(
+            status_code=404, content={"error": "Takip bulunamadı veya anahtar hatalı."})
+    return {"ok": True}
+
+
+@app.get("/live-trips/{trip_id}")
+def live_trip_get(trip_id: str):
+    """Takip verisi (herkese acik)."""
+    from services import share_store
+    rec = share_store.get_live_trip(trip_id)
+    if rec is None:
+        return JSONResponse(
+            status_code=404, content={"error": "Takip bulunamadı veya süresi doldu."})
+    return rec
+
+
+@app.get("/live-trips/{trip_id}/view")
+def live_trip_view(trip_id: str):
+    """Baglanti acan kisiye minimal canli izleme sayfasi (uygulamasiz)."""
+    from fastapi.responses import HTMLResponse
+
+    safe_id = "".join(c for c in (trip_id or "") if c.isalnum() or c in "-_")[:32]
+    trip_json = json.dumps(safe_id)
+    html = """<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Canlı Yolculuk Takibi</title>
+<style>
+  body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+         background: #0b1220; color: #e6edf7; margin: 0; padding: 20px; }
+  .card { max-width: 560px; margin: 0 auto; background: #121a2b;
+          border: 1px solid #22304d; border-radius: 16px; padding: 20px; }
+  h1 { font-size: 1.2rem; margin: 0 0 8px; }
+  .meta { color: #93a4c3; font-size: .9rem; }
+  .eta { font-size: 1.6rem; font-weight: 800; color: #2dd4bf; margin: 12px 0; }
+  iframe { width: 100%; height: 300px; border: 0; border-radius: 12px; margin-top: 12px; }
+  .err { color: #f87171; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Canlı Yolculuk Takibi</h1>
+  <p class="meta" id="info">Yükleniyor…</p>
+  <p class="eta" id="eta"></p>
+  <div id="map"></div>
+  <p class="meta">Hedefime Nasıl Giderim ile paylaşıldı · 15 saniyede bir güncellenir</p>
+</div>
+<script>
+const TRIP_ID = %%TRIP_ID%%;
+async function tick() {
+  try {
+    const r = await fetch('/live-trips/' + encodeURIComponent(TRIP_ID));
+    if (!r.ok) throw new Error();
+    const d = await r.json();
+    const who = d.user_name ? d.user_name + ' ' : '';
+    const where = (d.from || '?') + ' → ' + (d.destination || '?');
+    document.getElementById('info').textContent = who + where;
+    document.getElementById('eta').textContent =
+      (d.eta_min === null || d.eta_min === undefined)
+        ? 'Konum bekleniyor…'
+        : 'Tahmini varış: ~' + d.eta_min + ' dk';
+    if (d.lat !== null && d.lat !== undefined && d.lon !== null && d.lon !== undefined) {
+      const b = 0.02;
+      document.getElementById('map').innerHTML =
+        '<iframe loading="lazy" src="https://www.openstreetmap.org/export/embed.html?bbox='
+        + (d.lon - b) + ',' + (d.lat - b) + ',' + (d.lon + b) + ',' + (d.lat + b)
+        + '&layer=mapnik&marker=' + d.lat + ',' + d.lon + '"></iframe>';
+    }
+  } catch (e) {
+    document.getElementById('info').innerHTML =
+      '<span class="err">Takip bulunamadı veya süresi doldu.</span>';
+    document.getElementById('eta').textContent = '';
+  }
+}
+tick();
+setInterval(tick, 15000);
+</script>
+</body>
+</html>"""
+    return HTMLResponse(content=html.replace("%%TRIP_ID%%", trip_json))
 
 
 class RateBody(BaseModel):

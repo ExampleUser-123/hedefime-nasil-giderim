@@ -1,0 +1,1 @@
+import{n as e}from"./index-BM8aZAWp.js";var t=class extends e{async getPluginVersion(){return{version:`web`}}};export{t as CapacitorShareTargetWeb};

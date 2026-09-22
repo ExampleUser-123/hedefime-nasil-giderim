@@ -218,12 +218,16 @@ export type PlaceSuggestion = {
   lon: number
 }
 
-export function fetchSuggestions(q: string, coords?: { lat: number; lon: number }, timeoutMs = 6000): Promise<PlaceSuggestion[]> {
+export function fetchSuggestions(q: string, coords?: { lat: number; lon: number }, timeoutMs = 6000, city?: string): Promise<PlaceSuggestion[]> {
   const params = new URLSearchParams({ q })
 
   if (coords) {
     params.set('lat', String(coords.lat))
     params.set('lon', String(coords.lon))
+  }
+
+  if (city && city.trim()) {
+    params.set('city', city.trim())
   }
 
   return request<{ suggestions: PlaceSuggestion[] }>(
@@ -593,6 +597,32 @@ export function deleteMarketplace(id: string): Promise<boolean> {
   return request<{ ok: boolean }>(`/marketplace/${encodeURIComponent(id)}`, { method: 'DELETE' }, 15000)
     .then((d) => !!d.ok)
     .catch(() => false)
+}
+
+// --- Canli yolculuk paylasimi -------------------------------------------------
+
+export type LiveTrip = { id: string; update_key: string }
+
+export function createLiveTrip(args: {
+  from: string; destination: string
+  dest_lat?: number | null; dest_lon?: number | null
+  lat?: number | null; lon?: number | null; eta_min?: number | null
+}): Promise<LiveTrip | null> {
+  return request<LiveTrip>('/live-trips', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(args),
+  }, 20000).catch(() => null)
+}
+
+export function pingLiveTrip(id: string, args: {
+  update_key: string; lat: number; lon: number; eta_min?: number | null
+}): Promise<boolean> {
+  return request<{ ok: boolean }>(`/live-trips/${encodeURIComponent(id)}/ping`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(args),
+  }, 15000).then((d) => !!d.ok).catch(() => false)
 }
 
 export function fetchInviteCode(): Promise<{ code: string | null }> {

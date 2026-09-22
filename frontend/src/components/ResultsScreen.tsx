@@ -4,6 +4,7 @@ import { createShareRoute, reportFeedback } from '@/lib/api'
 import { watchGetOff } from '@/lib/getOffAlert'
 import VoiceGuidance from '@/components/VoiceGuidance'
 import TripReport from '@/components/TripReport'
+import LiveTripButton from '@/components/LiveTripButton'
 import CrowdingCard from '@/components/CrowdingCard'
 import { loadFavorites, toggleFavorite } from '@/lib/favorites'
 import { adsAvailable, removeBanner, showBottomBanner } from '@/lib/ads'
@@ -693,6 +694,10 @@ export default function ResultsScreen({
             <IconStar className={`h-4.5 w-4.5 ${saved ? 'fill-current' : ''}`} />
           </button>
         </header>
+
+        <div className="mt-3">
+          <LiveTripButton plan={plan} onRequireLogin={onRequireLogin} />
+        </div>
 
         {best && (
           <div className="mt-4 rounded-2xl border border-accent/40 bg-accent/10 px-4 py-3">

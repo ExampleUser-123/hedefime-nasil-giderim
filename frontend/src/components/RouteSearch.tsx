@@ -65,6 +65,7 @@ export default function RouteSearch({
   routeIndex,
   onRouteIndexChange,
   onRequireLogin,
+  city,
 }: {
   mode: Mode
   onModeChange: (mode: Mode) => void
@@ -74,6 +75,7 @@ export default function RouteSearch({
   routeIndex: number
   onRouteIndexChange: (index: number) => void
   onRequireLogin: () => void
+  city?: string
 }) {
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
@@ -235,6 +237,7 @@ export default function RouteSearch({
             onChange={setFrom}
             placeholder="Nereden"
             accent
+            city={city}
             onSubmit={search}
             endSlot={
               <button
@@ -261,6 +264,7 @@ export default function RouteSearch({
               value={to}
               onChange={setTo}
               placeholder="Nereye"
+              city={city}
               onSubmit={search}
             />
           </div>

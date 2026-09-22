@@ -95,9 +95,9 @@ def _detect_city(lat: float, lon: float) -> str:
 
 @cached(3600)
 def _cached_search(query: str):
-    from services.geocoding import search_place
+    from services.geocoding import smart_search_place
     try:
-        return search_place(query)
+        return smart_search_place(query)
     except Exception:
         return None
 

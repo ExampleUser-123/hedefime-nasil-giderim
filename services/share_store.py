@@ -22,11 +22,12 @@ def _paths():
         os.path.join(base, "share_routes.json"),
         os.path.join(base, "crowding.json"),
         os.path.join(base, "community_routes.json"),
+        os.path.join(base, "live_trips.json"),
     )
 
 
 _DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
-_SHARE_PATH, _CROWD_PATH, _COMMUNITY_PATH = _paths()
+_SHARE_PATH, _CROWD_PATH, _COMMUNITY_PATH, _TRIP_PATH = _paths()
 
 _LOCK = threading.Lock()
 
@@ -283,3 +284,89 @@ def comment_community_route(entry_id: str, user_id: str, user_name: str,
         })
         _save(_COMMUNITY_PATH, store)
         return _with_rating(rec), first
+
+
+# --- Canli yolculuk paylasimi ---------------------------------------------------
+
+_TRIP_TTL_SECONDS = 12 * 3600
+
+
+def _trip_prune(store: dict) -> dict:
+    cutoff = time.time() - _TRIP_TTL_SECONDS
+    return {k: v for k, v in store.items() if v.get("updated", 0) > cutoff}
+
+
+def create_live_trip(user_id: str, user_name: str, item: dict) -> dict:
+    """Takip oturumu acar. Donus: {id, update_key} (key ping kimligidir)."""
+
+    entry = {
+        "id": secrets.token_urlsafe(6),
+        "update_key": secrets.token_urlsafe(16),
+        "user_id": user_id,
+        "user_name": (user_name or "Gezgin")[:40],
+        "from": str(item.get("from") or "")[:160],
+        "destination": str(item.get("destination") or "")[:160],
+        "dest_lat": item.get("dest_lat"),
+        "dest_lon": item.get("dest_lon"),
+        "lat": item.get("lat"),
+        "lon": item.get("lon"),
+        "eta_min": item.get("eta_min"),
+        "created": time.time(),
+        "updated": time.time(),
+    }
+    with _LOCK:
+        store = _trip_prune(_load(_TRIP_PATH))
+        store[entry["id"]] = entry
+        _save(_TRIP_PATH, store)
+    return {"id": entry["id"], "update_key": entry["update_key"]}
+
+
+def ping_live_trip(trip_id: str, update_key: str, lat, lon, eta_min) -> dict | None:
+    """Konum gunceller. Anahtar yanlissa None (yetkisiz)."""
+
+    try:
+        lat = float(lat)
+        lon = float(lon)
+    except (TypeError, ValueError):
+        return None
+    if not (-90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0):
+        return None
+    try:
+        eta = None if eta_min is None else max(0, int(float(eta_min)))
+    except (TypeError, ValueError):
+        eta = None
+    with _LOCK:
+        store = _trip_prune(_load(_TRIP_PATH))
+        rec = store.get(trip_id)
+        if not rec or rec.get("update_key") != update_key:
+            _save(_TRIP_PATH, store)
+            return None
+        rec["lat"] = lat
+        rec["lon"] = lon
+        rec["eta_min"] = eta
+        rec["updated"] = time.time()
+        _save(_TRIP_PATH, store)
+        return _public_trip(rec)
+
+
+def get_live_trip(trip_id: str) -> dict | None:
+    """Takip gorunumu (herkese acik). Suresi dolmussa None."""
+
+    with _LOCK:
+        store = _trip_prune(_load(_TRIP_PATH))
+    rec = store.get(trip_id)
+    if not rec:
+        return None
+    return _public_trip(rec)
+
+
+def _public_trip(rec: dict) -> dict:
+    return {
+        "from": rec.get("from", ""),
+        "destination": rec.get("destination", ""),
+        "user_name": rec.get("user_name", ""),
+        "lat": rec.get("lat"),
+        "lon": rec.get("lon"),
+        "eta_min": rec.get("eta_min"),
+        "updated": rec.get("updated", 0),
+    }
