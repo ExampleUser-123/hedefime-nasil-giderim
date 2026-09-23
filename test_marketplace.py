@@ -105,22 +105,53 @@ try:
     xp_after2 = c.get("/gamification/profile", headers=h).json()["xp"]
     check("ikinci davetli +50 daha", xp_after2 == xp_after + 50, f"{xp_after}->{xp_after2}")
 
-    # --- XP store ---
+    # --- XP store (v1.15 katalogu: 6 dijital urun) ---
     r = c.get("/xp-store/items", headers=h).json()
-    check("katalog 4 urun", len(r.get("items", [])) == 4, str(len(r.get("items", []))))
+    check("katalog 6 urun", len(r.get("items", [])) == 6, str(len(r.get("items", []))))
     check("bakiye gorunur", r.get("xp", 0) >= 130, str(r.get("xp")))
-    # bakiye biriktir (HTTP rate limitine takilmamak icin dogrudan servis;
-    # vibe_unlock 300 + lite_trial 1000 icin ~1400 XP gerekir)
+    # bakiye biriktir (HTTP rate limitine takilmamak icin dogrudan servis)
     from services import gamification as _g, user_store as _us
     _uid = _us.find_user_by_email("pazaryeri@example.com")["id"]
     for _ in range(30):
         _g.award(_uid, "referral")
-    # yetersiz XP: once harca (vibe_unlock 300 kullanalim, kalanla magic_pack alinamaz)
-    r = c.post("/xp-store/redeem", json={"item": "vibe_unlock"}, headers=h)
-    check("vibe_unlock takas", r.status_code == 200, str(r.status_code))
+    xp_before = c.get("/gamification/profile", headers=h).json()["xp"]
+    # rozet paketi
+    r = c.post("/xp-store/redeem", json={"item": "badge_pack"}, headers=h)
+    check("badge_pack takas", r.status_code == 200, str(r.status_code))
+    badges = c.get("/gamification/profile", headers=h).json().get("badge_ids", [])
+    check("gezgin + yerel rehber rozeti", "gezgin" in badges and "yerel_rehber" in badges, str(badges))
+    xp_spent = c.get("/gamification/profile", headers=h).json()["xp"]
+    r = c.post("/xp-store/redeem", json={"item": "badge_pack"}, headers=h)
+    check("mukerrer rozet 400", r.status_code == 400, str(r.status_code))
+    check("mukerrer alimda XP harcanmaz",
+          c.get("/gamification/profile", headers=h).json()["xp"] == xp_spent)
     r = c.post("/xp-store/redeem", json={"item": "yokurun"}, headers=h)
     check("gecersiz urun 400", r.status_code == 400)
-    # vibe_unlock etkisi: free kullanici manzarali kullanabilir
+    # tuketilebilir paketler
+    r = c.post("/xp-store/redeem", json={"item": "ai_plus5"}, headers=h)
+    check("ai_plus5 takas", r.status_code == 200, str(r.status_code))
+    r = c.post("/xp-store/redeem", json={"item": "magic_plus3"}, headers=h)
+    check("magic_plus3 takas", r.status_code == 200, str(r.status_code))
+    # kalici kilitler
+    r = c.post("/xp-store/redeem", json={"item": "night_alert"}, headers=h)
+    check("night_alert takas", r.status_code == 200, str(r.status_code))
+    r = c.post("/xp-store/redeem", json={"item": "night_alert"}, headers=h)
+    check("mukerrer night_alert 400", r.status_code == 400, str(r.status_code))
+    r = c.post("/xp-store/redeem", json={"item": "offline_pack"}, headers=h)
+    check("offline_pack takas", r.status_code == 200, str(r.status_code))
+    owned = {i["id"]: i["owned"] for i in c.get("/xp-store/items", headers=h).json()["items"]}
+    check("sahiplik isaretleri", owned.get("badge_pack") and owned.get("night_alert")
+          and owned.get("offline_pack"), str(owned))
+    # 1 gunluk sinirsiz rota
+    r = c.post("/xp-store/redeem", json={"item": "unlimited_day"}, headers=h)
+    check("unlimited_day takas", r.status_code == 200, str(r.status_code))
+    owned_now = {i["id"]: i["owned"] for i in c.get("/xp-store/items", headers=h).json()["items"]}
+    check("unlimited_day sahiplik", owned_now.get("unlimited_day") is True, str(owned_now))
+    from main import _unlimited_routes_active
+    check("unlimited rota aktif", _unlimited_routes_active(_uid) is True)
+    check("toplam harcama tutarli", xp_before - xp_spent >= 150, f"{xp_before}->{xp_spent}")
+    # eski vibe_unlock kaldirildi ama onceki sahiplerin hakki korunur
+    _us.grant_perk(_uid, "vibe_unlock", True)
     with patch("services.routing.calculate_route",
                return_value={"duration_minutes": 30, "distance_km": 25}), \
          patch("services.public_transport.find_transit_routes",
@@ -132,17 +163,8 @@ try:
          patch("services.location.find_province", return_value={"name": "Istanbul"}):
         body = {"start_lat": 41, "start_lon": 29, "end_lat": 41.1, "end_lon": 29.1,
                 "city": "Istanbul", "mood": "manzarali"}
-        check("vibe_unlock ile manzarali acik",
+        check("eski vibe_unlock hakki korunur",
               c.post("/vibe-routes", json=body, headers=h).status_code == 200)
-    # lite deneme katmani
-    xr = c.get("/gamification/profile", headers=h).json()["xp"]
-    if xr >= 1000:
-        r = c.post("/xp-store/redeem", json={"item": "lite_trial"}, headers=h)
-        check("lite deneme", r.status_code == 200)
-        check("katman lite gorunur",
-              c.get("/usage", headers=h).json().get("tier") == "lite")
-    else:
-        check("lite deneme (XP yetmedi, atlandi)", True, f"xp={xr}")
     # magic bonus etkisi
     from services import quota_store
     u = user_store.find_user_by_email("pazaryeri@example.com")

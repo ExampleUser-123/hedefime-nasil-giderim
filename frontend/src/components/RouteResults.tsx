@@ -584,7 +584,80 @@ export function TransitList({
   )
 }
 
-export function FlightDetails({ flight }: { flight: FlightEstimate }) {
+/** Ucak/tren tahmini icin uygulama ici detay sayfasi (disari link yok). */
+function EstimateSheet({
+  kind,
+  from,
+  to,
+  estimate,
+  onClose,
+}: {
+  kind: 'ucak' | 'tren'
+  from: string
+  to: string
+  estimate: FlightEstimate
+  onClose: () => void
+}) {
+  const hours = Math.floor((estimate.duration_minutes ?? 0) / 60)
+  const minutes = (estimate.duration_minutes ?? 0) % 60
+  const title = kind === 'ucak' ? 'Uçak yolculuğu detayı' : 'Tren yolculuğu detayı'
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center" role="dialog" aria-modal="true" aria-label={title}>
+      <div className="max-h-[88dvh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-line bg-surface p-5 sm:rounded-3xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-base font-extrabold">{title}</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Kapat"
+            className="rounded-full p-1.5 text-muted hover:text-text"
+          >
+            ✕
+          </button>
+        </div>
+
+        <p className="mt-2 break-words text-sm font-bold">
+          {from} <span className="mx-1 text-accent">→</span> {to}
+        </p>
+
+        <dl className="mt-3 space-y-2 text-sm">
+          <div className="flex items-center justify-between gap-2 rounded-xl bg-bg/60 px-3.5 py-2.5">
+            <dt className="text-muted">Kapıdan kapıya süre</dt>
+            <dd className="font-bold tabular-nums">~{hours} sa {minutes} dk</dd>
+          </div>
+          <div className="flex items-center justify-between gap-2 rounded-xl bg-bg/60 px-3.5 py-2.5">
+            <dt className="text-muted">Kişi başı (tahmini)</dt>
+            <dd className="font-bold tabular-nums">
+              {estimate.estimated_price_per_person?.toLocaleString('tr-TR')} TL
+            </dd>
+          </div>
+          <div className="flex items-center justify-between gap-2 rounded-xl bg-bg/60 px-3.5 py-2.5">
+            <dt className="text-muted">Toplam ({estimate.people} kişi, tahmini)</dt>
+            <dd className="font-bold tabular-nums text-accent">
+              {estimate.total_price?.toLocaleString('tr-TR')} TL
+            </dd>
+          </div>
+        </dl>
+
+        {estimate.note && <p className="mt-3 text-xs text-muted">{estimate.note}</p>}
+        <p className="mt-2 text-[11px] text-muted">
+          Fiyatlar mesafe bazlı tahmindir; gerçek bilet fiyatı ilgili firmadan alınır.
+        </p>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="mt-4 flex min-h-[48px] w-full items-center justify-center rounded-2xl bg-accent font-extrabold text-[#04241d]"
+        >
+          Tamam
+        </button>
+      </div>
+    </div>
+  )
+}
+
+export function FlightDetails({ flight, from, to }: { flight: FlightEstimate; from: string; to: string }) {
   if (!flight.available) {
     return (
       <div>
@@ -598,6 +671,7 @@ export function FlightDetails({ flight }: { flight: FlightEstimate }) {
     )
   }
 
+  const [showDetail, setShowDetail] = useState(false)
   const hours = Math.floor((flight.duration_minutes ?? 0) / 60)
   const minutes = (flight.duration_minutes ?? 0) % 60
 
@@ -634,19 +708,22 @@ export function FlightDetails({ flight }: { flight: FlightEstimate }) {
 
       <p className="mt-3 text-xs text-muted">{flight.note}</p>
 
-      <a
-        href="https://www.google.com/travel/flights"
-        target="_blank"
-        rel="noreferrer"
+      <button
+        type="button"
+        onClick={() => setShowDetail(true)}
         className="mt-2 inline-block text-xs font-bold text-accent underline-offset-2 hover:underline"
       >
-        Gerçek bilet fiyatlarını gör →
-      </a>
+        Yolculuk detayını gör →
+      </button>
+
+      {showDetail && (
+        <EstimateSheet kind="ucak" from={from} to={to} estimate={flight} onClose={() => setShowDetail(false)} />
+      )}
     </div>
   )
 }
 
-export function TrainDetails({ train }: { train: TrainEstimate }) {
+export function TrainDetails({ train, from, to }: { train: TrainEstimate; from: string; to: string }) {
   if (!train.available) {
     return (
       <div>
@@ -660,6 +737,7 @@ export function TrainDetails({ train }: { train: TrainEstimate }) {
     )
   }
 
+  const [showTrainDetail, setShowTrainDetail] = useState(false)
   const hours = Math.floor((train.duration_minutes ?? 0) / 60)
   const minutes = (train.duration_minutes ?? 0) % 60
 
@@ -696,14 +774,17 @@ export function TrainDetails({ train }: { train: TrainEstimate }) {
 
       <p className="mt-3 text-xs text-muted">{train.note}</p>
 
-      <a
-        href="https://ebilet.tcdd.gov.tr"
-        target="_blank"
-        rel="noreferrer"
+      <button
+        type="button"
+        onClick={() => setShowTrainDetail(true)}
         className="mt-2 inline-block text-xs font-bold text-accent underline-offset-2 hover:underline"
       >
-        TCDD'de gerçek bilet fiyatlarını gör →
-      </a>
+        Yolculuk detayını gör →
+      </button>
+
+      {showTrainDetail && (
+        <EstimateSheet kind="tren" from={from} to={to} estimate={train} onClose={() => setShowTrainDetail(false)} />
+      )}
     </div>
   )
 }
@@ -740,7 +821,7 @@ export default function RouteResults({
       {mode === 'yuruyus' && <WalkingDetails result={result} />}
       {mode === 'ucak' && (
         result.flight ? (
-          <FlightDetails flight={result.flight} />
+          <FlightDetails flight={result.flight} from={result.start} to={result.destination} />
         ) : (
           <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
             Uçak bilgisi hesaplanamadı.
@@ -749,7 +830,7 @@ export default function RouteResults({
       )}
       {mode === 'tren' && (
         result.train ? (
-          <TrainDetails train={result.train} />
+          <TrainDetails train={result.train} from={result.start} to={result.destination} />
         ) : (
           <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
             Tren bilgisi hesaplanamadı.

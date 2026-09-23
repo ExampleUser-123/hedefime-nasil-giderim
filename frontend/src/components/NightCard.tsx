@@ -2,8 +2,10 @@ import { useEffect, useState, type ReactElement } from 'react'
 import {
   fetchNearbyStops,
   fetchStopDepartures,
+  fetchXpStore,
   type StopDeparture,
 } from '@/lib/api'
+import { getStoredUser } from '@/lib/auth'
 import { getCurrentLocation } from '@/lib/geolocation'
 import { getPinnedPlace } from '@/lib/storage'
 import { clockAfter, ISTANBUL_TZ, liveMinutesAhead } from '@/lib/departureTime'
@@ -34,8 +36,19 @@ export default function NightCard({
   const [items, setItems] = useState<LateItem[] | null>(null)
   const [going, setGoing] = useState(false)
   const [goError, setGoError] = useState<string | null>(null)
+  // XP Mağazası "Son Sefer Erken Uyarısı": kart 22:00 yerine 20:00'de açılır
+  const [earlyAlert, setEarlyAlert] = useState(false)
 
-  const night = istanbulHour(nowMs) >= 22
+  useEffect(() => {
+    if (!getStoredUser()) return
+    fetchXpStore()
+      .then((data) => {
+        if (data.items.some((i) => i.id === 'night_alert' && i.owned)) setEarlyAlert(true)
+      })
+      .catch(() => {})
+  }, [])
+
+  const night = istanbulHour(nowMs) >= (earlyAlert ? 20 : 22)
   const home = getPinnedPlace('home')
 
   useEffect(() => {
@@ -92,7 +105,14 @@ export default function NightCard({
 
   return (
     <div className="mt-4 rounded-2xl border border-indigo-400/30 bg-indigo-950/40 p-4">
-      <p className="text-sm font-bold">🌙 Gece Modu — Son Sefer Uyarısı</p>
+      <p className="text-sm font-bold">
+        🌙 Gece Modu — Son Sefer Uyarısı
+        {earlyAlert && (
+          <span className="ml-2 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-bold text-accent">
+            Erken uyarı aktif ✓
+          </span>
+        )}
+      </p>
       <p className="mt-0.5 text-xs text-muted">
         Gece seferleri seyrekleşir. Aşağıdaki kalkışlara dikkat edin.
       </p>

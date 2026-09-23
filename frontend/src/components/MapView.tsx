@@ -6,11 +6,10 @@ import { isFerryRoute, isRailRoute, isTramRoute } from '@/components/RouteResult
 
 const ACCENT = '#2dd4bf'
 
-// Sokak/mahalle etiketli canli harita (ucretsiz, anahtarsiz)
-const TILE_URL =
-  'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+// %100 ucretsiz, anahtarsiz OpenStreetMap standart katmani (sokak etiketli)
+const TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
 const TILE_ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 
 export type MapMode = 'tumu' | 'otobus' | 'metro' | 'tramvay' | 'yuruyus' | 'arac' | 'motosiklet' | 'ucak' | 'tren' | 'deniz'
 
@@ -219,8 +218,8 @@ export default function MapView({
 
     L.tileLayer(TILE_URL, {
       attribution: TILE_ATTRIBUTION,
-      subdomains: 'abcd',
-      maxZoom: 20,
+      subdomains: 'abc',
+      maxZoom: 19,
     }).addTo(map)
     routeLayerRef.current = L.layerGroup().addTo(map)
     stopsLayerRef.current = L.layerGroup().addTo(map)

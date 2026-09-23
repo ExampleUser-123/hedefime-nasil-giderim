@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactElement } from 'react'
-import { fetchOfflineCityList, fetchTransitDataCity } from '@/lib/api'
+import { fetchOfflineCityList, fetchTransitDataCity, fetchXpStore } from '@/lib/api'
+import { getStoredUser } from '@/lib/auth'
 import {
   listOfflineCities,
   saveOfflineCity,
@@ -75,6 +76,9 @@ export default function OfflineCitiesCard(): ReactElement {
   const [error, setError] = useState<string | null>(null)
   const [input, setInput] = useState('')
   const [available, setAvailable] = useState<string[]>(FALLBACK_CITIES)
+  // XP Mağazası "Çevrimdışı Durak Rehberi" paketi: giriş yapmış kullanıcıda indirme kilidi
+  const [packChecked, setPackChecked] = useState(false)
+  const [packOwned, setPackOwned] = useState(false)
 
   useEffect(() => {
     listOfflineCities().then(setDownloaded).catch(() => setDownloaded([]))
@@ -84,7 +88,19 @@ export default function OfflineCitiesCard(): ReactElement {
         if (cities.length > 0) setAvailable(cities)
       })
       .catch(() => {})
+    if (getStoredUser()) {
+      fetchXpStore()
+        .then((data) => {
+          if (data.items.some((i) => i.id === 'offline_pack' && i.owned)) setPackOwned(true)
+        })
+        .catch(() => {})
+        .finally(() => setPackChecked(true))
+    } else {
+      setPackChecked(true)
+    }
   }, [])
+
+  const locked = packChecked && getStoredUser() && !packOwned
 
   async function download(slug: string) {
     setBusy(slug)
@@ -162,7 +178,12 @@ export default function OfflineCitiesCard(): ReactElement {
         </div>
       )}
 
-      {notDownloaded.length > 0 && (
+      {locked ? (
+        <p className="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-200">
+          🔒 Yeni şehir paketi indirmek için XP Mağazasından “Çevrimdışı Durak Rehberi” paketini aç (500 XP).
+        </p>
+      ) : (
+      notDownloaded.length > 0 && (
         <div className="mt-3">
           <select
             value={input}
@@ -179,6 +200,7 @@ export default function OfflineCitiesCard(): ReactElement {
             ))}
           </select>
         </div>
+      )
       )}
 
       {error && <p role="alert" className="mt-2 text-xs text-red-300">{error}</p>}

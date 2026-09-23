@@ -12,7 +12,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import BaseModel, Field
-from datetime import datetime
+from datetime import date, datetime
 
 from services.geocoding import search_place, reverse_geocode, suggest_places
 from services.routing import calculate_route
@@ -210,6 +210,9 @@ def _quota_guard(request: Request, user: dict | None, kind: str) -> dict:
     """
     tier = user_store.get_tier(user)
     key = quota_store.identity_key(user, request.client.host if request.client else "unknown")
+    # XP Mağazası "1 Günlük Sınırsız Rota" paketi aktifse kota işlemez.
+    if kind == "routes" and user is not None and _unlimited_routes_active(user["id"]):
+        return {"tier": tier, "key": key}
     ok, used, limit = quota_store.check(key, tier, kind)
 
     if not ok:
@@ -1930,7 +1933,8 @@ def vibe_routes(body: VibeRoutesBody, request: Request,
     tier = user_store.get_tier(user)
     vibe_open = vibe.mood_allowed(mood, tier)
     if not vibe_open and user is not None:
-        # XP Store'dan "Temel Rota Modlari Acilisi" alanlar tum modlari kullanir.
+        # Eski XP Store urunu "vibe_unlock" katalogdan kalkti ama
+        # daha once alanlarin hakki korunur.
         vibe_open = bool(user_store.get_perks(user["id"]).get("vibe_unlock"))
     if not vibe_open:
         return _upgrade_required(
@@ -2080,27 +2084,46 @@ class RedeemBody(BaseModel):
 
 
 XP_STORE_ITEMS = {
-    "route_ai_pack": {
-        "name": "+1 Rota Arama + 1 AI Mesaj Paketi",
-        "desc": "Günlük kotana anında +1 rota ve +1 AI mesajı ekler.",
-        "cost": 150,
-    },
-    "magic_pack": {
-        "name": "+1 Magic Share Çözdürme Hakkı",
-        "desc": "Günlük Magic Share kotana +1 hak ekler.",
-        "cost": 250,
-    },
-    "vibe_unlock": {
-        "name": "Temel Rota Modları Açılışı",
-        "desc": "Manzaralı ve Kahve Molalı modlarını kalıcı olarak açar.",
+    "unlimited_day": {
+        "name": "1 Günlük Sınırsız Rota Arama",
+        "desc": "24 saat boyunca günlük rota kotası işlemez, dilediğin kadar rota ara.",
         "cost": 300,
     },
-    "lite_trial": {
-        "name": "1 Günlük Lite Deneme Paketi",
-        "desc": "24 saat boyunca Lite limitleri (20 rota, 30 AI, 10 Magic).",
-        "cost": 1000,
+    "night_alert": {
+        "name": "Gece Modu / Son Sefer Erken Uyarısı",
+        "desc": "Gece Modu kartı 22:00 yerine 20:00'den itibaren açılır, son seferleri erken görürsün. Kalıcı.",
+        "cost": 200,
+    },
+    "badge_pack": {
+        "name": "Özel Profil Rozetleri (Gezgin + Yerel Rehber)",
+        "desc": "Profilinde ömür boyu görünen 2 özel rozet. Kalıcı.",
+        "cost": 150,
+    },
+    "magic_plus3": {
+        "name": "Canlı Yolculuk Paylaşımı (Magic Share) +3 Hak",
+        "desc": "Günlük Magic Share kotana anında +3 hak ekler.",
+        "cost": 250,
+    },
+    "ai_plus5": {
+        "name": "AI Rota Asistanı +5 Ekstra Soru",
+        "desc": "Günlük AI mesaj kotana anında +5 hak ekler.",
+        "cost": 180,
+    },
+    "offline_pack": {
+        "name": "Çevrimdışı Durak Rehberi İndirme Paketi",
+        "desc": "Şehir durak paketlerini telefona indirme hakkı açar. Kalıcı.",
+        "cost": 500,
     },
 }
+
+
+def _unlimited_routes_active(user_id: str) -> bool:
+    """1 günlük sınırsız rota paketi bugün geçerli mi?"""
+    try:
+        until = (user_store.get_perks(user_id) or {}).get("unlimited_routes_until") or ""
+        return bool(until) and until >= date.today().isoformat()
+    except Exception:
+        return False
 
 
 @app.get("/marketplace")
@@ -2343,8 +2366,14 @@ def xp_store_items(user: dict = Depends(get_current_user)):
     """Magaza katalogu + bakiye + sahiplik."""
     from services import gamification
     profile = gamification.profile(user["id"])
-    perks = user_store.get_perks(user["id"])
+    perks = user_store.get_perks(user["id"]) or {}
+    badge_ids = set(profile.get("badge_ids", []))
     owned = {
+        "unlimited_day": _unlimited_routes_active(user["id"]),
+        "night_alert": bool(perks.get("night_alert")),
+        "badge_pack": {"gezgin", "yerel_rehber"} <= badge_ids,
+        "offline_pack": bool(perks.get("offline_pack")),
+        # Eski urunler katalogdan kalkti; daha once alanlarin hakki korunur.
         "vibe_unlock": bool(perks.get("vibe_unlock")),
         "lite_trial": bool(perks.get("lite_until") or ""),
     }
@@ -2369,6 +2398,15 @@ def xp_store_redeem(body: RedeemBody, request: Request,
     if info is None:
         return JSONResponse(status_code=400, content={"error": "Geçersiz ürün."})
 
+    # Kalıcı ürünlerde mükerrer harcama olmasın: sahiplik kontrolü harcamadan önce.
+    if item_id in ("night_alert", "offline_pack"):
+        if (user_store.get_perks(user["id"]) or {}).get(item_id):
+            return JSONResponse(status_code=400, content={"error": "Bu ürüne zaten sahipsin."})
+    if item_id == "badge_pack":
+        badge_ids = set(gamification.profile(user["id"]).get("badge_ids", []))
+        if {"gezgin", "yerel_rehber"} <= badge_ids:
+            return JSONResponse(status_code=400, content={"error": "Bu rozetlere zaten sahipsin."})
+
     ok, profile = gamification.spend_xp(user["id"], info["cost"])
     if not ok:
         return JSONResponse(
@@ -2377,20 +2415,29 @@ def xp_store_redeem(body: RedeemBody, request: Request,
 
     key = quota_store.identity_key(user, request.client.host if request.client else "")
     effect = ""
-    if item_id == "route_ai_pack":
-        quota_store.grant_bonus(key, "routes", 1)
-        quota_store.grant_bonus(key, "ai", 1)
-        effect = "Kotana +1 rota ve +1 AI mesajı eklendi."
-    elif item_id == "magic_pack":
-        quota_store.grant_bonus(key, "magic", 1)
-        effect = "Magic Share kotana +1 hak eklendi."
-    elif item_id == "vibe_unlock":
-        user_store.grant_perk(user["id"], "vibe_unlock", True)
-        effect = "Manzaralı ve Kahve Molalı modlar açıldı."
-    elif item_id == "lite_trial":
-        until = (date.today() + timedelta(days=1)).isoformat()
-        user_store.grant_perk(user["id"], "lite_until", until)
-        effect = f"Lite denemen {until} tarihine kadar aktif."
+    if item_id == "unlimited_day":
+        base = max(
+            (user_store.get_perks(user["id"]) or {}).get("unlimited_routes_until") or "",
+            date.today().isoformat(),
+        )
+        until = (date.fromisoformat(base) + timedelta(days=1)).isoformat()
+        user_store.grant_perk(user["id"], "unlimited_routes_until", until)
+        effect = f"{until} tarihine kadar sınırsız rota arama aktif."
+    elif item_id == "night_alert":
+        user_store.grant_perk(user["id"], "night_alert", True)
+        effect = "Son Sefer Erken Uyarısı açıldı: Gece Modu artık 20:00'den itibaren görünür."
+    elif item_id == "badge_pack":
+        granted = gamification.grant_badge(user["id"], "gezgin", "yerel_rehber")
+        effect = "Özel rozetler profiline eklendi: " + ", ".join(g["name"] for g in granted) + "."
+    elif item_id == "magic_plus3":
+        quota_store.grant_bonus(key, "magic", 3)
+        effect = "Magic Share kotana +3 hak eklendi."
+    elif item_id == "ai_plus5":
+        quota_store.grant_bonus(key, "ai", 5)
+        effect = "AI Rota Asistanı kotana +5 soru eklendi."
+    elif item_id == "offline_pack":
+        user_store.grant_perk(user["id"], "offline_pack", True)
+        effect = "Çevrimdışı Durak Rehberi indirme hakkı açıldı."
     return {"ok": True, "effect": effect, "profile": profile,
             "perks": user_store.get_perks(user["id"])}
 

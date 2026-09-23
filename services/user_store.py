@@ -442,6 +442,9 @@ def get_perks(user_id: str) -> dict:
         "bonus_magic": int(perks.get("bonus_magic", 0) or 0),
         "vibe_unlock": bool(perks.get("vibe_unlock", False)),
         "lite_until": perks.get("lite_until") or "",
+        "night_alert": bool(perks.get("night_alert", False)),
+        "offline_pack": bool(perks.get("offline_pack", False)),
+        "unlimited_routes_until": perks.get("unlimited_routes_until") or "",
     }
 
 

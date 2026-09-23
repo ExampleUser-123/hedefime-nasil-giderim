@@ -298,10 +298,10 @@ function ModeCard({
             />
           )}
           {candidate.id === 'ucak' && plan.flight && (
-            <FlightDetails flight={plan.flight} />
+            <FlightDetails flight={plan.flight} from={plan.start} to={plan.destination} />
           )}
           {candidate.id === 'tren' && plan.train && (
-            <TrainDetails train={plan.train} />
+            <TrainDetails train={plan.train} from={plan.start} to={plan.destination} />
           )}
           {candidate.vehicleData && (
             <CarDetails car={candidate.vehicleData} people={people} />

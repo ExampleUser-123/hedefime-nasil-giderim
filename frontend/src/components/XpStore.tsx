@@ -56,7 +56,18 @@ export default function XpStore(): ReactElement {
       </div>
 
       <div className="mt-2 space-y-2">
-        {items.map((item) => (
+        {items.map((item) => {
+          // unlimited_day yeniden alinabilir (sure uzar); diger sahipli urunler kilitli
+          const repurchasable = item.id === 'unlimited_day' || item.id === 'magic_plus3' || item.id === 'ai_plus5'
+          const locked = item.owned && !repurchasable
+          const label = busyId === item.id
+            ? '…'
+            : item.owned && item.id === 'unlimited_day'
+              ? 'Süreyi Uzat'
+              : item.owned && !repurchasable
+                ? 'Aktif ✓'
+                : 'Takas Et'
+          return (
           <div key={item.id} className="flex items-center gap-2 rounded-xl border border-line/60 bg-bg/40 px-3 py-2">
             <div className="min-w-0 flex-1">
               <p className="text-xs font-bold">{item.name}</p>
@@ -66,13 +77,14 @@ export default function XpStore(): ReactElement {
             <button
               type="button"
               onClick={() => void redeem(item.id)}
-              disabled={busyId !== null || (xp !== null && xp < item.cost)}
+              disabled={busyId !== null || locked || (xp !== null && xp < item.cost)}
               className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-xs font-bold text-accent-ink disabled:opacity-40"
             >
-              {busyId === item.id ? '…' : item.owned && (item.id === 'vibe_unlock') ? 'Açık ✓' : 'Takas Et'}
+              {label}
             </button>
           </div>
-        ))}
+          )
+        })}
       </div>
 
       {message && (

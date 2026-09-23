@@ -58,6 +58,14 @@ BADGES = {
         "name": "Kaşif", "icon": "🧭",
         "desc": "5 farklı hedef ekledi.",
     },
+    "gezgin": {
+        "name": "Gezgin", "icon": "🧳",
+        "desc": "XP Mağazasından özel rozet paketi aldı.",
+    },
+    "yerel_rehber": {
+        "name": "Yerel Rehber", "icon": "📍",
+        "desc": "XP Mağazasından özel rozet paketi aldı.",
+    },
 }
 
 # Rozet sarti: (sayac_turu, esik). Sayıclar game["counters"] altinda tutulur.
@@ -167,3 +175,20 @@ def award(user_id: str, event: str, meta: dict | None = None) -> dict:
         {"id": bid, **BADGES[bid]} for bid in new_badges if bid in BADGES
     ]
     return result
+
+
+def grant_badge(user_id: str, *badge_ids: str) -> list[dict]:
+    """XP Mağazası rozet paketi: rozetleri doğrudan verir.
+
+    Bilinmeyen rozet id'leri yok sayılır. Yeni verilenleri döner.
+    """
+    game = user_store.get_game(user_id)
+    owned = set(game.get("badges", []))
+    granted: list[dict] = []
+    for bid in badge_ids:
+        if bid in BADGES and bid not in owned:
+            owned.add(bid)
+            granted.append({"id": bid, **BADGES[bid]})
+    game["badges"] = sorted(owned)
+    user_store.save_game(user_id, game)
+    return granted
