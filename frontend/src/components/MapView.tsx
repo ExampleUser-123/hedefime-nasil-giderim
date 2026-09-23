@@ -217,6 +217,7 @@ export default function MapView({
       dragging: true,
       touchZoom: true,
       boxZoom: true,
+      keyboard: true,
       attributionControl: true,
     })
 

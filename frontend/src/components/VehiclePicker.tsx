@@ -86,7 +86,7 @@ export default function VehiclePicker({
 
   return (
     <div
-      className="absolute inset-0 z-20 flex items-end justify-center bg-black/50 backdrop-blur-sm"
+      className="pointer-events-auto absolute inset-0 z-20 flex items-end justify-center bg-black/50 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-label={initialType === 'motosiklet' ? 'Motosiklet seç' : 'Araç seç'}

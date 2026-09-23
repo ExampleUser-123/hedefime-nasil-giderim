@@ -224,7 +224,7 @@ export default function App() {
     <MotionConfig reducedMotion="user">
       <main className="relative flex min-h-dvh flex-col overflow-hidden">
         <div
-          className="absolute inset-0 bg-cover bg-center"
+          className="pointer-events-none absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: 'url(/hero-map-background.png)' }}
           aria-hidden="true"
         />
@@ -250,14 +250,15 @@ export default function App() {
               <WeatherChip city={weatherCity} />
             </header>
 
-            <div className="relative z-10 flex-1" aria-hidden="true" />
+            {/* Esnek bosluk: tiklamalari haritaya gecirir (harita etkilesimini oldurmesin) */}
+            <div className="pointer-events-none relative z-10 flex-1" aria-hidden="true" />
 
             <motion.section
               aria-label="Rota planlama"
               initial={{ y: 60, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-              className="relative z-10 mx-auto w-full max-w-xl px-4 pb-24 sm:px-6"
+              className={`relative z-10 mx-auto w-full max-w-xl px-4 pb-24 sm:px-6 ${plan ? 'pointer-events-none' : ''}`}
             >
               <div className={plan ? 'contents' : 'rounded-3xl border border-line bg-surface/85 p-5 shadow-2xl shadow-black/40 backdrop-blur-md sm:p-6'}>
                 <RouteSearch
