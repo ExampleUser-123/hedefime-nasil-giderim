@@ -11,7 +11,45 @@ tests/
 docs/
 
 # Backend API'nin calismasi icin gerekmeyen agir klasorler
-# (Vercel function 250MB limitine takilmamasi icin dagitim disi)
+# (Vercel function 500MB limitine takilmamasi icin dagitim disi)
 frontend/
 verdent-design/
 site/
+rootsite/
+release/
+
+# Android / yedek / dagitim artifaktlari
+*.apk
+*.aab
+dist/
+build/
+android/
+
+# Yerel derleme ve arastirma artifaktlari (tek seferlik scraper'lar)
+hedefime nasıl giderim uygulaması için/
+data/gtfs_cache/
+data/research_*/
+data/_samsun_tmp/
+data/_tl_atlas/
+data/_*.py
+data/konya_gtfs.zip
+build_*.py
+fetch_*.py
+discover_*.py
+gen_*.py
+make_icons.py
+seo_pages.py
+scan_*.py
+sweep_*.py
+identify_regions.py
+
+# Testler ve debug
+test_*.py
+_dbg_*.py
+tests/
+__pycache__/
+*.pyc
+
+# Kucuk ama dagitimda gereksiz
+chat_sessions/
+.github/

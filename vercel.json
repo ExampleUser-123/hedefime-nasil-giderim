@@ -2,7 +2,8 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
     "main.py": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "excludeFiles": "release/**, rootsite/**, frontend/**, data/gtfs_cache/**, data/research_*/**, docs/**, site/**, verdent-design/**, node_modules/**, .venv/**, dist/**, build/**, android/**, **/*.apk, **/*.aab"
     }
   }
 }
