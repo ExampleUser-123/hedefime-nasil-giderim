@@ -15,6 +15,7 @@ import {
   isMetroRoute,
   isTramRoute,
   LineClickContext,
+  RailRouteCards,
   straightLineKm,
   TrainDetails,
   TransitList,
@@ -302,7 +303,12 @@ function ModeCard({
             <FlightDetails flight={plan.flight} from={plan.start} to={plan.destination} />
           )}
           {candidate.id === 'tren' && plan.train && (
-            <TrainDetails train={plan.train} from={plan.start} to={plan.destination} />
+            <>
+              <RailRouteCards result={plan} people={people} />
+              <div className="mt-3">
+                <TrainDetails train={plan.train} from={plan.start} to={plan.destination} />
+              </div>
+            </>
           )}
           {candidate.vehicleData && (
             <CarDetails car={candidate.vehicleData} people={people} />

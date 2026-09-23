@@ -427,6 +427,20 @@ def find_transit_routes(
     end_city = _province_name(end_province)
 
     if start_city != end_city or start_city is None:
+        # Sehirler arasi: once rayli ag denenir (Marmaray B1 Kocaeli-Istanbul
+        # koridorunu kapsar; Gebze->SAW gibi zincirler burada somut uretilir).
+        # Basarisizsa asagidaki durust "yok" cevabina dusulur.
+        try:
+            from services.istanbul_rail import find_rail_route
+            rail_cross = find_rail_route(
+                start_lat, start_lon, end_lat, end_lon,
+                max_walk=max_walk,
+            )
+        except Exception:
+            rail_cross = None
+        if rail_cross and rail_cross.get("status") == "success" and rail_cross.get("routes"):
+            rail_cross["source"] = "Metro İstanbul / Marmaray"
+            return rail_cross
         # Bilinmeyen/iliskisiz guzergahlar icin IETT'ye (Istanbul verisi)
         # istek atmak anlamsiz sonuc uretir; durust sekilde bildir.
         return {

@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactElement } fro
 import { DepartureBadge, DepartureCityContext, fetchDepartureList } from '@/components/DepartureBadge'
 import type { NextDeparture } from '@/lib/api'
 import { extractCity } from '@/lib/cities'
+import { openInApp, TCDD_URL } from '@/lib/navigate'
 import type { CarResult, FlightEstimate, LatLng, Mode, PlanResult, TrainEstimate, TransitLeg, TransitRoute } from '@/lib/api'
 import {
   IconBus,
@@ -653,10 +654,48 @@ export function TransitList({
   )
 }
 
-/** Ucak/tren tahmini icin kart ici adim adim akis (modal yok).
- * Istasyon/havalimani ismi ve sefer saati backend'de olmadigi icin bu adimlar
- * bilerek genel tutulur; net bilgi ilgili resmi kanaldan alinir. */
-function EstimateTimeline({
+/** Tren modu: rayli rotalar (Marmaray/metro/tramvay) varsa numarali kartlarla goster.
+ * Yoksa null doner; cagiran tahmin kartina duser. */
+export function RailRouteCards({
+  result,
+  people,
+}: {
+  result: PlanResult
+  people: number
+}) {
+  const [index, setIndex] = useState(0)
+  const routes = result.public_transport.routes.filter(isRailRoute)
+
+  if (routes.length === 0) return null
+
+  const visible = routes.slice(0, 4)
+
+  return (
+    <div className="space-y-2.5">
+      <p className="text-xs font-bold uppercase tracking-wide text-accent">
+        🚇 Raylı sistem rotaları (gerçek duraklarla)
+      </p>
+      {visible.map((route, i) => (
+        <TransitRouteCard
+          key={i}
+          route={route}
+          people={people}
+          badges={getBadges(route, result.public_transport.recommendations)}
+          selected={i === index}
+          onSelect={() => setIndex(i)}
+          departureLegs={firstBusLegKeys(visible)}
+          lat={result.start_coord.lat}
+          lon={result.start_coord.lon}
+        />
+      ))}
+    </div>
+  )
+}
+
+/** Ucak/tren tahmini icin somut bilgi paneli (sablon adim YOK).
+ * Istasyon ismi ve sefer saati backend'de olmadigi icin yalnizca bilinen
+ * gercekler gosterilir: sure, ucret, mesafe + resmi sorgu kanali. */
+function EstimateFacts({
   kind,
   from,
   to,
@@ -669,29 +708,34 @@ function EstimateTimeline({
 }) {
   const hours = Math.floor((estimate.duration_minutes ?? 0) / 60)
   const minutes = (estimate.duration_minutes ?? 0) % 60
-  const vehicle = kind === 'ucak' ? 'Uçak' : 'Tren'
-  const hub = kind === 'ucak' ? 'havalimanı' : 'tren istasyonu'
-  const hubTip = kind === 'ucak'
-    ? 'Havalimanına ulaşımını planla; check-in ve güvenlik için erken git'
-    : 'İstasyona ulaşımını planla (taksi, otobüs veya metro)'
-
-  const steps = [
-    `${from} → en yakın ${hub}: ${hubTip}.`,
-    `${vehicle} yolculuğu: kapıdan kapıya ~${hours} sa ${minutes} dk (tahmini, ${kind === 'ucak' ? 'havalimanı' : 'istasyon'} süreçleri dahil).`,
-    `Varış ${hub} → ${to}: istasyondan hedefe ulaşımını planla.`,
-  ]
 
   return (
-    <ol className="mt-3 space-y-2">
-      {steps.map((text, i) => (
-        <li key={i} className="flex items-start gap-2 rounded-xl bg-bg/60 px-3 py-2.5">
-          <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-accent/15 px-1 text-[10px] font-bold text-accent tabular-nums" aria-label={`${i + 1}. adım`}>
-            {i + 1}
-          </span>
-          <p className="min-w-0 break-words text-xs">{text}</p>
-        </li>
-      ))}
-    </ol>
+    <div className="mt-3 space-y-2">
+      <p className="break-words text-sm font-bold">
+        {from} <span className="mx-1 text-accent">→</span> {to}
+      </p>
+      <dl className="space-y-2 text-sm">
+        <div className="flex items-center justify-between gap-2 rounded-xl bg-bg/60 px-3.5 py-2.5">
+          <dt className="text-muted">Toplam süre (tahmini)</dt>
+          <dd className="font-bold tabular-nums">~{hours} sa {minutes} dk</dd>
+        </div>
+        <div className="flex items-center justify-between gap-2 rounded-xl bg-bg/60 px-3.5 py-2.5">
+          <dt className="text-muted">Kişi başı (tahmini)</dt>
+          <dd className="font-bold tabular-nums">
+            {estimate.estimated_price_per_person?.toLocaleString('tr-TR')} TL
+          </dd>
+        </div>
+        <div className="flex items-center justify-between gap-2 rounded-xl bg-bg/60 px-3.5 py-2.5">
+          <dt className="text-muted">Toplam ({estimate.people} kişi, tahmini)</dt>
+          <dd className="font-bold tabular-nums text-accent">
+            {estimate.total_price?.toLocaleString('tr-TR')} TL
+          </dd>
+        </div>
+      </dl>
+      <p className="text-[11px] text-muted">
+        Net istasyon, saat ve koltuk bilgisi için {kind === 'ucak' ? 'havayolu' : 'TCDD'} sorgulaması gerekir.
+      </p>
+    </div>
   )
 }
 
@@ -721,7 +765,7 @@ export function FlightDetails({ flight, from, to }: { flight: FlightEstimate; fr
         <div className="flex-1">
           <p className="text-sm font-bold">Uçakla (tahmini)</p>
           <p className="text-xs text-muted">
-            Kapıdan kapıya ~{hours} sa {minutes} dk · havalimanı süreçleri dahil
+            Toplam ~{hours} sa {minutes} dk (tahmini) · havalimanı süreçleri dahil
           </p>
         </div>
       </div>
@@ -751,11 +795,11 @@ export function FlightDetails({ flight, from, to }: { flight: FlightEstimate; fr
         aria-expanded={showDetail}
         className="mt-2 inline-block text-xs font-bold text-accent underline-offset-2 hover:underline"
       >
-        {showDetail ? 'Adımları gizle ↑' : 'Adım adım gör →'}
+        {showDetail ? 'Detayı gizle ↑' : 'Detayı gör →'}
       </button>
 
       {showDetail && (
-        <EstimateTimeline kind="ucak" from={from} to={to} estimate={flight} />
+        <EstimateFacts kind="ucak" from={from} to={to} estimate={flight} />
       )}
     </div>
   )
@@ -788,7 +832,7 @@ export function TrainDetails({ train, from, to }: { train: TrainEstimate; from: 
         <div className="flex-1">
           <p className="text-sm font-bold">Trenle (tahmini)</p>
           <p className="text-xs text-muted">
-            Kapıdan kapıya ~{hours} sa {minutes} dk · istasyon süreçleri dahil
+            Toplam ~{hours} sa {minutes} dk (tahmini) · istasyon süreçleri dahil
           </p>
         </div>
       </div>
@@ -818,21 +862,20 @@ export function TrainDetails({ train, from, to }: { train: TrainEstimate; from: 
         aria-expanded={showTrainDetail}
         className="mt-2 inline-block text-xs font-bold text-accent underline-offset-2 hover:underline"
       >
-        {showTrainDetail ? 'Adımları gizle ↑' : 'Adım adım gör →'}
+        {showTrainDetail ? 'Detayı gizle ↑' : 'Detayı gör →'}
       </button>
 
       {showTrainDetail && (
-        <EstimateTimeline kind="tren" from={from} to={to} estimate={train} />
+        <EstimateFacts kind="tren" from={from} to={to} estimate={train} />
       )}
 
-      <a
-        href="https://ebilet.tcdd.gov.tr"
-        target="_blank"
-        rel="noreferrer"
+      <button
+        type="button"
+        onClick={() => void openInApp(TCDD_URL)}
         className="mt-2 block text-xs font-bold text-accent underline-offset-2 hover:underline"
       >
         TCDD Seferlerini Gör →
-      </a>
+      </button>
     </div>
   )
 }
@@ -878,7 +921,12 @@ export default function RouteResults({
       )}
       {mode === 'tren' && (
         result.train ? (
-          <TrainDetails train={result.train} from={result.start} to={result.destination} />
+          <>
+            <RailRouteCards result={result} people={people} />
+            <div className="mt-3">
+              <TrainDetails train={result.train} from={result.start} to={result.destination} />
+            </div>
+          </>
         ) : (
           <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
             Tren bilgisi hesaplanamadı.

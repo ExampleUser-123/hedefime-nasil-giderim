@@ -1,0 +1,1 @@
+import{r as e}from"./index-uOySvud7.js";var t=class extends e{async getPluginVersion(){return{version:`web`}}};export{t as CapacitorShareTargetWeb};
