@@ -203,6 +203,7 @@ export default function MapView({
   const mapRef = useRef<L.Map | null>(null)
   const routeLayerRef = useRef<L.LayerGroup | null>(null)
   const stopsLayerRef = useRef<L.LayerGroup | null>(null)
+  const boundsRef = useRef<L.LatLngBounds | null>(null)
 
   useEffect(() => {
     const container = containerRef.current
@@ -213,6 +214,9 @@ export default function MapView({
       zoomControl: false,
       scrollWheelZoom: true,
       doubleClickZoom: true,
+      dragging: true,
+      touchZoom: true,
+      boxZoom: true,
       attributionControl: true,
     })
 
@@ -278,6 +282,7 @@ export default function MapView({
     map.fitBounds(L.latLngBounds(paths.flatMap((path) => path.positions).concat([start, end])), {
       padding: [70, 70],
     })
+    boundsRef.current = L.latLngBounds(paths.flatMap((path) => path.positions).concat([start, end]))
   }, [plan, mode, routeIndex])
 
   useEffect(() => {
@@ -308,5 +313,42 @@ export default function MapView({
     }
   }, [nearbyStops, onSelectStop])
 
-  return <div ref={containerRef} className="absolute inset-0 z-[1] h-full w-full" />
+  function zoomBy(delta: number) {
+    const map = mapRef.current
+    if (!map) return
+    if (delta > 0) map.zoomIn()
+    else map.zoomOut()
+  }
+
+  function recenter() {
+    const map = mapRef.current
+    const bounds = boundsRef.current
+    if (!map || !bounds) return
+    map.fitBounds(bounds, { padding: [70, 70] })
+  }
+
+  const controlBtn =
+    'flex h-11 w-11 items-center justify-center rounded-full border border-line bg-surface/90 text-lg font-bold text-fg shadow-lg shadow-black/40 backdrop-blur-md transition-colors hover:border-accent hover:text-accent active:scale-95'
+
+  return (
+    <div className="absolute inset-0 z-[1] h-full w-full">
+      <div ref={containerRef} className="absolute inset-0 z-0" />
+      {/* Sag taraf dokunulabilir harita kontrolleri */}
+      <div
+        className="absolute right-3 top-1/3 z-10 flex flex-col gap-2"
+        onPointerDownCapture={(e) => e.stopPropagation()}
+        onDoubleClickCapture={(e) => e.stopPropagation()}
+      >
+        <button type="button" aria-label="Yakınlaş" onClick={() => zoomBy(1)} className={controlBtn}>
+          +
+        </button>
+        <button type="button" aria-label="Uzaklaş" onClick={() => zoomBy(-1)} className={controlBtn}>
+          −
+        </button>
+        <button type="button" aria-label="Rotaya odaklan" onClick={recenter} className={controlBtn}>
+          🎯
+        </button>
+      </div>
+    </div>
+  )
 }
