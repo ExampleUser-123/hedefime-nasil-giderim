@@ -90,3 +90,60 @@ def snap_to_road(
     ]
 
     return geometry if len(geometry) >= 2 else None
+
+
+@cached(ttl_seconds=3600)
+def walking_guidance(
+    a_lat: float,
+    a_lon: float,
+    b_lat: float,
+    b_lon: float,
+):
+    """Yurume geometrisi + cadde/sokak adimlari (OSRM foot steps).
+
+    Donus: {"geometry": [[lat, lon], ...], "streets": [...], "duration_min": x}.
+    Basarisizlikta None doner; sokak adi yoksa streets bos liste olur.
+    """
+    route_url = (
+        "https://router.project-osrm.org/route/v1/foot/"
+        f"{a_lon},{a_lat};{b_lon},{b_lat}"
+    )
+
+    try:
+        response = requests.get(
+            route_url,
+            params={
+                "overview": "full",
+                "geometries": "geojson",
+                "steps": "true",
+            },
+            timeout=10,
+        )
+        response.raise_for_status()
+        data = response.json()
+    except Exception:
+        return None
+
+    if data.get("code") != "Ok" or not data.get("routes"):
+        return None
+
+    route = data["routes"][0]
+    geometry = [
+        [coord[1], coord[0]]
+        for coord in route["geometry"]["coordinates"]
+    ]
+    if len(geometry) < 2:
+        return None
+
+    streets: list[str] = []
+    for leg in route.get("legs", []):
+        for step in leg.get("steps", []):
+            name = (step.get("name") or "").strip()
+            if name and (not streets or streets[-1] != name):
+                streets.append(name)
+
+    return {
+        "geometry": geometry,
+        "streets": streets[:5],
+        "duration_min": round(route.get("duration", 0) / 60),
+    }

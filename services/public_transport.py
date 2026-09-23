@@ -3,7 +3,25 @@ import json
 from datetime import datetime
 
 from services.cache import cached
-from services.routing import snap_to_road
+from services.routing import snap_to_road, walking_guidance
+
+
+def _walking_streets(stops):
+    """Yurume ayaginin gectigi cadde/sokak adlari (OSRM steps). Yoksa []."""
+    pts = [
+        stop.get("point") for stop in (stops or [])
+        if stop and stop.get("point") and len(stop.get("point")) >= 2
+    ]
+    if len(pts) < 2:
+        return []
+    try:
+        guide = walking_guidance(
+            float(pts[0][0]), float(pts[0][1]),
+            float(pts[-1][0]), float(pts[-1][1]),
+        )
+    except Exception:
+        return []
+    return (guide or {}).get("streets", []) or []
 
 
 IETT_ROUTER_URL = "https://nasilgiderim.iett.gov.tr/router"
@@ -174,7 +192,8 @@ def _parse_leg(leg):
             "from_stop": None,
             "to_stop": None,
             "alternate_lines": [],
-            "coords": leg_coords
+            "coords": leg_coords,
+            "streets": _walking_streets(stops),
         }
 
     # Toplu taşıma ayağı

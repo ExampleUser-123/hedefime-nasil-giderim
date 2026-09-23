@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { fetchPlan, reverseGeocode, type Mode, type PlanResult, type Vehicle } from '@/lib/api'
+import { fetchPlan, reverseGeocode, type LatLng, type Mode, type PlanResult, type Vehicle } from '@/lib/api'
 import { extractCity } from '@/lib/cities'
 import { award } from '@/lib/game'
 import { getCurrentLocation } from '@/lib/geolocation'
@@ -66,6 +66,7 @@ export default function RouteSearch({
   onRouteIndexChange,
   onRequireLogin,
   city,
+  onHighlight,
 }: {
   mode: Mode
   onModeChange: (mode: Mode) => void
@@ -76,6 +77,7 @@ export default function RouteSearch({
   onRouteIndexChange: (index: number) => void
   onRequireLogin: () => void
   city?: string
+  onHighlight?: (coords: LatLng[] | null) => void
 }) {
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
@@ -477,6 +479,7 @@ export default function RouteSearch({
           routeIndex={routeIndex}
           onRouteIndexChange={onRouteIndexChange}
           onRequireLogin={onRequireLogin}
+          onHighlight={onHighlight}
         />
       )}
 

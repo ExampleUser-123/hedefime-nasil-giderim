@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactElement } from 'react'
-import type { CarResult, Mode, PlanResult, TransitRoute } from '@/lib/api'
+import type { CarResult, LatLng, Mode, PlanResult, TransitRoute } from '@/lib/api'
 import { createShareRoute, reportFeedback } from '@/lib/api'
 import { watchGetOff } from '@/lib/getOffAlert'
 import VoiceGuidance from '@/components/VoiceGuidance'
@@ -322,6 +322,7 @@ export default function ResultsScreen({
   routeIndex,
   onRouteIndexChange,
   onRequireLogin,
+  onHighlight,
 }: {
   plan: PlanResult
   people: number
@@ -330,6 +331,8 @@ export default function ResultsScreen({
   routeIndex: number
   onRouteIndexChange: (index: number) => void
   onRequireLogin: () => void
+  /** Hat detayi acilinca ilgili geometriyi haritada vurgular (kapaninca null) */
+  onHighlight?: (coords: LatLng[] | null) => void
 }) {
   const candidates = useMemo(
     () => buildCandidates(plan, people, mode),
@@ -360,7 +363,7 @@ export default function ResultsScreen({
   useEffect(() => setShowVoice(false), [plan])
 
   // Hat detay sayfasi: rota adimlarindaki hat adina dokununca acilir
-  const [lineSheet, setLineSheet] = useState<{ city: string; line: string; stops?: string[]; name?: string } | null>(null)
+  const [lineSheet, setLineSheet] = useState<{ city: string; line: string; stops?: string[]; name?: string; coords?: LatLng[] } | null>(null)
   useEffect(() => {
     setLineSheet(null)
     setSnap('peek')
@@ -720,7 +723,10 @@ export default function ResultsScreen({
   }
 
   return (
-    <LineClickContext.Provider value={(city, line, stops, name) => setLineSheet({ city: city || fallbackCity, line, stops, name })}>
+    <LineClickContext.Provider value={(city, line, stops, name, coords) => {
+      setLineSheet({ city: city || fallbackCity, line, stops, name, coords })
+      onHighlight?.(coords && coords.length > 1 ? coords : null)
+    }}>
       {/* Seffaf kok: harita her zaman gorunur ve dokunulabilir.
           Mobil: 3 kademeli bottom sheet. Masaustu (sm+): sol yan panel. */}
       <div className="pointer-events-none fixed inset-0 z-40">
@@ -1098,7 +1104,7 @@ export default function ResultsScreen({
           lon={plan.start_coord.lon}
           fallbackStops={lineSheet.stops}
           fallbackName={lineSheet.name}
-          onClose={() => setLineSheet(null)}
+          onClose={() => { setLineSheet(null); onHighlight?.(null) }}
         />
         </div>
       )}

@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactElement } fro
 import { DepartureBadge, DepartureCityContext, fetchDepartureList } from '@/components/DepartureBadge'
 import type { NextDeparture } from '@/lib/api'
 import { extractCity } from '@/lib/cities'
-import type { CarResult, FlightEstimate, Mode, PlanResult, TrainEstimate, TransitLeg, TransitRoute } from '@/lib/api'
+import type { CarResult, FlightEstimate, LatLng, Mode, PlanResult, TrainEstimate, TransitLeg, TransitRoute } from '@/lib/api'
 import {
   IconBus,
   IconCar,
@@ -21,7 +21,8 @@ type Recommendations = PlanResult['recommendations']
 
 // Hat detay sayfasini acan callback; ResultsScreen saglar (hat rozetlerine dokunma)
 // stops: hattin bu rotadaki durak adlari (backend'te hat bulunamazsa yedek)
-export const LineClickContext = createContext<(city: string, line: string, stops?: string[], name?: string) => void>(() => {})
+// coords: hattin bu rotadaki geometrisi (haritada vurgu icin)
+export const LineClickContext = createContext<(city: string, line: string, stops?: string[], name?: string, coords?: LatLng[]) => void>(() => {})
 
 function routeKey(route: TransitRoute): string {
   return JSON.stringify([
@@ -163,6 +164,27 @@ function firstBusLegKeys(routes: TransitRoute[], limit = 3): Set<string> {
   return keys
 }
 
+// "HH:MM" -> dakika. Gecersizse null.
+function parseHM(time: string | null | undefined): number | null {
+  if (!time) return null
+  const match = /^(\d{1,2}):(\d{2})/.exec(time.trim())
+  if (!match) return null
+  const h = Number(match[1])
+  const m = Number(match[2])
+  if (h > 23 || m > 59) return null
+  return h * 60 + m
+}
+
+// Arac ici net sure (dk). Gece yarisi gecisini tolere eder.
+function legRideMinutes(departure: string | null, arrival: string | null): number | null {
+  const d = parseHM(departure)
+  const a = parseHM(arrival)
+  if (d == null || a == null) return null
+  let diff = a - d
+  if (diff < 0) diff += 24 * 60
+  return diff
+}
+
 // Hatin sonraki 3 kalkisi (zaman cizelgesi). Veri yoksa hicbir sey cizmez.
 function LegTimetable({
   line,
@@ -195,11 +217,34 @@ function LegTimetable({
 
   if (!times || times.length === 0) return null
 
+  // Sefer sikligi: kalkis araliklarinin ortancasi (yaklasik)
+  let frequency: number | null = null
+  if (times.length >= 2) {
+    const mins = times
+      .map((d) => parseHM(d.time))
+      .filter((m): m is number => m != null)
+    const gaps: number[] = []
+    for (let i = 1; i < mins.length; i++) {
+      let gap = mins[i] - mins[i - 1]
+      if (gap <= 0) gap += 24 * 60
+      gaps.push(gap)
+    }
+    if (gaps.length > 0) {
+      gaps.sort((a, b) => a - b)
+      frequency = gaps[Math.floor(gaps.length / 2)]
+    }
+  }
+
   return (
-    <p className="mt-1 text-[11px] text-muted tabular-nums">
-      Sonraki seferler: {times.map((d) => d.time).join(', ')}
-      {times[0]?.source === 'tahmini' && ' (tahmini)'}
-    </p>
+    <div className="mt-1 text-[11px] text-muted tabular-nums">
+      <p>
+        Sonraki seferler: {times.map((d) => d.time).join(', ')}
+        {times[0]?.source === 'tahmini' && ' (tahmini)'}
+      </p>
+      {frequency != null && frequency > 0 && (
+        <p>~her {frequency} dk'da bir kalkar (yaklaşık)</p>
+      )}
+    </div>
   )
 }
 
@@ -219,19 +264,30 @@ function LegRow({
   if (leg.type === 'walking') {
     // Sehir ici yürüme hizi ~70 m/dk (tahmini).
     const walkMin = leg.distance_m ? Math.max(1, Math.round(leg.distance_m / 70)) : null
+    const streets = (leg.streets ?? []).filter(Boolean)
     return (
       <li className="flex items-center gap-3 py-2">
         <Icon className="h-4 w-4 shrink-0 text-muted" />
-        <p className="text-sm text-muted">
-          {leg.distance_m ? `${Math.round(leg.distance_m)} m yürü` : 'Yürü'}
-          {walkMin != null && ` (~${walkMin} dk, tahmini)`}
-          <span className="mx-1.5 text-line" aria-hidden="true">·</span>
-          {leg.from_stop ?? ''}
-          {leg.to_stop && ` → ${leg.to_stop}`}
-        </p>
+        <div className="min-w-0">
+          <p className="text-sm text-muted">
+            {leg.distance_m ? `${Math.round(leg.distance_m)} m yürü` : 'Yürü'}
+            {walkMin != null && ` (~${walkMin} dk, tahmini)`}
+            <span className="mx-1.5 text-line" aria-hidden="true">·</span>
+            {leg.from_stop ?? ''}
+            {leg.to_stop && ` → ${leg.to_stop}`}
+          </p>
+          {streets.length > 0 && (
+            <p className="mt-0.5 break-words text-[11px] text-muted">
+              🧭 {streets.join(' → ')} üzerinden
+            </p>
+          )}
+        </div>
       </li>
     )
   }
+
+  const rideMin = legRideMinutes(leg.departure_time, leg.arrival_time)
+  const stopCount = leg.stops.length > 1 ? leg.stops.length - 1 : null
 
   return (
     <li className="flex items-start gap-3 py-2">
@@ -248,7 +304,8 @@ function LegRow({
           {leg.from_stop} → {leg.to_stop}
           {leg.departure_time && ` · ${leg.departure_time}`}
           {leg.arrival_time && ` – ${leg.arrival_time}`}
-          {leg.stops.length > 2 && ` · ${leg.stops.length - 1} durak`}
+          {stopCount != null && ` · ${stopCount} durak`}
+          {rideMin != null && ` · araçta ~${rideMin} dk`}
         </p>
       </div>
     </li>
@@ -286,7 +343,7 @@ function LineTitle({
     <p className="flex flex-wrap items-center gap-1.5 text-sm font-semibold">
       <button
         type="button"
-        onClick={() => onLineClick(city, line, leg.stops, leg.name ?? undefined)}
+        onClick={() => onLineClick(city, line, leg.stops, leg.name ?? undefined, leg.coords)}
         className="break-words text-left font-semibold text-accent underline decoration-accent/40 underline-offset-2 transition-colors hover:decoration-accent"
       >
         {label}

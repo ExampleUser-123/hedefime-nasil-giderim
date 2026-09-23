@@ -22,7 +22,7 @@ import {
   SavedScreen,
 } from '@/components/TabScreens'
 import { IconLogo } from '@/icons'
-import type { AuthUser, PlanResult, RouteIntent } from '@/lib/api'
+import type { AuthUser, LatLng, PlanResult, RouteIntent } from '@/lib/api'
 import { fetchShareRoute } from '@/lib/api'
 import { AUTH_CHANGED_EVENT, getStoredUser, refreshAuthState, signOut } from '@/lib/auth'
 import { INVITE_CODE_KEY } from '@/lib/auth'
@@ -43,6 +43,8 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('home')
   const [chatOpen, setChatOpen] = useState(false)
   const [plan, setPlan] = useState<PlanResult | null>(null)
+  // Hat detayi acilinca haritada vurgulanan geometri
+  const [highlight, setHighlight] = useState<LatLng[] | null>(null)
   const [mode, setMode] = useState<SearchPreset['mode']>('tumu')
   const [routeIndex, setRouteIndex] = useState(0)
   const [preset, setPreset] = useState<SearchPreset | null>(null)
@@ -185,6 +187,7 @@ export default function App() {
   function handlePlanChange(nextPlan: PlanResult | null) {
     setPlan(nextPlan)
     setRouteIndex(0)
+    setHighlight(null)
 
     if (nextPlan?.start) {
       // "Taksim, Beyoğlu, İstanbul" -> "İstanbul"; zaten şehirse aynen kullan
@@ -229,7 +232,7 @@ export default function App() {
           aria-hidden="true"
         />
 
-        {isHome && plan && <MapView plan={plan} mode={mode} routeIndex={routeIndex} />}
+        {isHome && plan && <MapView plan={plan} mode={mode} routeIndex={routeIndex} highlight={highlight} />}
 
         {!isHome && (
           <div className="absolute inset-0 bg-bg/95" aria-hidden="true" />
@@ -271,6 +274,7 @@ export default function App() {
                   onRouteIndexChange={setRouteIndex}
                   onRequireLogin={openLogin}
                   city={weatherCity}
+                  onHighlight={setHighlight}
                 />
               </div>
               {/* Rota acikken sonuclar bottom sheet'tedir; alt kartlar gizlenir, harita tam gorunur */}

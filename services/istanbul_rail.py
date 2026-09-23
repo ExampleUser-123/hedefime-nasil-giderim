@@ -17,7 +17,7 @@ import json
 import math
 import re
 
-from services.routing import snap_to_road
+from services.routing import snap_to_road, walking_guidance
 
 
 def _foot_path(a_lat, a_lon, b_lat, b_lon):
@@ -27,6 +27,17 @@ def _foot_path(a_lat, a_lon, b_lat, b_lon):
     except Exception:
         snapped = None
     return snapped or [[a_lat, a_lon], [b_lat, b_lon]]
+
+
+def _foot_guide(a_lat, a_lon, b_lat, b_lon):
+    """Yurume geometrisi + cadde/sokak adlari. Donus: {"coords", "streets"}."""
+    try:
+        guide = walking_guidance(a_lat, a_lon, b_lat, b_lon)
+    except Exception:
+        guide = None
+    if guide:
+        return {"coords": guide["geometry"], "streets": guide.get("streets", [])}
+    return {"coords": [[a_lat, a_lon], [b_lat, b_lon]], "streets": []}
 
 LINE_SPEED_KMH = {
     "subway": 33,
@@ -259,6 +270,7 @@ def find_rail_route(start_lat, start_lon, end_lat, end_lon, max_routes=3, max_wa
         entry = chain[0][2] if len(chain[0]) > 2 else 0
         if entry > 60:
             first = net["clusters"][chain[0][0]]
+            guide_in = _foot_guide(start_lat, start_lon, first["lat"], first["lon"])
             legs.append({
                 "type": "walking",
                 "line": None,
@@ -271,7 +283,8 @@ def find_rail_route(start_lat, start_lon, end_lat, end_lon, max_routes=3, max_wa
                 "to_stop": first["name"],
                 "stops": [],
                 "alternate_lines": [],
-                "coords": _foot_path(start_lat, start_lon, first["lat"], first["lon"]),
+                "coords": guide_in["coords"],
+                "streets": guide_in["streets"],
             })
 
         # Rayli ayaklari hattara gore grupla (binis istasyonu = onceki dugum)
@@ -323,6 +336,7 @@ def find_rail_route(start_lat, start_lon, end_lat, end_lon, max_routes=3, max_wa
         # Cikistaki yuruyus
         if cand["walk_out_m"] > 60:
             last = net["clusters"][chain[-1][0]]
+            guide_out = _foot_guide(last["lat"], last["lon"], end_lat, end_lon)
             legs.append({
                 "type": "walking",
                 "line": None,
@@ -335,7 +349,8 @@ def find_rail_route(start_lat, start_lon, end_lat, end_lon, max_routes=3, max_wa
                 "to_stop": None,
                 "stops": [],
                 "alternate_lines": [],
-                "coords": _foot_path(last["lat"], last["lon"], end_lat, end_lon),
+                "coords": guide_out["coords"],
+                "streets": guide_out["streets"],
             })
 
         walk_total = sum(l["distance_m"] for l in legs if l["type"] == "walking")

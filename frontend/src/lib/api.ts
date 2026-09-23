@@ -42,6 +42,8 @@ export type TransitLeg = {
   stops: string[]
   alternate_lines: string[]
   coords?: LatLng[]
+  /** Yurume ayaginin gectigi cadde/sokak adlari (OSRM steps; yoksa bos/eksik) */
+  streets?: string[]
 }
 
 export type TransitRoute = {

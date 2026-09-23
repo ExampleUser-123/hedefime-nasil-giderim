@@ -192,17 +192,21 @@ export default function MapView({
   routeIndex,
   nearbyStops,
   onSelectStop,
+  highlight,
 }: {
   plan: PlanResult
   mode: MapMode
   routeIndex: number
   nearbyStops?: NearbyStop[]
   onSelectStop?: (stop: NearbyStop) => void
+  /** Hat detayi acilinca vurgulanan geometri (belirgin amber cizgi) */
+  highlight?: LatLng[] | null
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<L.Map | null>(null)
   const routeLayerRef = useRef<L.LayerGroup | null>(null)
   const stopsLayerRef = useRef<L.LayerGroup | null>(null)
+  const highlightLayerRef = useRef<L.LayerGroup | null>(null)
   const boundsRef = useRef<L.LatLngBounds | null>(null)
 
   useEffect(() => {
@@ -228,6 +232,7 @@ export default function MapView({
     }).addTo(map)
     routeLayerRef.current = L.layerGroup().addTo(map)
     stopsLayerRef.current = L.layerGroup().addTo(map)
+    highlightLayerRef.current = L.layerGroup().addTo(map)
     mapRef.current = map
 
     return () => {
@@ -235,6 +240,7 @@ export default function MapView({
       mapRef.current = null
       routeLayerRef.current = null
       stopsLayerRef.current = null
+      highlightLayerRef.current = null
     }
   }, [])
 
@@ -313,6 +319,33 @@ export default function MapView({
       marker.addTo(stopsLayer)
     }
   }, [nearbyStops, onSelectStop])
+
+  // Hat detayi acilinca secili geometriyi belirgin amber cizgiyle vurgula
+  useEffect(() => {
+    const highlightLayer = highlightLayerRef.current
+
+    if (!highlightLayer) return
+
+    highlightLayer.clearLayers()
+
+    if (!highlight || highlight.length < 2) return
+
+    L.polyline(highlight, {
+      color: '#f59e0b',
+      weight: 14,
+      opacity: 0.25,
+      lineCap: 'round',
+      lineJoin: 'round',
+    }).addTo(highlightLayer)
+
+    L.polyline(highlight, {
+      color: '#f59e0b',
+      weight: 5,
+      opacity: 1,
+      lineCap: 'round',
+      lineJoin: 'round',
+    }).addTo(highlightLayer)
+  }, [highlight])
 
   function zoomBy(delta: number) {
     const map = mapRef.current
