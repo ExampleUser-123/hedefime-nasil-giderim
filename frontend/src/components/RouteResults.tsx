@@ -253,20 +253,30 @@ function LegRow({
   showDeparture,
   lat,
   lon,
+  step,
 }: {
   leg: TransitLeg
   showDeparture?: boolean
   lat?: number
   lon?: number
+  /** Adim numarasi (1'den baslar); verilirse "N. Adim" rozeti cizer */
+  step?: number
 }) {
   const Icon = legIcon(leg)
+
+  const stepBadge = step != null && (
+    <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-accent/15 px-1 text-[10px] font-bold text-accent tabular-nums" aria-label={`${step}. adım`}>
+      {step}
+    </span>
+  )
 
   if (leg.type === 'walking') {
     // Sehir ici yürüme hizi ~70 m/dk (tahmini).
     const walkMin = leg.distance_m ? Math.max(1, Math.round(leg.distance_m / 70)) : null
     const streets = (leg.streets ?? []).filter(Boolean)
     return (
-      <li className="flex items-center gap-3 py-2">
+      <li className="flex items-center gap-2 py-2">
+        {stepBadge}
         <Icon className="h-4 w-4 shrink-0 text-muted" />
         <div className="min-w-0">
           <p className="text-sm text-muted">
@@ -290,7 +300,8 @@ function LegRow({
   const stopCount = leg.stops.length > 1 ? leg.stops.length - 1 : null
 
   return (
-    <li className="flex items-start gap-3 py-2">
+    <li className="flex items-start gap-2 py-2">
+      {stepBadge}
       <Icon className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
       <div className="min-w-0 flex-1">
         <LineTitle leg={leg} showDeparture={showDeparture} lat={lat} lon={lon} />
@@ -432,6 +443,7 @@ function TransitRouteCard({
                 showDeparture={departureLegs?.has(departureLegKey(leg))}
                 lat={lat}
                 lon={lon}
+                step={index + 1}
               />
             ))}
           </ol>
@@ -641,76 +653,45 @@ export function TransitList({
   )
 }
 
-/** Ucak/tren tahmini icin uygulama ici detay sayfasi (disari link yok). */
-function EstimateSheet({
+/** Ucak/tren tahmini icin kart ici adim adim akis (modal yok).
+ * Istasyon/havalimani ismi ve sefer saati backend'de olmadigi icin bu adimlar
+ * bilerek genel tutulur; net bilgi ilgili resmi kanaldan alinir. */
+function EstimateTimeline({
   kind,
   from,
   to,
   estimate,
-  onClose,
 }: {
   kind: 'ucak' | 'tren'
   from: string
   to: string
   estimate: FlightEstimate
-  onClose: () => void
 }) {
   const hours = Math.floor((estimate.duration_minutes ?? 0) / 60)
   const minutes = (estimate.duration_minutes ?? 0) % 60
-  const title = kind === 'ucak' ? 'Uçak yolculuğu detayı' : 'Tren yolculuğu detayı'
+  const vehicle = kind === 'ucak' ? 'Uçak' : 'Tren'
+  const hub = kind === 'ucak' ? 'havalimanı' : 'tren istasyonu'
+  const hubTip = kind === 'ucak'
+    ? 'Havalimanına ulaşımını planla; check-in ve güvenlik için erken git'
+    : 'İstasyona ulaşımını planla (taksi, otobüs veya metro)'
+
+  const steps = [
+    `${from} → en yakın ${hub}: ${hubTip}.`,
+    `${vehicle} yolculuğu: kapıdan kapıya ~${hours} sa ${minutes} dk (tahmini, ${kind === 'ucak' ? 'havalimanı' : 'istasyon'} süreçleri dahil).`,
+    `Varış ${hub} → ${to}: istasyondan hedefe ulaşımını planla.`,
+  ]
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 sm:items-center" role="dialog" aria-modal="true" aria-label={title}>
-      <div className="max-h-[88dvh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-line bg-surface p-5 sm:rounded-3xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="text-base font-extrabold">{title}</h3>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Kapat"
-            className="rounded-full p-1.5 text-muted hover:text-text"
-          >
-            ✕
-          </button>
-        </div>
-
-        <p className="mt-2 break-words text-sm font-bold">
-          {from} <span className="mx-1 text-accent">→</span> {to}
-        </p>
-
-        <dl className="mt-3 space-y-2 text-sm">
-          <div className="flex items-center justify-between gap-2 rounded-xl bg-bg/60 px-3.5 py-2.5">
-            <dt className="text-muted">Kapıdan kapıya süre</dt>
-            <dd className="font-bold tabular-nums">~{hours} sa {minutes} dk</dd>
-          </div>
-          <div className="flex items-center justify-between gap-2 rounded-xl bg-bg/60 px-3.5 py-2.5">
-            <dt className="text-muted">Kişi başı (tahmini)</dt>
-            <dd className="font-bold tabular-nums">
-              {estimate.estimated_price_per_person?.toLocaleString('tr-TR')} TL
-            </dd>
-          </div>
-          <div className="flex items-center justify-between gap-2 rounded-xl bg-bg/60 px-3.5 py-2.5">
-            <dt className="text-muted">Toplam ({estimate.people} kişi, tahmini)</dt>
-            <dd className="font-bold tabular-nums text-accent">
-              {estimate.total_price?.toLocaleString('tr-TR')} TL
-            </dd>
-          </div>
-        </dl>
-
-        {estimate.note && <p className="mt-3 text-xs text-muted">{estimate.note}</p>}
-        <p className="mt-2 text-[11px] text-muted">
-          Fiyatlar mesafe bazlı tahmindir; gerçek bilet fiyatı ilgili firmadan alınır.
-        </p>
-
-        <button
-          type="button"
-          onClick={onClose}
-          className="mt-4 flex min-h-[48px] w-full items-center justify-center rounded-2xl bg-accent font-extrabold text-[#04241d]"
-        >
-          Tamam
-        </button>
-      </div>
-    </div>
+    <ol className="mt-3 space-y-2">
+      {steps.map((text, i) => (
+        <li key={i} className="flex items-start gap-2 rounded-xl bg-bg/60 px-3 py-2.5">
+          <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-accent/15 px-1 text-[10px] font-bold text-accent tabular-nums" aria-label={`${i + 1}. adım`}>
+            {i + 1}
+          </span>
+          <p className="min-w-0 break-words text-xs">{text}</p>
+        </li>
+      ))}
+    </ol>
   )
 }
 
@@ -731,7 +712,6 @@ export function FlightDetails({ flight, from, to }: { flight: FlightEstimate; fr
   const [showDetail, setShowDetail] = useState(false)
   const hours = Math.floor((flight.duration_minutes ?? 0) / 60)
   const minutes = (flight.duration_minutes ?? 0) % 60
-
   return (
     <div>
       <div className="flex items-center gap-2.5">
@@ -767,14 +747,15 @@ export function FlightDetails({ flight, from, to }: { flight: FlightEstimate; fr
 
       <button
         type="button"
-        onClick={() => setShowDetail(true)}
+        onClick={() => setShowDetail((open) => !open)}
+        aria-expanded={showDetail}
         className="mt-2 inline-block text-xs font-bold text-accent underline-offset-2 hover:underline"
       >
-        Yolculuk detayını gör →
+        {showDetail ? 'Adımları gizle ↑' : 'Adım adım gör →'}
       </button>
 
       {showDetail && (
-        <EstimateSheet kind="ucak" from={from} to={to} estimate={flight} onClose={() => setShowDetail(false)} />
+        <EstimateTimeline kind="ucak" from={from} to={to} estimate={flight} />
       )}
     </div>
   )
@@ -833,15 +814,25 @@ export function TrainDetails({ train, from, to }: { train: TrainEstimate; from: 
 
       <button
         type="button"
-        onClick={() => setShowTrainDetail(true)}
+        onClick={() => setShowTrainDetail((open) => !open)}
+        aria-expanded={showTrainDetail}
         className="mt-2 inline-block text-xs font-bold text-accent underline-offset-2 hover:underline"
       >
-        Yolculuk detayını gör →
+        {showTrainDetail ? 'Adımları gizle ↑' : 'Adım adım gör →'}
       </button>
 
       {showTrainDetail && (
-        <EstimateSheet kind="tren" from={from} to={to} estimate={train} onClose={() => setShowTrainDetail(false)} />
+        <EstimateTimeline kind="tren" from={from} to={to} estimate={train} />
       )}
+
+      <a
+        href="https://ebilet.tcdd.gov.tr"
+        target="_blank"
+        rel="noreferrer"
+        className="mt-2 block text-xs font-bold text-accent underline-offset-2 hover:underline"
+      >
+        TCDD Seferlerini Gör →
+      </a>
     </div>
   )
 }
