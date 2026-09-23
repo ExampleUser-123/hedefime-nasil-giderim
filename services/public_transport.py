@@ -57,6 +57,36 @@ def _get_stop_name(stop):
     )
 
 
+def _leg_duration_min(departure_time, arrival_time):
+    """Kalkis->varis farki (dk). Gece yarisi gecisini tolere eder; yoksa None."""
+    try:
+        def _hm(value):
+            if not value:
+                return None
+            parts = str(value).strip().split(":")
+            if len(parts) < 2:
+                return None
+            return int(parts[0]) * 60 + int(parts[1])
+        dep, arr = _hm(departure_time), _hm(arrival_time)
+        if dep is None or arr is None:
+            return None
+        diff = arr - dep
+        if diff < 0:
+            diff += 24 * 60
+        return diff
+    except (TypeError, ValueError):
+        return None
+
+
+def _leg_direction(leg):
+    """Yon/tabela bilgisi (ham veride varsa). Yoksa None — uydurulmaz."""
+    for key in ("direction", "directionName", "headsign", "tripHeadsign"):
+        value = leg.get(key)
+        if value:
+            return str(value).strip() or None
+    return None
+
+
 def _get_stop_names(stops):
     """Bir leg içindeki durak isimlerini temiz şekilde çıkarır."""
     names = []
@@ -177,12 +207,16 @@ def _parse_leg(leg):
 
     # Yürüme ayağı
     if route_id == "walking":
+        walk_m = leg.get("walkDistance", 0) or 0
         return {
             "type": "walking",
             "line": None,
             "name": "Yürüme",
             "route_id": "walking",
-            "distance_m": leg.get("walkDistance", 0),
+            "distance_m": walk_m,
+            "duration_min": max(1, round(walk_m / 70)) if walk_m else None,
+            "walking_distance_m": walk_m,
+            "walking_duration_min": max(1, round(walk_m / 70)) if walk_m else None,
             "departure_time": _format_time(
                 leg.get("departureTime")
             ),
@@ -191,25 +225,30 @@ def _parse_leg(leg):
             ),
             "from_stop": None,
             "to_stop": None,
+            "direction": None,
+            "platform": None,
+            "fare": None,
             "alternate_lines": [],
             "coords": leg_coords,
             "streets": _walking_streets(stops),
         }
 
     # Toplu taşıma ayağı
+    departure = _format_time(leg.get("departureTime"))
+    arrival = _format_time(leg.get("arrivalTime"))
     return {
         "type": transport_type or "public_transport",
         "line": line_id,
         "name": line_name,
         "route_id": route_id,
-        "departure_time": _format_time(
-            leg.get("departureTime")
-        ),
-        "arrival_time": _format_time(
-            leg.get("arrivalTime")
-        ),
+        "departure_time": departure,
+        "arrival_time": arrival,
+        "duration_min": _leg_duration_min(departure, arrival),
         "from_stop": stop_names[0] if stop_names else None,
         "to_stop": stop_names[-1] if stop_names else None,
+        "direction": _leg_direction(leg),
+        "platform": None,
+        "fare": None,
         "stops": stop_names,
         "alternate_lines": leg.get("alternateLineId", []),
         "coords": leg_coords

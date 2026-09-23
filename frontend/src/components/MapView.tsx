@@ -320,9 +320,10 @@ export default function MapView({
     }
   }, [nearbyStops, onSelectStop])
 
-  // Hat detayi acilinca secili geometriyi belirgin amber cizgiyle vurgula
+  // Hat detayi / adim secimi: secili geometriyi belirgin cizgiyle vurgula ve odaklan
   useEffect(() => {
     const highlightLayer = highlightLayerRef.current
+    const map = mapRef.current
 
     if (!highlightLayer) return
 
@@ -345,6 +346,10 @@ export default function MapView({
       lineCap: 'round',
       lineJoin: 'round',
     }).addTo(highlightLayer)
+
+    if (map) {
+      map.fitBounds(L.latLngBounds(highlight), { padding: [80, 80] })
+    }
   }, [highlight])
 
   function zoomBy(delta: number) {

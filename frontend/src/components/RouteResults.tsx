@@ -249,12 +249,17 @@ function LegTimetable({
   )
 }
 
+/** Veride olmayan alanlar icin standart durust cumle. */
+const MISSING_INFO = 'Bu bilgi mevcut ulaşım verisinde bulunamadı.'
+
 function LegRow({
   leg,
   showDeparture,
   lat,
   lon,
   step,
+  isLast,
+  onFocusLeg,
 }: {
   leg: TransitLeg
   showDeparture?: boolean
@@ -262,8 +267,13 @@ function LegRow({
   lon?: number
   /** Adim numarasi (1'den baslar); verilirse "N. Adim" rozeti cizer */
   step?: number
+  /** Son adimsa yurume "HEDEFE YURU" olur */
+  isLast?: boolean
+  /** Haritada ilgili lege odaklan (koordinat yoksa buton cikmaz) */
+  onFocusLeg?: (coords: LatLng[]) => void
 }) {
   const Icon = legIcon(leg)
+  const canFocus = onFocusLeg && leg.coords && leg.coords.length > 1
 
   const stepBadge = step != null && (
     <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-accent/15 px-1 text-[10px] font-bold text-accent tabular-nums" aria-label={`${step}. adım`}>
@@ -271,54 +281,102 @@ function LegRow({
     </span>
   )
 
+  const focusButton = canFocus && (
+    <button
+      type="button"
+      onClick={() => onFocusLeg(leg.coords!)}
+      aria-label={`${step ?? ''}. adımı haritada göster`}
+      title="Haritada göster"
+      className="ml-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-line text-sm text-muted transition-colors hover:border-accent hover:text-accent"
+    >
+      ⌖
+    </button>
+  )
+
   if (leg.type === 'walking') {
-    // Sehir ici yürüme hizi ~70 m/dk (tahmini).
-    const walkMin = leg.distance_m ? Math.max(1, Math.round(leg.distance_m / 70)) : null
+    const walkMin = leg.walking_duration_min
+      ?? leg.duration_min
+      ?? (leg.distance_m ? Math.max(1, Math.round(leg.distance_m / 70)) : null)
+    const walkM = leg.walking_distance_m ?? leg.distance_m
     const streets = (leg.streets ?? []).filter(Boolean)
+    const verb = isLast ? 'HEDEFE YÜRÜ' : step === 1 ? 'YÜRÜ' : 'AKTAR · YÜRÜ'
+    const target = isLast ? (leg.to_stop ?? 'hedef') : (leg.to_stop ?? leg.from_stop ?? '')
     return (
-      <li className="flex items-center gap-2 py-2">
-        {stepBadge}
-        <Icon className="h-4 w-4 shrink-0 text-muted" />
-        <div className="min-w-0">
-          <p className="text-sm text-muted">
-            {leg.distance_m ? `${Math.round(leg.distance_m)} m yürü` : 'Yürü'}
-            {walkMin != null && ` (~${walkMin} dk, tahmini)`}
-            <span className="mx-1.5 text-line" aria-hidden="true">·</span>
-            {leg.from_stop ?? ''}
-            {leg.to_stop && ` → ${leg.to_stop}`}
-          </p>
-          {streets.length > 0 && (
-            <p className="mt-0.5 break-words text-[11px] text-muted">
-              🧭 {streets.join(' → ')} üzerinden
-            </p>
-          )}
+      <li className="py-2">
+        <div className="flex items-center gap-2">
+          {stepBadge}
+          <span className="rounded-md bg-accent/15 px-1.5 py-0.5 text-[10px] font-extrabold tracking-wide text-accent">
+            🚶 {verb}
+          </span>
+          <Icon className="h-4 w-4 shrink-0 text-muted" />
+          {focusButton}
         </div>
+        <p className="mt-1 break-words pl-7 text-sm">
+          {walkM ? `${Math.round(walkM)} m yürü` : 'Yürü'}
+          {walkMin != null && ` (~${walkMin} dk)`}
+          {target && ` → ${target}`}
+        </p>
+        {streets.length > 0 && (
+          <p className="mt-0.5 break-words pl-7 text-[11px] text-muted">
+            🧭 {streets.join(' → ')} üzerinden
+          </p>
+        )}
+        {(leg.from_stop || leg.to_stop) && (
+          <p className="mt-0.5 break-words pl-7 text-[11px] text-muted">
+            {leg.from_stop ?? ''}{leg.from_stop && leg.to_stop && ' → '}{leg.to_stop ?? ''}
+          </p>
+        )}
       </li>
     )
   }
 
-  const rideMin = legRideMinutes(leg.departure_time, leg.arrival_time)
+  const rideMin = leg.duration_min ?? legRideMinutes(leg.departure_time, leg.arrival_time)
   const stopCount = leg.stops.length > 1 ? leg.stops.length - 1 : null
 
   return (
-    <li className="flex items-start gap-2 py-2">
-      {stepBadge}
-      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-      <div className="min-w-0 flex-1">
-        <LineTitle leg={leg} showDeparture={showDeparture} lat={lat} lon={lon} />
+    <li className="py-2">
+      <div className="flex items-center gap-2">
+        {stepBadge}
+        <span className="rounded-md bg-accent px-1.5 py-0.5 text-[10px] font-extrabold tracking-wide text-accent-ink">
+          🚌 BİN
+        </span>
+        <div className="min-w-0 flex-1">
+          <LineTitle leg={leg} showDeparture={showDeparture} lat={lat} lon={lon} />
+        </div>
+        {focusButton}
+      </div>
+
+      <div className="mt-1 space-y-1 pl-7 text-xs">
+        <p className="break-words">
+          <span className="font-bold text-accent">📍 Biniş: </span>
+          {leg.from_stop ?? MISSING_INFO}
+          {leg.departure_time && <span className="tabular-nums"> · {leg.departure_time}</span>}
+          {!leg.departure_time && leg.from_stop && (
+            <span className="text-muted"> · kalkış saati veride yok</span>
+          )}
+        </p>
+        <p className="break-words">
+          <span className="font-bold text-accent">📍 İniş: </span>
+          {leg.to_stop ?? MISSING_INFO}
+          {leg.arrival_time && <span className="tabular-nums"> · {leg.arrival_time}</span>}
+          {!leg.arrival_time && leg.to_stop && (
+            <span className="text-muted"> · varış saati veride yok</span>
+          )}
+        </p>
+        <p className="break-words text-muted">
+          ⏱ {rideMin != null ? `Araçta ~${rideMin} dk` : 'Süre veride yok'}
+          {stopCount != null && ` · ${stopCount} durak`}
+          {leg.direction && ` · yön: ${leg.direction}`}
+        </p>
         {showDeparture && (
           <LegTimetable line={leg.line} stop={leg.from_stop} lat={lat} lon={lon} />
         )}
-        {leg.alternate_lines.length > 0 && (
-          <span className="text-xs font-normal text-muted">(+{leg.alternate_lines.length} alternatif)</span>
-        )}
-        <p className="mt-0.5 break-words text-xs text-muted">
-          {leg.from_stop} → {leg.to_stop}
-          {leg.departure_time && ` · ${leg.departure_time}`}
-          {leg.arrival_time && ` – ${leg.arrival_time}`}
-          {stopCount != null && ` · ${stopCount} durak`}
-          {rideMin != null && ` · araçta ~${rideMin} dk`}
+        <p className="break-words text-muted">
+          Peron: {leg.platform ?? MISSING_INFO}
         </p>
+        {leg.alternate_lines.length > 0 && (
+          <p className="text-muted">(+{leg.alternate_lines.length} alternatif hat)</p>
+        )}
       </div>
     </li>
   )
@@ -376,6 +434,7 @@ function TransitRouteCard({
   departureLegs,
   lat,
   lon,
+  onFocusLeg,
 }: {
   route: TransitRoute
   people: number
@@ -385,6 +444,7 @@ function TransitRouteCard({
   departureLegs?: Set<string>
   lat?: number
   lon?: number
+  onFocusLeg?: (coords: LatLng[]) => void
 }) {
   const totalPrice = route.fee != null ? route.fee * people : null
 
@@ -445,6 +505,8 @@ function TransitRouteCard({
                 lat={lat}
                 lon={lon}
                 step={index + 1}
+                isLast={index === route.legs.length - 1}
+                onFocusLeg={onFocusLeg}
               />
             ))}
           </ol>
@@ -533,12 +595,14 @@ export function TransitList({
   people,
   selectedIndex,
   onSelect,
+  onFocusLeg,
 }: {
   result: PlanResult
   mode: Mode
   people: number
   selectedIndex: number
   onSelect: (index: number) => void
+  onFocusLeg?: (coords: LatLng[]) => void
 }) {
   const { routes, recommendations, status, error, source, note } = result.public_transport
 
@@ -575,6 +639,7 @@ export function TransitList({
             departureLegs={firstBusLegKeys(ferryRoutes.slice(0, 4))}
             lat={result.start_coord.lat}
             lon={result.start_coord.lon}
+            onFocusLeg={onFocusLeg}
           />
         ))}
 
@@ -611,6 +676,7 @@ export function TransitList({
             departureLegs={firstBusLegKeys(tramRoutes.slice(0, 4))}
             lat={result.start_coord.lat}
             lon={result.start_coord.lon}
+            onFocusLeg={onFocusLeg}
           />
         ))}
 
@@ -639,8 +705,9 @@ export function TransitList({
           onSelect={() => onSelect(index)}
           departureLegs={firstBusLegKeys(visibleRoutes.slice(0, 4))}
           lat={result.start_coord.lat}
-          lon={result.start_coord.lon}
-        />
+lon={result.start_coord.lon}
+          onFocusLeg={onFocusLeg}
+          />
       ))}
 
       {note && (
@@ -659,9 +726,11 @@ export function TransitList({
 export function RailRouteCards({
   result,
   people,
+  onFocusLeg,
 }: {
   result: PlanResult
   people: number
+  onFocusLeg?: (coords: LatLng[]) => void
 }) {
   const [index, setIndex] = useState(0)
   const routes = result.public_transport.routes.filter(isRailRoute)
@@ -685,8 +754,9 @@ export function RailRouteCards({
           onSelect={() => setIndex(i)}
           departureLegs={firstBusLegKeys(visible)}
           lat={result.start_coord.lat}
-          lon={result.start_coord.lon}
-        />
+lon={result.start_coord.lon}
+          onFocusLeg={onFocusLeg}
+          />
       ))}
     </div>
   )

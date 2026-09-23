@@ -219,6 +219,7 @@ function ModeCard({
   listMode,
   routeIndex,
   onRouteIndexChange,
+  onHighlight,
 }: {
   candidate: Candidate
   best: Candidate | null
@@ -227,6 +228,7 @@ function ModeCard({
   listMode: Mode
   routeIndex: number
   onRouteIndexChange: (index: number) => void
+  onHighlight?: (coords: LatLng[] | null) => void
 }) {
   const [open, setOpen] = useState(false)
   const Icon = candidate.icon
@@ -297,6 +299,7 @@ function ModeCard({
               people={people}
               selectedIndex={routeIndex}
               onSelect={onRouteIndexChange}
+              onFocusLeg={(coords) => onHighlight?.(coords)}
             />
           )}
           {candidate.id === 'ucak' && plan.flight && (
@@ -304,7 +307,7 @@ function ModeCard({
           )}
           {candidate.id === 'tren' && plan.train && (
             <>
-              <RailRouteCards result={plan} people={people} />
+              <RailRouteCards result={plan} people={people} onFocusLeg={(coords) => onHighlight?.(coords)} />
               <div className="mt-3">
                 <TrainDetails train={plan.train} from={plan.start} to={plan.destination} />
               </div>
@@ -961,6 +964,7 @@ export default function ResultsScreen({
               listMode={listMode}
               routeIndex={routeIndex}
               onRouteIndexChange={onRouteIndexChange}
+              onHighlight={onHighlight}
             />
           ))}
         </div>
@@ -986,6 +990,8 @@ export default function ResultsScreen({
             const walkingM = selectedRoute.walking_distance_m ?? 0
             const costPerPerson = selectedRoute.fee
             const legsCount = selectedRoute.legs.filter((leg) => leg.type !== 'walking').length || 1
+            const transitLegs = selectedRoute.legs.filter((leg) => leg.type !== 'walking').length
+            const transfers = transitLegs > 0 ? transitLegs - 1 : null
 
             return (
               <TripReport
@@ -997,6 +1003,7 @@ export default function ResultsScreen({
                 costPerPerson={costPerPerson ?? 0}
                 totalCost={costPerPerson != null ? costPerPerson * people : best?.total ?? 0}
                 legsCount={legsCount}
+                transfers={transfers}
               />
             )
           }

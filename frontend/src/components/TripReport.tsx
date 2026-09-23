@@ -28,6 +28,7 @@ export default function TripReport({
   costPerPerson,
   totalCost,
   legsCount,
+  transfers,
 }: {
   from: string
   to: string
@@ -37,6 +38,7 @@ export default function TripReport({
   costPerPerson: number | null
   totalCost: number | null
   legsCount: number
+  transfers?: number | null
 }): ReactElement {
   const [copied, setCopied] = useState(false)
 
@@ -51,6 +53,9 @@ export default function TripReport({
       lines.push(`🚶 Yürüyüş: ${formatMeters(walkingDistanceM)}`)
 
     lines.push(`🚌 ${legsCount} adım`)
+
+    if (transfers != null)
+      lines.push(`🔁 Aktarma: ${transfers}`)
 
     if (costPerPerson != null)
       lines.push(`💰 Kişi başı: ~${formatTL(costPerPerson)}`)
@@ -116,6 +121,14 @@ export default function TripReport({
             <p className="text-xs text-muted">Toplam ({people} kişi)</p>
             <p className="font-bold text-accent tabular-nums">
               ~{formatTL(totalCost)}
+            </p>
+          </div>
+        )}
+        {transfers != null && (
+          <div className="rounded-xl border border-line px-3 py-2">
+            <p className="text-xs text-muted">Aktarma</p>
+            <p className="font-bold tabular-nums">
+              {transfers}
             </p>
           </div>
         )}

@@ -35,10 +35,20 @@ export type TransitLeg = {
   name: string | null
   route_id: string
   distance_m?: number
+  /** Arac ici / yurume suresi (dk). Yoksa null — uydurulmaz. */
+  duration_min?: number | null
+  walking_distance_m?: number | null
+  walking_duration_min?: number | null
   departure_time: string | null
   arrival_time: string | null
   from_stop: string | null
   to_stop: string | null
+  /** Yon/tabela (ham veride varsa). */
+  direction?: string | null
+  /** Peron (veri kaynaginda yok; her zaman null). */
+  platform?: string | null
+  /** Hat ucreti (hat bazli veri yok; her zaman null). */
+  fare?: number | null
   stops: string[]
   alternate_lines: string[]
   coords?: LatLng[]
