@@ -173,6 +173,19 @@ try:
     quota_store.grant_bonus(key, "magic", 1)
     check("bonus kotayi dusurur", quota_store.get_usage(key)["magic"] == max(0, before - 1))
 
+    # --- odullu reklam kota odulu (gunde 3) ---
+    r = c.post("/ads/reward", json={"kind": "hatali"}, headers=h)
+    check("gecersiz tur 400", r.status_code == 400, str(r.status_code))
+    ok_count = 0
+    for _ in range(4):
+        r = c.post("/ads/reward", json={"kind": "routes"}, headers=h)
+        if r.status_code == 200:
+            ok_count += 1
+    check("gunde 3 odul", ok_count == 3, str(ok_count))
+    r = c.post("/ads/reward", json={"kind": "routes"}, headers=h)
+    check("4. odul 400", r.status_code == 400, str(r.status_code))
+    check("authsuz odul 401", TestClient(app).post("/ads/reward", json={"kind": "routes"}).status_code == 401)
+
     # --- oylama & yorum ---
     r = c.post("/marketplace", json={"title": "Oy test rotasi"}, headers=h).json()
     rid2 = r["route"]["id"]

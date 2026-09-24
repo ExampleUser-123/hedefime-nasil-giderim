@@ -2083,6 +2083,50 @@ class RedeemBody(BaseModel):
     item: str
 
 
+class AdRewardBody(BaseModel):
+    kind: str = "routes"
+
+
+AD_REWARD_DAILY_CAP = 3
+AD_REWARD_KINDS = ("routes", "ai", "magic")
+
+
+@app.post("/ads/reward")
+def ads_reward(body: AdRewardBody,
+               request: Request,
+               user: dict = Depends(get_current_user)):
+    """Odullu reklam izleyen kullaniciya +1 kota hakki (gunde en fazla 3).
+
+    Frontend, AdMob Rewarded Interstitial tamamlanmadan bu ucu cagirmaz;
+    sunucu tarafi gunluk kotayi perks uzerinden zorlar (istismar onlemi).
+    """
+    kind = (body.kind or "").strip()
+    if kind not in AD_REWARD_KINDS:
+        return JSONResponse(status_code=400, content={"error": "Geçersiz hak türü."})
+
+    today = date.today().isoformat()
+    counter_key = f"ad_reward_{today}"
+    # NOT: get_perks sabit semalidir; gunluk sayac ham perks'ten okunur.
+    raw_perks = (user_store.get_user(user["id"]) or {}).get("perks", {}) or {}
+    used = 0
+    try:
+        used = int(raw_perks.get(counter_key, 0) or 0)
+    except (TypeError, ValueError):
+        used = 0
+    if used >= AD_REWARD_DAILY_CAP:
+        return JSONResponse(
+            status_code=400,
+            content={"error": "Bugünkü reklam hakların doldu (3/3). Yarın tekrar dene."})
+
+    key = quota_store.identity_key(user, request.client.host if request.client else "")
+    quota_store.grant_bonus(key, kind, 1)
+    user_store.grant_perk(user["id"], counter_key, used + 1)
+    kind_tr = {"routes": "rota arama", "ai": "AI mesajı", "magic": "Magic Share"}[kind]
+    return {"ok": True,
+            "effect": f"+1 {kind_tr} hakkı eklendi. (Bugün {used + 1}/{AD_REWARD_DAILY_CAP})",
+            "remaining": AD_REWARD_DAILY_CAP - used - 1}
+
+
 XP_STORE_ITEMS = {
     "unlimited_day": {
         "name": "1 Günlük Sınırsız Rota Arama",

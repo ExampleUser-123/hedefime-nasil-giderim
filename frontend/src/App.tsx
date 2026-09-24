@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Capacitor, type PluginListenerHandle } from '@capacitor/core'
 import { App as CapacitorApp } from '@capacitor/app'
+import { showAppOpenAd } from '@/lib/ads'
 import { AnimatePresence, motion, MotionConfig } from 'framer-motion'
 import splashArtwork from '@/assets/splash.png'
 import WeatherChip from '@/components/WeatherChip'
@@ -56,6 +57,24 @@ export default function App() {
   useEffect(() => {
     const timer = setTimeout(() => setBootSplash(false), 1400)
     return () => clearTimeout(timer)
+  }, [])
+
+  // App Open reklami: ilk acilista splash sonrasi + arka plandan donuslerde
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+    const splashTimer = setTimeout(() => {
+      showAppOpenAd().catch(() => {})
+    }, 1800)
+    let resumeHandler: PluginListenerHandle | null = null
+    CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) showAppOpenAd().catch(() => {})
+    }).then((h) => {
+      resumeHandler = h
+    })
+    return () => {
+      clearTimeout(splashTimer)
+      resumeHandler?.remove()
+    }
   }, [])
 
   // Suresi dolmus oturum varsa temizle

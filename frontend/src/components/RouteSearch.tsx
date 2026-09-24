@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { fetchPlan, reverseGeocode, type LatLng, type Mode, type PlanResult, type Vehicle } from '@/lib/api'
+import { fetchPlan, claimAdReward, reverseGeocode, type LatLng, type Mode, type PlanResult, type Vehicle } from '@/lib/api'
 import { extractCity } from '@/lib/cities'
 import { award } from '@/lib/game'
 import { getCurrentLocation } from '@/lib/geolocation'
 import { addHistory, getFrequentRoutes, getRouteShortcuts, getWalkTolerance, saveLastCoords, setWalkTolerance, type FrequentRoute, type SavedRoute } from '@/lib/storage'
-import { maybeShowInterstitial } from '@/lib/ads'
-import { getTier } from '@/lib/auth'
+import { maybeShowInterstitial, showRewardInterstitialAd } from '@/lib/ads'
+import { getStoredUser, getTier } from '@/lib/auth'
 import ResultsScreen from '@/components/ResultsScreen'
 import VehiclePicker, { loadRememberedVehicle, loadRememberedVehicleName } from '@/components/VehiclePicker'
 import UpgradeSheet from '@/components/UpgradeSheet'
@@ -91,6 +91,34 @@ export default function RouteSearch({
   const [error, setError] = useState<string | null>(null)
   const [quotaHit, setQuotaHit] = useState(false)
   const [upgradeOpen, setUpgradeOpen] = useState(false)
+  // Odullu reklam ile kota kazanma akisi
+  const [watchingAd, setWatchingAd] = useState(false)
+  const [rewardMsg, setRewardMsg] = useState<string | null>(null)
+
+  /** Kota dolduysa: odullu reklam izlet, +1 hak tanimlat, rotayi otomatik yeniden dene. */
+  async function watchAdForQuota() {
+    if (watchingAd) return
+    if (!getStoredUser()) {
+      onRequireLogin()
+      return
+    }
+    setWatchingAd(true)
+    setRewardMsg(null)
+    try {
+      const completed = await showRewardInterstitialAd()
+      if (!completed) {
+        setRewardMsg('Reklam tamamlanamadı. Tekrar dene.')
+        return
+      }
+      const res = await claimAdReward('routes')
+      setRewardMsg(`🎉 ${res.effect}`)
+      await search()
+    } catch (e) {
+      setRewardMsg(e instanceof Error ? e.message : 'Hak tanımlanamadı. Tekrar dene.')
+    } finally {
+      setWatchingAd(false)
+    }
+  }
   const [shortcuts, setShortcuts] = useState<SavedRoute[]>(() => getRouteShortcuts())
   const [frequent, setFrequent] = useState<FrequentRoute[]>(() => getFrequentRoutes())
 
@@ -395,13 +423,26 @@ export default function RouteSearch({
         <div role="alert" className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
           <p>{error}</p>
           {quotaHit && (
-            <button
-              type="button"
-              onClick={() => setUpgradeOpen(true)}
-              className="mt-2 w-full rounded-lg bg-teal-500 px-4 py-2 text-sm font-bold text-slate-900 active:scale-[0.99]"
-            >
-              Üyeliği yükselt → Sınırsız rota
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => void watchAdForQuota()}
+                disabled={watchingAd}
+                className="mt-2 w-full rounded-lg bg-accent px-4 py-2 text-sm font-bold text-accent-ink active:scale-[0.99] disabled:opacity-50"
+              >
+                {watchingAd ? 'Reklam yükleniyor…' : '📺 Kısa Reklam İzle ve Rota Hakkı Kazan'}
+              </button>
+              {rewardMsg && (
+                <p role="status" className="mt-2 text-xs text-accent">{rewardMsg}</p>
+              )}
+              <button
+                type="button"
+                onClick={() => setUpgradeOpen(true)}
+                className="mt-2 w-full rounded-lg bg-teal-500 px-4 py-2 text-sm font-bold text-slate-900 active:scale-[0.99]"
+              >
+                Üyeliği yükselt → Sınırsız rota
+              </button>
+            </>
           )}
         </div>
       )}

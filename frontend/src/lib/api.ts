@@ -665,6 +665,17 @@ export function redeemXpStore(item: string): Promise<{
   }, 20000).catch(() => null)
 }
 
+/** Odullu reklam sonrasi +1 kota hakki (gunde en fazla 3). Basarisizsa hata firlatir. */
+export async function claimAdReward(kind: 'routes' | 'ai' | 'magic'): Promise<{
+  ok: boolean; effect: string; remaining: number
+}> {
+  return request<{ ok: boolean; effect: string; remaining: number }>('/ads/reward', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ kind }),
+  }, 20000)
+}
+
 // --- Kullanici veri-duzeltme bildirimi --------------------------------------
 
 export function reportFeedback(payload: { message: string; context?: string }) {
