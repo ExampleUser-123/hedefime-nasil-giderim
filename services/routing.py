@@ -147,3 +147,24 @@ def walking_guidance(
         "streets": streets[:5],
         "duration_min": round(route.get("duration", 0) / 60),
     }
+
+
+def road_geometry(points, profile="driving"):
+    """Noktalari yola oturtur; olmazsa duz cizgi duser (hicbir zaman bos donmez).
+
+    points: [[lat, lon], ...] (en az 2 nokta).
+    Vapur gibi OSRM'in cozemedigi legler icin duz cizgi dogru davranistir.
+    """
+    pts = []
+    for p in points or []:
+        try:
+            pts.append([float(p[0]), float(p[1])])
+        except (TypeError, ValueError, IndexError):
+            continue
+    if len(pts) < 2:
+        return pts
+    try:
+        snapped = snap_to_road(tuple(tuple(p) for p in pts), profile)
+    except Exception:
+        snapped = None
+    return snapped or pts

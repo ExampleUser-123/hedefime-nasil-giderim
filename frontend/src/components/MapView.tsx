@@ -139,7 +139,7 @@ function buildPaths(plan: PlanResult, mode: MapMode, routeIndex: number): Path[]
       : [straight]
   }
 
-  if (mode === 'yuruyus' || mode === 'ucak' || mode === 'tren') {
+  if (mode === 'yuruyus' || mode === 'ucak') {
     return [straight]
   }
 
@@ -159,7 +159,7 @@ function buildPaths(plan: PlanResult, mode: MapMode, routeIndex: number): Path[]
     if (tram.length) routes = tram
   }
 
-  if (mode === 'metro') {
+  if (mode === 'metro' || mode === 'tren') {
     const rail = allRoutes.filter(isRailRoute)
     if (rail.length) routes = rail
   }

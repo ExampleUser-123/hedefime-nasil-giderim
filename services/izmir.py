@@ -16,6 +16,7 @@ import os
 import requests
 
 from services.cache import cached
+from services.routing import road_geometry
 
 
 CKAN_URL = "https://acikveri.bizizmir.com/api/3/action/datastore_search"
@@ -423,19 +424,35 @@ def find_izmir_route(start_lat, start_lon, end_lat, end_lon, max_walk=None):
         if line.get("l"):
             bus_leg["long_name"] = line["l"]
 
-        legs = [
-            _walking_leg(
-                item["walk_in_m"],
-                None,
-                board["name"],
-            ),
-            bus_leg,
-            _walking_leg(
-                item["walk_out_m"],
-                alight["name"],
-                None,
-            ),
-        ]
+        # Geometri: durak-durak yol takibi (OSRM); vapurda su üstü
+        # çözülemezse iskele-iskele düz çizgi kalır (doğru davranış).
+        bus_leg["coords"] = road_geometry(
+            [[board["lat"], board["lon"]],
+             [alight["lat"], alight["lon"]]],
+            "driving",
+        )
+
+        walk_in = _walking_leg(
+            item["walk_in_m"],
+            None,
+            board["name"],
+        )
+        walk_in["coords"] = road_geometry(
+            [[start_lat, start_lon],
+             [board["lat"], board["lon"]]],
+            "foot",
+        )
+        walk_out = _walking_leg(
+            item["walk_out_m"],
+            alight["name"],
+            None,
+        )
+        walk_out["coords"] = road_geometry(
+            [[alight["lat"], alight["lon"]],
+             [end_lat, end_lon]],
+            "foot",
+        )
+        legs = [walk_in, bus_leg, walk_out]
 
         routes.append({
             "fee": None,

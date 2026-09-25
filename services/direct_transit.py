@@ -21,6 +21,7 @@ from services.izmir import (
     _stops_near_adaptive,
     _walking_leg,
 )
+from services.routing import road_geometry
 
 
 # Merkezlerde durak yogunlugu yuksek oldugu icin eslesme havuzu genis tutulur
@@ -175,11 +176,29 @@ def make_finder(
 
             bus_leg["route_id"] = f"{source_label.lower()}:{line_display}"
 
-            legs = [
-                _walking_leg(item["walk_in_m"], None, item["board"]["name"]),
-                bus_leg,
-                _walking_leg(item["walk_out_m"], item["alight"]["name"], None),
-            ]
+            # Geometri: biniş→iniş yol takibi (OSRM); vapurda su üstü
+            # çözülemezse durak-durak düz çizgi kalır (doğru davranış).
+            board = item["board"]
+            alight = item["alight"]
+            bus_leg["coords"] = road_geometry(
+                [[board["lat"], board["lon"]],
+                 [alight["lat"], alight["lon"]]],
+                "driving",
+            )
+
+            walk_in = _walking_leg(item["walk_in_m"], None, board["name"])
+            walk_in["coords"] = road_geometry(
+                [[start_lat, start_lon],
+                 [board["lat"], board["lon"]]],
+                "foot",
+            )
+            walk_out = _walking_leg(item["walk_out_m"], alight["name"], None)
+            walk_out["coords"] = road_geometry(
+                [[alight["lat"], alight["lon"]],
+                 [end_lat, end_lon]],
+                "foot",
+            )
+            legs = [walk_in, bus_leg, walk_out]
 
             routes.append({
                 "fee": None,
