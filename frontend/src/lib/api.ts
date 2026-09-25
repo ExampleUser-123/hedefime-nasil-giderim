@@ -676,6 +676,51 @@ export async function claimAdReward(kind: 'routes' | 'ai' | 'magic'): Promise<{
   }, 20000)
 }
 
+// --- AI rota detayi (adim adim timeline) ------------------------------------
+
+export type RouteStep = {
+  step_type: string
+  instruction: string
+  departure_stop: string | null
+  arrival_stop: string | null
+  line_name: string | null
+  departure_times: string[] | null
+  duration: string | null
+  walking_distance_m: number | null
+  walking_duration_min: number | null
+  direction: string | null
+  platform: string | null
+  fare: number | null
+}
+
+export type RouteDetailResponse = {
+  total_duration: string
+  total_price: string
+  total_walking_m: number
+  transfer_count: number
+  summary_text: string
+  steps: RouteStep[]
+}
+
+/** Secili rotanin AI destekli adim adim detayi. Hata firlatir. */
+export async function fetchRouteDetails(payload: {
+  from: string
+  to: string
+  city?: string
+  start_lat?: number
+  start_lon?: number
+  people?: number
+  total_minutes?: number | null
+  fee?: number | null
+  legs: TransitLeg[]
+}): Promise<RouteDetailResponse> {
+  return request<RouteDetailResponse>('/route-details', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }, 45000)
+}
+
 // --- Kullanici veri-duzeltme bildirimi --------------------------------------
 
 export function reportFeedback(payload: { message: string; context?: string }) {

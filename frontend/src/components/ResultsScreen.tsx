@@ -22,6 +22,7 @@ import {
   WalkingDetails,
 } from '@/components/RouteResults'
 import LineDetailSheet from '@/components/LineDetailSheet'
+import RouteAiDetails from '@/components/RouteAiDetails'
 import { extractCity } from '@/lib/cities'
 import {
   IconBus,
@@ -968,6 +969,21 @@ export default function ResultsScreen({
             />
           ))}
         </div>
+
+        {selectedRoute && (
+          <div className="mt-3">
+            <RouteAiDetails
+              from={plan.start}
+              to={plan.destination}
+              city={plan.start.split(',').pop()?.trim() ?? ''}
+              startLat={plan.start_coord.lat}
+              startLon={plan.start_coord.lon}
+              people={people}
+              route={selectedRoute}
+              onRequireLogin={onRequireLogin}
+            />
+          </div>
+        )}
 
         {!hasTransitRoutes && (
           <div className="mt-4 rounded-2xl border border-line bg-surface-2 px-4 py-3">

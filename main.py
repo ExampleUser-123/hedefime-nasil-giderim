@@ -960,6 +960,44 @@ class NextDeparturesBody(BaseModel):
     lon: float | None = None
 
 
+class RouteStep(BaseModel):
+    step_type: str = Field(description='"WALK", "TRAIN", "METRO", "BUS", "TRAM" veya "FERRY"')
+    instruction: str = Field(description='Örn: "İzmit Garı\'na 8 dk yürü"')
+    departure_stop: str | None = Field(default=None, description="Biniş istasyonu")
+    arrival_stop: str | None = Field(default=None, description="İniş/aktarma istasyonu")
+    line_name: str | None = Field(default=None, description="Hat/Tren adı")
+    departure_times: list[str] | None = Field(default=None, description='Sefer kalkış saatleri (Örn: ["08:15", "11:30"])')
+    duration: str | None = Field(default=None, description="Tahmini süre")
+    walking_distance_m: float | None = None
+    walking_duration_min: int | None = None
+    direction: str | None = None
+    platform: str | None = Field(default=None, description="Veri kaynağında yok; her zaman null")
+    fare: float | None = Field(default=None, description="Hat bazlı veri yok; her zaman null")
+
+
+class RouteDetailResponse(BaseModel):
+    total_duration: str
+    total_price: str
+    total_walking_m: int = 0
+    transfer_count: int = 0
+    summary_text: str
+    steps: list[RouteStep]
+
+
+class RouteDetailBody(BaseModel):
+    from_: str = Field(alias="from")
+    to: str
+    city: str = ""
+    start_lat: float | None = None
+    start_lon: float | None = None
+    people: int = 1
+    total_minutes: int | None = None
+    fee: float | None = None
+    legs: list[dict] = Field(default_factory=list)
+
+    model_config = {"populate_by_name": True}
+
+
 @app.post("/next-departures")
 def next_departures_endpoint(body: NextDeparturesBody):
     from services.gtfs_times import next_departures
@@ -983,6 +1021,46 @@ def next_departures_endpoint(body: NextDeparturesBody):
         "computed_at": to_iso_tr(now_dt),
         "departures": departures,
     }
+
+
+@app.post("/route-details")
+def route_details_endpoint(body: RouteDetailBody, request: Request,
+                           user: dict = Depends(get_current_user)):
+    """Secili rotanin adim adim detayi (RouteDetailResponse).
+
+    Adimlar istemcinin gordugu GERCEK leg verisinden kurulur; Gemini
+    yalnizca ozet metni uretir (durak/saat uyduramaz). AI kotasina tabidir.
+    """
+    from services import route_details as rd
+
+    if not body.legs:
+        return JSONResponse(status_code=400, content={"error": "Adım üretmek için leg verisi gerekli."})
+
+    ai_guard = _quota_guard(request, user, "ai")
+
+    people = max(1, min(10, int(body.people or 1)))
+    steps = [
+        rd.leg_to_step(leg if isinstance(leg, dict) else {},
+                       city=body.city or None,
+                       lat=body.start_lat, lon=body.start_lon)
+        for leg in body.legs
+    ]
+    details = rd.route_to_details(
+        {"legs": body.legs, "duration_minutes": body.total_minutes,
+         "fee": body.fee, "walking_distance_m": 0},
+        people=people, city=body.city or None,
+        lat=body.start_lat, lon=body.start_lon,
+    )
+    # Adimlari tek tek degil, toplu ozetle (tek AI cagrisi)
+    try:
+        from services.ai import summarize_route_details
+        summary = summarize_route_details(steps, body.from_, body.to)
+    except Exception:
+        summary = f"{body.from_} → {body.to}: {len(steps)} adımlı yolculuk."
+    details["summary_text"] = summary
+
+    _quota_count(ai_guard, "ai")
+    return RouteDetailResponse(**details)
 
 
 # =========================================================

@@ -186,6 +186,38 @@ try:
     check("4. odul 400", r.status_code == 400, str(r.status_code))
     check("authsuz odul 401", TestClient(app).post("/ads/reward", json={"kind": "routes"}).status_code == 401)
 
+    # --- AI rota detayi (adimlar gercek leg verisinden) ---
+    legs = [
+        {"type": "walking", "line": None, "name": "Yürüme", "route_id": "rail-walk-in",
+         "distance_m": 500, "duration_min": 7, "walking_distance_m": 500,
+         "walking_duration_min": 7, "departure_time": None, "arrival_time": None,
+         "from_stop": None, "to_stop": "Gebze", "direction": None, "platform": None,
+         "fare": None, "stops": [], "alternate_lines": [],
+         "coords": [[40.80, 29.43], [40.796, 29.431]],
+         "streets": ["Atatürk Caddesi"]},
+        {"type": "marmaray", "line": "B1", "name": "Marmaray", "route_id": "rail-1",
+         "distance_m": 33000, "duration_min": None, "departure_time": None,
+         "arrival_time": None, "from_stop": "Gebze", "to_stop": "Bostancı",
+         "direction": "Bostancı", "platform": None, "fare": None,
+         "stops": ["Gebze", "Bostancı"], "alternate_lines": [],
+         "coords": [[40.796, 29.431], [40.95, 29.10]]},
+    ]
+    r = c.post("/route-details", json={
+        "from": "Gebze", "to": "SAW", "city": "Istanbul",
+        "start_lat": 40.80, "start_lon": 29.43, "people": 2,
+        "total_minutes": 131, "fee": None, "legs": legs}, headers=h)
+    check("route-details 200", r.status_code == 200, str(r.status_code))
+    d = r.json()
+    check("2 adim", len(d.get("steps", [])) == 2, str(len(d.get("steps", []))))
+    check("adim tipleri", [s["step_type"] for s in d["steps"]] == ["WALK", "TRAIN"], str([s["step_type"] for s in d["steps"]]))
+    check("platform uydurma yok", d["steps"][1]["platform"] is None)
+    check("binsi/inis gercek", d["steps"][1]["departure_stop"] == "Gebze" and d["steps"][1]["arrival_stop"] == "Bostancı")
+    check("ozet var", bool(d.get("summary_text")), f"len={len(d.get('summary_text') or '')}")
+    check("aktarma sayisi", d.get("transfer_count") == 0, str(d.get("transfer_count")))
+    r = c.post("/route-details", json={"from": "A", "to": "B", "legs": []}, headers=h)
+    check("bos leg 400", r.status_code == 400, str(r.status_code))
+    check("authsuz detay 401", TestClient(app).post("/route-details", json={"from": "A", "to": "B", "legs": legs}).status_code == 401)
+
     # --- oylama & yorum ---
     r = c.post("/marketplace", json={"title": "Oy test rotasi"}, headers=h).json()
     rid2 = r["route"]["id"]

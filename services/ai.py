@@ -50,6 +50,13 @@ Türkiye'ye özgü ulaşım bilinci:
   karşılaştır; öğrenci indirimi sorulursa hatırlat.
 - Metro/otobüs yoksa "ulaşım yoktur" demeden önce dolmuş, minibüs,
   belediye otobüsü ve bölgesel tren alternatiflerini kontrol et.
+
+Rota detayı verirken (adım adım anlatım):
+- Biniş durağı, hat adı, iniş/aktarma durağı ve varsa kalkış saatlerini
+  SADECE fonksiyon sonuçlarındaki gerçek veriden al; listede olmayan
+  durak/saat/hat adı asla yazma.
+- Bir bilgi fonksiyonda yoksa "bu bilgi mevcut ulaşım verisinde
+  bulunamadı" de, tahmin yürütme.
 """
 
 
@@ -437,6 +444,77 @@ Kurallar:
             "otobus", "metro", "tramvay", "deniz", "arac", "motosiklet", "ucak", "tren", "yuruyus"
         ) else None,
     }
+
+
+ROUTE_DETAIL_INSTRUCTION = """
+Sen "Hedefime Nasıl Giderim" uygulamasının rota özetleyicisisin.
+Sana GERÇEK ulaşım verisinden üretilmiş adım listesi (JSON) verilir.
+
+MUTLAK KURALLAR (ihalali kullanıcıya yalan söylemek olur):
+- SADECE verilen adımlardaki durak, hat, saat ve süreleri kullan.
+- Yeni durak/istasyon/hat adı UYDURMA. Yeni kalkış saati UYDURMA.
+- Bir bilgi adımlarda yoksa (null) onu "bilinmiyor" diye belirt ya da hiç değinme.
+- departure_times listesindeki saatler gerçektir; listede olmayan saati yazma.
+- Cevabın SADECE şu JSON olsun, başka hiçbir şey yazma:
+  {"summary_text": "2-3 cümlelik Türkçe yolculuk özeti"}
+- Özet: toplam süre, aktarma sayısı ve kritik biniş noktasını vurgula.
+"""
+
+
+def summarize_route_details(steps: list, from_name: str, to_name: str) -> str:
+    """Gercek adimlardan Gemini ile 2-3 cumlelik ozet uretir.
+
+    Gemini'ye adim URETTIRILMEZ; adimlar parametre olarak verilir ve
+    prompt halüsinasyonu yasaklar. Basarisizlikta sablon ozet doner.
+    """
+    fallback = (
+        f"{from_name} → {to_name}: {len(steps)} adımlı yolculuk. "
+        "Detaylar yukarıdaki adımlarda."
+    )
+
+    if not steps:
+        return fallback
+
+    try:
+        ai_client = _get_client()
+    except Exception:
+        return fallback
+
+    prompt = (
+        "Aşağıdaki GERÇEK rota adımlarını 2-3 cümleyle özetle.\n"
+        "Kurallar: adımda yazmayan durak/saat/hat ekleme; "
+        "eksik bilgiyi uydurma.\n\n"
+        f"Güzergah: {from_name} → {to_name}\n"
+        f"Adımlar (JSON): {json.dumps(steps, ensure_ascii=False)[:4000]}"
+    )
+
+    try:
+        response = ai_client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=ROUTE_DETAIL_INSTRUCTION,
+                temperature=0.2,
+                response_mime_type="application/json",
+            ),
+        )
+    except Exception as exc:
+        text_repr = str(exc)
+        if "429" in text_repr or "RESOURCE_EXHAUSTED" in text_repr:
+            raise QuotaExceededError() from exc
+        return fallback
+
+    raw = (response.text or "").strip()
+    raw = re.sub(r"^```(?:json)?|```$", "", raw, flags=re.MULTILINE).strip()
+    match = re.search(r"\{.*\}", raw, flags=re.DOTALL)
+    if not match:
+        return fallback
+    try:
+        data = json.loads(match.group(0))
+        summary = str(data.get("summary_text") or "").strip()
+        return summary if summary else fallback
+    except ValueError:
+        return fallback
 
 
 def ask_assistant(message: str, history: list | None = None) -> dict:
