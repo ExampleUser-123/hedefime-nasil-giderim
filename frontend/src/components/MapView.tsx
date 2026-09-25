@@ -114,61 +114,45 @@ type TransferPin = {
   title: string
 }
 
+
+
+/** Ard arda tekrar eden noktalari temizler (cizgi corbasi ve gereksiz dugum onlenir). */
+function cleanPositions(positions: LatLng[]): LatLng[] {
+  const out: LatLng[] = []
+  for (const p of positions) {
+    const last = out[out.length - 1]
+    if (!last || last[0] !== p[0] || last[1] !== p[1]) out.push(p)
+  }
+  return out
+}
+
 /**
- * Duz cizgileri OSRM yol geometrisiyle degistirir (basarili olursa).
- * Yeni rota gelince onceki iyilestirme iptal edilir.
+ * TEK adim segmentini izole cizer (glow + solid). Tum rota asla tek dizide
+ * birlestirilmez; her leg kendi katmaniyla cizilir.
  */
-let refineAbort: AbortController | null = null
-
-function refineStraightLayers(
+function drawLegSegment(
   routeLayer: L.LayerGroup,
-  straightLayers: { glow: L.Polyline; solid: L.Polyline; from: LatLng; to: LatLng }[],
-  mode: MapMode,
-) {
-  refineAbort?.abort()
-  refineAbort = null
-  if (straightLayers.length === 0) return
-
-  const controller = new AbortController()
-  refineAbort = controller
-  const timer = setTimeout(() => controller.abort(), 12000)
-
-  const profile = mode === 'yuruyus' ? 'foot' : 'driving'
-
-  void (async () => {
-    try {
-      const results = await Promise.all(
-        straightLayers.map((layer) =>
-          fetchRoadGeometry(layer.from, layer.to, profile, controller.signal),
-        ),
-      )
-      if (controller.signal.aborted) return
-      for (let i = 0; i < straightLayers.length; i++) {
-        const geometry = results[i]
-        if (!geometry) continue
-        const { glow, solid } = straightLayers[i]
-        routeLayer.removeLayer(glow)
-        routeLayer.removeLayer(solid)
-        L.polyline(geometry, {
-          color: ACCENT,
-          weight: 10,
-          opacity: 0.18,
-          lineCap: 'round',
-          lineJoin: 'round',
-        }).addTo(routeLayer)
-        L.polyline(geometry, {
-          color: ACCENT,
-          weight: 4,
-          opacity: 0.95,
-          lineCap: 'round',
-          lineJoin: 'round',
-        }).addTo(routeLayer)
-      }
-    } finally {
-      clearTimeout(timer)
-      if (refineAbort === controller) refineAbort = null
-    }
-  })()
+  positions: LatLng[],
+  opts: { dashed?: boolean } = {},
+): { glow: L.Polyline; solid: L.Polyline } | null {
+  const clean = cleanPositions(positions)
+  if (clean.length < 2) return null
+  const glow = L.polyline(clean, {
+    color: ACCENT,
+    weight: 10,
+    opacity: 0.18,
+    lineCap: 'round',
+    lineJoin: 'round',
+  }).addTo(routeLayer)
+  const solid = L.polyline(clean, {
+    color: ACCENT,
+    weight: 4,
+    opacity: 0.95,
+    dashArray: opts.dashed ? '8 10' : undefined,
+    lineCap: 'round',
+    lineJoin: 'round',
+  }).addTo(routeLayer)
+  return { glow, solid }
 }
 
 /** Secili rotanin binis/inis duraklari (aktarma noktalari dahil). */
@@ -309,6 +293,8 @@ export default function MapView({
   const stopsLayerRef = useRef<L.LayerGroup | null>(null)
   const highlightLayerRef = useRef<L.LayerGroup | null>(null)
   const boundsRef = useRef<L.LatLngBounds | null>(null)
+  const drawIdRef = useRef(0)
+  const refineControllerRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     const container = containerRef.current
@@ -348,48 +334,41 @@ export default function MapView({
   useEffect(() => {
     const map = mapRef.current
     const routeLayer = routeLayerRef.current
+    const highlightLayer = highlightLayerRef.current
 
     if (!map || !routeLayer) return
 
+    // Bu cizim calismasinin kimligi; eski async sonuclar cope gider
+    const drawId = ++drawIdRef.current
+    refineControllerRef.current?.abort()
+    const controller = new AbortController()
+    refineControllerRef.current = controller
+    const timer = setTimeout(() => controller.abort(), 15000)
+
+    // 1) ESKI HER SEYI SIL: rota katmani + onceki secim vurgusu.
+    //    Yeni sorguda eski cizgi kalirsa orumcek agi olur.
     routeLayer.clearLayers()
+    highlightLayer?.clearLayers()
 
     const start: LatLng = [plan.start_coord.lat, plan.start_coord.lon]
     const end: LatLng = [plan.end_coord.lat, plan.end_coord.lon]
     const paths = buildPaths(plan, mode, routeIndex)
-    // Iyilestirilebilir cizgilerin katmanlari (basarili OSRM sonrasi degistirilir)
-    const straightLayers: { glow: L.Polyline; solid: L.Polyline; from: LatLng; to: LatLng }[] = []
+    // 2 noktali cizgiler (backend duz dusmus) OSRM ile yukseltilecek
+    const pending: { glow: L.Polyline; solid: L.Polyline; from: LatLng; to: LatLng }[] = []
 
+    // 2) HER ADIMI KENDI IZOLASYONUNDA CIZ (tek dizi birlestirme yok)
     for (const path of paths) {
-      const glow = L.polyline(path.positions, {
-        color: ACCENT,
-        weight: 10,
-        opacity: 0.18,
-        lineCap: 'round',
-        lineJoin: 'round',
-      }).addTo(routeLayer)
-
-      const solid = L.polyline(path.positions, {
-        color: ACCENT,
-        weight: 4,
-        opacity: 0.95,
-        dashArray: path.dashed ? '8 10' : undefined,
-        lineCap: 'round',
-        lineJoin: 'round',
-      }).addTo(routeLayer)
-
-      // 2 noktali cizgi = backend duz dusmus; istemci OSRM ile iyilestir
-      // (ucak modunda kus ucusu dogru oldugu icin dokunulmaz).
+      const layers = drawLegSegment(routeLayer, path.positions, { dashed: path.dashed })
+      if (!layers) continue
+      // Ucak modunda kus ucusu dogru oldugu icin dokunulmaz
       if (path.positions.length === 2 && mode !== 'ucak') {
-        straightLayers.push({
-          glow,
-          solid,
+        pending.push({
+          ...layers,
           from: path.positions[0],
           to: path.positions[1],
         })
       }
     }
-
-    refineStraightLayers(routeLayer, straightLayers, mode)
 
     L.marker(start, { icon: startIcon() }).addTo(routeLayer)
     L.marker(end, { icon: endIcon() }).addTo(routeLayer)
@@ -406,6 +385,35 @@ export default function MapView({
       padding: [70, 70],
     })
     boundsRef.current = L.latLngBounds(paths.flatMap((path) => path.positions).concat([start, end]))
+
+    // 3) 2 noktalilari OSRM yol geometrisiyle DEGISTIR (basarili olursa).
+    //    Yalnizca bu cizim calismasi guncelse uygula (drawId kontrolu).
+    const profile = mode === 'yuruyus' ? 'foot' : 'driving'
+    void (async () => {
+      try {
+        const results = await Promise.all(
+          pending.map((item) =>
+            fetchRoadGeometry(item.from, item.to, profile, controller.signal),
+          ),
+        )
+        if (drawId !== drawIdRef.current || controller.signal.aborted) return
+        for (let i = 0; i < pending.length; i++) {
+          const geometry = results[i]
+          if (!geometry) continue
+          const { glow, solid } = pending[i]
+          routeLayer.removeLayer(glow)
+          routeLayer.removeLayer(solid)
+          drawLegSegment(routeLayer, geometry)
+        }
+      } finally {
+        clearTimeout(timer)
+      }
+    })()
+
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
   }, [plan, mode, routeIndex])
 
   useEffect(() => {
