@@ -221,6 +221,7 @@ function ModeCard({
   routeIndex,
   onRouteIndexChange,
   onHighlight,
+  onRequireLogin,
 }: {
   candidate: Candidate
   best: Candidate | null
@@ -230,6 +231,7 @@ function ModeCard({
   routeIndex: number
   onRouteIndexChange: (index: number) => void
   onHighlight?: (coords: LatLng[] | null) => void
+  onRequireLogin: () => void
 }) {
   const [open, setOpen] = useState(false)
   const Icon = candidate.icon
@@ -310,7 +312,7 @@ function ModeCard({
             <>
               <RailRouteCards result={plan} people={people} onFocusLeg={(coords) => onHighlight?.(coords)} />
               <div className="mt-3">
-                <TrainDetails train={plan.train} from={plan.start} to={plan.destination} />
+                <TrainDetails train={plan.train} from={plan.start} to={plan.destination} startLat={plan.start_coord.lat} startLon={plan.start_coord.lon} endLat={plan.end_coord.lat} endLon={plan.end_coord.lon} onRequireLogin={onRequireLogin} />
               </div>
             </>
           )}
@@ -966,6 +968,7 @@ export default function ResultsScreen({
               routeIndex={routeIndex}
               onRouteIndexChange={onRouteIndexChange}
               onHighlight={onHighlight}
+              onRequireLogin={onRequireLogin}
             />
           ))}
         </div>

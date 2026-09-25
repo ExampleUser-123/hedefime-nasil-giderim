@@ -3,7 +3,8 @@ import { DepartureBadge, DepartureCityContext, fetchDepartureList } from '@/comp
 import type { NextDeparture } from '@/lib/api'
 import { extractCity } from '@/lib/cities'
 import { openInApp, TCDD_URL } from '@/lib/navigate'
-import type { CarResult, FlightEstimate, LatLng, Mode, PlanResult, TrainEstimate, TransitLeg, TransitRoute } from '@/lib/api'
+import type { CarResult, FlightEstimate, GuideStation, LatLng, Mode, PlanResult, TrainEstimate, TransitLeg, TransitRoute } from '@/lib/api'
+import { fetchNearestStations, fetchStationGuide } from '@/lib/api'
 import {
   IconBus,
   IconCar,
@@ -882,7 +883,151 @@ export function FlightDetails({ flight, from, to }: { flight: FlightEstimate; fr
   )
 }
 
-export function TrainDetails({ train, from, to }: { train: TrainEstimate; from: string; to: string }) {
+/** Tren tahmini icin gercek istasyon listesi (OSM verisi) + kisa AI yorumu.
+ * Istasyon adlari backend'den gelir ve .map ile basilir; AI yalnizca
+ * bu listedeki isimleri kullanan rehber metni uretir (saat uyduramaz). */
+function StationGuide({
+  from,
+  to,
+  startLat,
+  startLon,
+  endLat,
+  endLon,
+  onRequireLogin,
+}: {
+  from: string
+  to: string
+  startLat?: number
+  startLon?: number
+  endLat?: number
+  endLon?: number
+  onRequireLogin: () => void
+}) {
+  const [stations, setStations] = useState<{ near_start: GuideStation[]; near_end: GuideStation[] } | null>(null)
+  const [guide, setGuide] = useState<{ guidance: string | null; frequency_note: string | null } | null>(null)
+  const [loadingGuide, setLoadingGuide] = useState(false)
+  const [guideError, setGuideError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    if (startLat == null || startLon == null || endLat == null || endLon == null) return
+    Promise.all([
+      fetchNearestStations(startLat, startLon),
+      fetchNearestStations(endLat, endLon),
+    ])
+      .then(([near_start, near_end]) => {
+        if (alive) setStations({ near_start, near_end })
+      })
+      .catch(() => {})
+    return () => {
+      alive = false
+    }
+  }, [startLat, startLon, endLat, endLon])
+
+  async function loadGuide() {
+    if (guide || loadingGuide) return
+    if (startLat == null || startLon == null || endLat == null || endLon == null) return
+    setLoadingGuide(true)
+    setGuideError(null)
+    try {
+      const res = await fetchStationGuide({
+        from, to, start_lat: startLat, start_lon: startLon, end_lat: endLat, end_lon: endLon,
+      })
+      setGuide({ guidance: res.guidance, frequency_note: res.frequency_note })
+    } catch (e) {
+      if (e instanceof Error && (e as Error & { status?: number }).status === 401) {
+        onRequireLogin()
+        return
+      }
+      setGuideError(e instanceof Error ? e.message : 'Rehber alınamadı.')
+    } finally {
+      setLoadingGuide(false)
+    }
+  }
+
+  function formatDist(m: number): string {
+    if (m < 1000) return `${Math.round(m)} m`
+    return `${(m / 1000).toFixed(1).replace('.', ',')} km`
+  }
+
+  function stationList(title: string, list: GuideStation[]) {
+    if (list.length === 0) {
+      return (
+        <p className="text-[11px] text-muted">
+          {title}: yakında kayıtlı istasyon yok (100 km kapsama dışı).
+        </p>
+      )
+    }
+    return (
+      <div>
+        <p className="text-[11px] font-bold uppercase tracking-wide text-muted">{title}</p>
+        <div className="mt-1 space-y-1.5">
+          {list.map((s, i) => (
+            <div key={`${s.name}-${i}`} className="flex items-center gap-2 rounded-xl bg-bg/60 px-3 py-2">
+              <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-accent/15 px-1 text-[10px] font-bold text-accent tabular-nums">
+                {i + 1}
+              </span>
+              <p className="min-w-0 flex-1 break-words text-xs">
+                <span className="font-bold">{s.name}</span>
+                {s.lines.length > 0 && <span className="text-muted"> · {s.lines.join(', ')}</span>}
+              </p>
+              <span className="shrink-0 text-[11px] text-muted tabular-nums">{formatDist(s.distance_m)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (startLat == null || endLat == null) return null
+
+  return (
+    <div className="mt-3 space-y-2 rounded-2xl border border-line bg-bg/40 p-3">
+      <p className="text-xs font-bold">🚉 En yakın istasyonlar <span className="font-normal text-muted">(gerçek hat verisi)</span></p>
+      {stations ? (
+        <>
+          {stationList(`${from} çevresi`, stations.near_start)}
+          {stationList(`${to} çevresi`, stations.near_end)}
+        </>
+      ) : (
+        <p className="text-[11px] text-muted">İstasyonlar yükleniyor…</p>
+      )}
+
+      {!guide ? (
+        <button
+          type="button"
+          onClick={() => void loadGuide()}
+          disabled={loadingGuide}
+          className="flex min-h-[40px] w-full items-center justify-center gap-1.5 rounded-xl border border-accent/40 text-xs font-bold text-accent transition-colors hover:bg-accent/10 disabled:opacity-50"
+        >
+          {loadingGuide ? '✨ Hazırlanıyor…' : '✨ AI istasyon önerisi al'}
+        </button>
+      ) : (
+        <div className="space-y-1 text-[11px]">
+          {guide.guidance && <p>✨ {guide.guidance}</p>}
+          {guide.frequency_note && (
+            <p className="text-muted">🕒 {guide.frequency_note} <span>(değişebilir — tarifeyi doğrulayın)</span></p>
+          )}
+          {!guide.guidance && !guide.frequency_note && (
+            <p className="text-muted">AI önerisi alınamadı; yukarıdaki gerçek istasyon listesini kullan.</p>
+          )}
+        </div>
+      )}
+      {guideError && <p role="alert" className="text-[11px] text-red-300">{guideError}</p>}
+    </div>
+  )
+}
+
+export function TrainDetails({ train, from, to, startLat, startLon, endLat, endLon, onRequireLogin }: {
+  train: TrainEstimate
+  from: string
+  to: string
+  startLat?: number
+  startLon?: number
+  endLat?: number
+  endLon?: number
+  onRequireLogin: () => void
+}) {
   if (!train.available) {
     return (
       <div>
@@ -946,6 +1091,16 @@ export function TrainDetails({ train, from, to }: { train: TrainEstimate; from: 
         <EstimateFacts kind="tren" from={from} to={to} estimate={train} />
       )}
 
+      <StationGuide
+        from={from}
+        to={to}
+        startLat={startLat}
+        startLon={startLon}
+        endLat={endLat}
+        endLon={endLon}
+        onRequireLogin={onRequireLogin}
+      />
+
       <button
         type="button"
         onClick={() => void openInApp(TCDD_URL)}
@@ -1001,7 +1156,7 @@ export default function RouteResults({
           <>
             <RailRouteCards result={result} people={people} />
             <div className="mt-3">
-              <TrainDetails train={result.train} from={result.start} to={result.destination} />
+              <TrainDetails train={result.train} from={result.start} to={result.destination} startLat={result.start_coord.lat} startLon={result.start_coord.lon} endLat={result.end_coord.lat} endLon={result.end_coord.lon} onRequireLogin={() => {}} />
             </div>
           </>
         ) : (

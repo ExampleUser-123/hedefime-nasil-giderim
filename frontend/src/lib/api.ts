@@ -721,6 +721,45 @@ export async function fetchRouteDetails(payload: {
   }, 45000)
 }
 
+// --- Istasyon rehberi (gercek OSM verisi + kisa AI yorumu) -------------------
+
+export type GuideStation = {
+  name: string
+  lat: number
+  lon: number
+  distance_m: number
+  lines: string[]
+}
+
+export type StationGuideResponse = {
+  near_start: GuideStation[]
+  near_end: GuideStation[]
+  guidance: string | null
+  frequency_note: string | null
+}
+
+export async function fetchNearestStations(lat: number, lon: number): Promise<GuideStation[]> {
+  const res = await request<{ stations: GuideStation[] }>(
+    `/nearest-stations?lat=${lat}&lon=${lon}`, undefined, 15000,
+  ).catch(() => ({ stations: [] }))
+  return res.stations ?? []
+}
+
+export async function fetchStationGuide(payload: {
+  from: string
+  to: string
+  start_lat: number
+  start_lon: number
+  end_lat: number
+  end_lon: number
+}): Promise<StationGuideResponse> {
+  return request<StationGuideResponse>('/station-guide', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }, 45000)
+}
+
 // --- Kullanici veri-duzeltme bildirimi --------------------------------------
 
 export function reportFeedback(payload: { message: string; context?: string }) {

@@ -998,6 +998,17 @@ class RouteDetailBody(BaseModel):
     model_config = {"populate_by_name": True}
 
 
+class StationGuideBody(BaseModel):
+    from_: str = Field(alias="from")
+    to: str
+    start_lat: float
+    start_lon: float
+    end_lat: float
+    end_lon: float
+
+    model_config = {"populate_by_name": True}
+
+
 @app.post("/next-departures")
 def next_departures_endpoint(body: NextDeparturesBody):
     from services.gtfs_times import next_departures
@@ -1061,6 +1072,44 @@ def route_details_endpoint(body: RouteDetailBody, request: Request,
 
     _quota_count(ai_guard, "ai")
     return RouteDetailResponse(**details)
+
+
+@app.get("/nearest-stations")
+def nearest_stations_endpoint(lat: float, lon: float, limit: int = 3):
+    """En yakin rayli sistem istasyonlari (yerel OSM verisi, kotasiz)."""
+    from services.station_guide import nearest_stations
+    return {"stations": nearest_stations(lat, lon, limit=limit)}
+
+
+@app.post("/station-guide")
+def station_guide_endpoint(body: StationGuideBody, request: Request,
+                           user: dict = Depends(get_current_user)):
+    """Istasyon rehberi: gercek yakin-istasyon listeleri + kisa AI yorumu.
+
+    AI yalnizca verilen listedeki isimleri kullanabilir (prompt yasakli);
+    saat uyduramaz. AI kotasina tabidir.
+    """
+    from services.station_guide import nearest_stations
+
+    ai_guard = _quota_guard(request, user, "ai")
+
+    near_start = nearest_stations(body.start_lat, body.start_lon)
+    near_end = nearest_stations(body.end_lat, body.end_lon)
+
+    guide = {"guidance": None, "frequency_note": None}
+    try:
+        from services.ai import station_guidance
+        guide = station_guidance(near_start, near_end, body.from_, body.to)
+    except Exception:
+        guide = {"guidance": None, "frequency_note": None}
+
+    _quota_count(ai_guard, "ai")
+    return {
+        "near_start": near_start,
+        "near_end": near_end,
+        "guidance": guide.get("guidance"),
+        "frequency_note": guide.get("frequency_note"),
+    }
 
 
 # =========================================================

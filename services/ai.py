@@ -517,6 +517,88 @@ def summarize_route_details(steps: list, from_name: str, to_name: str) -> str:
         return fallback
 
 
+STATION_GUIDE_INSTRUCTION = """
+Sen "Hedefime Nasıl Giderim" uygulamasının istasyon rehberisin.
+Sana GERÇEK raylı sistem verisinden hesaplanmış en-yakın-istasyon
+listeleri verilir (isim, hat, mesafe).
+
+MUTLAK KURALLAR:
+- SADECE verilen listedeki istasyon isimlerini kullan; listede olmayan
+  istasyon/durak adı ASLA yazma.
+- Kalkış saati ASLA yazma (canlı tarife sende yok).
+- Hat sıklığı yazarsan mutlaka "değişebilir, güncel tarifeyi kontrol
+  edin" uyarısını ekle; kesin sayı verme.
+- Cevabın SADECE şu JSON olsun, başka hiçbir şey yazma:
+  {"guidance": "2-3 cümlelik Türkçe yönlendirme",
+   "frequency_note": "hat sıklığı notu ya da null"}
+"""
+
+
+def station_guidance(near_start: list, near_end: list,
+                     from_name: str, to_name: str) -> dict:
+    """Gercek istasyon listelerinden kisa AI rehberi.
+
+    Donus: {"guidance": str|None, "frequency_note": str|None}.
+    Basarisizlikta ikisi de None (arayuz genel karta duser).
+    """
+    empty = {"guidance": None, "frequency_note": None}
+    if not near_start and not near_end:
+        return empty
+
+    try:
+        ai_client = _get_client()
+    except Exception:
+        return empty
+
+    def _short(stations):
+        return [
+            {"name": s.get("name"), "lines": s.get("lines", []),
+             "distance_m": s.get("distance_m")}
+            for s in (stations or [])[:3]
+        ]
+
+    prompt = (
+        "Aşağıdaki GERÇEK istasyon listelerine göre yolcuya 2-3 cümlelik "
+        "yönlendirme yaz. Kurallar: listede olmayan istasyon adı yazma, "
+        "saat yazma.\n\n"
+        f"Güzergah: {from_name} → {to_name}\n"
+        f"Başlangıca yakın istasyonlar (JSON): "
+        f"{json.dumps(_short(near_start), ensure_ascii=False)}\n"
+        f"Hedefe yakın istasyonlar (JSON): "
+        f"{json.dumps(_short(near_end), ensure_ascii=False)}"
+    )
+
+    try:
+        response = ai_client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=STATION_GUIDE_INSTRUCTION,
+                temperature=0.2,
+                response_mime_type="application/json",
+            ),
+        )
+    except Exception as exc:
+        text_repr = str(exc)
+        if "429" in text_repr or "RESOURCE_EXHAUSTED" in text_repr:
+            raise QuotaExceededError() from exc
+        return empty
+
+    raw = (response.text or "").strip()
+    raw = re.sub(r"^```(?:json)?|```$", "", raw, flags=re.MULTILINE).strip()
+    match = re.search(r"\{.*\}", raw, flags=re.DOTALL)
+    if not match:
+        return empty
+    try:
+        data = json.loads(match.group(0))
+        return {
+            "guidance": str(data.get("guidance") or "").strip() or None,
+            "frequency_note": str(data.get("frequency_note") or "").strip() or None,
+        }
+    except ValueError:
+        return empty
+
+
 def ask_assistant(message: str, history: list | None = None) -> dict:
     """
     AI asistana mesaj gönderir ve cevabı döndürür.

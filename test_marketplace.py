@@ -218,6 +218,25 @@ try:
     check("bos leg 400", r.status_code == 400, str(r.status_code))
     check("authsuz detay 401", TestClient(app).post("/route-details", json={"from": "A", "to": "B", "legs": legs}).status_code == 401)
 
+    # --- istasyon rehberi (gercek OSM verisi) ---
+    r = c.get("/nearest-stations", params={"lat": 40.765, "lon": 29.945})
+    check("nearest 200", r.status_code == 200, str(r.status_code))
+    st = r.json().get("stations", [])
+    check("izmit'e en yakin Gebze", len(st) > 0 and st[0]["name"] == "Gebze", str([s["name"] for s in st][:3]))
+    check("hat bilgisi", "B1" in (st[0].get("lines") or []), str(st[0].get("lines")))
+    r = c.get("/nearest-stations", params={"lat": 39.9, "lon": 32.8})
+    check("kapsama disi bos", r.json().get("stations") == [], str(r.json().get("stations")))
+    r = c.post("/station-guide", json={
+        "from": "Izmit", "to": "SAW", "start_lat": 40.765, "start_lon": 29.945,
+        "end_lat": 40.905, "end_lon": 29.31}, headers=h)
+    check("guide 200", r.status_code == 200, str(r.status_code))
+    g = r.json()
+    check("guide listeleri", len(g.get("near_start", [])) > 0 and len(g.get("near_end", [])) > 0)
+    check("guide anahtarlari", "guidance" in g and "frequency_note" in g)
+    check("authsuz guide 401", TestClient(app).post("/station-guide", json={
+        "from": "A", "to": "B", "start_lat": 41.0, "start_lon": 29.0,
+        "end_lat": 41.1, "end_lon": 29.1}).status_code == 401)
+
     # --- oylama & yorum ---
     r = c.post("/marketplace", json={"title": "Oy test rotasi"}, headers=h).json()
     rid2 = r["route"]["id"]
