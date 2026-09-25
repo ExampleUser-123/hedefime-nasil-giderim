@@ -222,8 +222,11 @@ try:
     r = c.get("/nearest-stations", params={"lat": 40.765, "lon": 29.945})
     check("nearest 200", r.status_code == 200, str(r.status_code))
     st = r.json().get("stations", [])
-    check("izmit'e en yakin Gebze", len(st) > 0 and st[0]["name"] == "Gebze", str([s["name"] for s in st][:3]))
-    check("hat bilgisi", "B1" in (st[0].get("lines") or []), str(st[0].get("lines")))
+    check("izmit'e en yakin Izmit Gari", len(st) > 0 and st[0]["name"] == "İzmit Tren Garı", str([s["name"] for s in st][:3]))
+    check("gar hat bilgisi", "Ada Ekspresi" in (st[0].get("lines") or []), str(st[0].get("lines")))
+    r = c.get("/nearest-stations", params={"lat": 40.89, "lon": 29.24})
+    names = [s["name"] for s in r.json().get("stations", [])]
+    check("pendik YHT birlesik", any("Pendik YHT" in n for n in names), str(names))
     r = c.get("/nearest-stations", params={"lat": 39.9, "lon": 32.8})
     check("kapsama disi bos", r.json().get("stations") == [], str(r.json().get("stations")))
     r = c.post("/station-guide", json={
