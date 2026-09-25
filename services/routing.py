@@ -67,18 +67,25 @@ def snap_to_road(
     coords = ";".join(f"{lon},{lat}" for lat, lon in pts)
     route_url = f"https://router.project-osrm.org/route/v1/{profile}/{coords}"
 
-    try:
-        response = requests.get(
-            route_url,
-            params={
-                "overview": "full",
-                "geometries": "geojson",
-            },
-            timeout=10,
-        )
-        response.raise_for_status()
-        data = response.json()
-    except Exception:
+    # Public OSRM zaman zaman 429/500 doner; bir kez daha dene ki harita
+    # duz cizgiye dusmesin.
+    data = None
+    for _ in range(2):
+        try:
+            response = requests.get(
+                route_url,
+                params={
+                    "overview": "full",
+                    "geometries": "geojson",
+                },
+                timeout=10,
+            )
+            response.raise_for_status()
+            data = response.json()
+            break
+        except Exception:
+            data = None
+    if not data:
         return None
 
     if data.get("code") != "Ok" or not data.get("routes"):
@@ -109,19 +116,24 @@ def walking_guidance(
         f"{a_lon},{a_lat};{b_lon},{b_lat}"
     )
 
-    try:
-        response = requests.get(
-            route_url,
-            params={
-                "overview": "full",
-                "geometries": "geojson",
-                "steps": "true",
-            },
-            timeout=10,
-        )
-        response.raise_for_status()
-        data = response.json()
-    except Exception:
+    data = None
+    for _ in range(2):
+        try:
+            response = requests.get(
+                route_url,
+                params={
+                    "overview": "full",
+                    "geometries": "geojson",
+                    "steps": "true",
+                },
+                timeout=10,
+            )
+            response.raise_for_status()
+            data = response.json()
+            break
+        except Exception:
+            data = None
+    if not data:
         return None
 
     if data.get("code") != "Ok" or not data.get("routes"):
