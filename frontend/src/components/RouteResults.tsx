@@ -805,6 +805,13 @@ function EstimateFacts({
       <p className="text-[11px] text-muted">
         Net istasyon, saat ve koltuk bilgisi için {kind === 'ucak' ? 'havayolu' : 'TCDD'} sorgulaması gerekir.
       </p>
+      <p className="rounded-xl border border-line/60 bg-bg/40 px-3 py-2 text-[11px] text-muted">
+        ℹ️ Adım adım durak listesi bu kartta yok: tahmin modunda istasyon ve
+        sefer verisi bulunmuyor, o yüzden uydurma durak/saat basılmıyor.
+        {kind === 'tren'
+          ? ' Gerçek duraklı raylı rotalar yukarıda listeleniyorsa onlara bak; yoksa aşağıdaki TCDD bağlantısıyla sorgula.'
+          : ' Net uçuş bilgisi için havayolunun resmi kanallarını kullan.'}
+      </p>
     </div>
   )
 }

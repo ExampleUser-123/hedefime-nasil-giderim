@@ -107,6 +107,9 @@ export default function RouteAiDetails({
     setError(null)
   }, [legKey])
 
+  // Leg yoksa detay uretilemez (backend 400 donerdi); butonu hic gosterme
+  if (route.legs.length === 0) return <></>
+
   async function load() {
     if (open) {
       setOpen(false)
