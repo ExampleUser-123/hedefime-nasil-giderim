@@ -18,6 +18,50 @@ type Path = {
   dashed: boolean
 }
 
+/**
+ * Istemci tarafi OSRM iyilestirmesi: backend 2 noktali duz cizgi dondugunde
+ * (OSRM erisilemedi / geometri yok) harita bileseni dogrudan OSRM'den yol
+ * geometrisini ceker. Backend basariliysa (>2 nokta) hicbir istek atilmaz.
+ * Vapur/su ustu cozulemeyince duz cizgi kalir (dogru davranis).
+ * Oturum ici onbelleklidir; baska agdan geldigi icin sunucu tarafi
+ * basarisizliklari burada duzelebilir.
+ */
+const roadCache = new Map<string, LatLng[]>()
+
+async function fetchRoadGeometry(
+  from: LatLng,
+  to: LatLng,
+  profile: 'driving' | 'foot',
+  signal: AbortSignal,
+): Promise<LatLng[] | null> {
+  const key = `${profile}|${from[0].toFixed(5)},${from[1].toFixed(5)}|${to[0].toFixed(5)},${to[1].toFixed(5)}`
+  const cached = roadCache.get(key)
+  if (cached) return cached
+
+  try {
+    const url =
+      `https://router.project-osrm.org/route/v1/${profile}/` +
+      `${from[1]},${from[0]};${to[1]},${to[0]}?overview=full&geometries=geojson`
+    const response = await fetch(url, { signal })
+    const data = (await response.json()) as {
+      routes?: { geometry?: { coordinates?: [number, number][] } }[]
+    }
+    const coords = data.routes?.[0]?.geometry?.coordinates?.map(
+      (coord) => [coord[1], coord[0]] as LatLng,
+    )
+    if (coords && coords.length > 2) {
+      if (roadCache.size > 200) roadCache.clear()
+      roadCache.set(key, coords)
+      return coords
+    }
+    return null
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') return null
+    console.warn('OSRM istemci iyilestirmesi basarisiz:', err)
+    return null
+  }
+}
+
 function startIcon() {
   return L.divIcon({
     className: '',
@@ -68,6 +112,63 @@ function transferIcon() {
 type TransferPin = {
   position: LatLng
   title: string
+}
+
+/**
+ * Duz cizgileri OSRM yol geometrisiyle degistirir (basarili olursa).
+ * Yeni rota gelince onceki iyilestirme iptal edilir.
+ */
+let refineAbort: AbortController | null = null
+
+function refineStraightLayers(
+  routeLayer: L.LayerGroup,
+  straightLayers: { glow: L.Polyline; solid: L.Polyline; from: LatLng; to: LatLng }[],
+  mode: MapMode,
+) {
+  refineAbort?.abort()
+  refineAbort = null
+  if (straightLayers.length === 0) return
+
+  const controller = new AbortController()
+  refineAbort = controller
+  const timer = setTimeout(() => controller.abort(), 12000)
+
+  const profile = mode === 'yuruyus' ? 'foot' : 'driving'
+
+  void (async () => {
+    try {
+      const results = await Promise.all(
+        straightLayers.map((layer) =>
+          fetchRoadGeometry(layer.from, layer.to, profile, controller.signal),
+        ),
+      )
+      if (controller.signal.aborted) return
+      for (let i = 0; i < straightLayers.length; i++) {
+        const geometry = results[i]
+        if (!geometry) continue
+        const { glow, solid } = straightLayers[i]
+        routeLayer.removeLayer(glow)
+        routeLayer.removeLayer(solid)
+        L.polyline(geometry, {
+          color: ACCENT,
+          weight: 10,
+          opacity: 0.18,
+          lineCap: 'round',
+          lineJoin: 'round',
+        }).addTo(routeLayer)
+        L.polyline(geometry, {
+          color: ACCENT,
+          weight: 4,
+          opacity: 0.95,
+          lineCap: 'round',
+          lineJoin: 'round',
+        }).addTo(routeLayer)
+      }
+    } finally {
+      clearTimeout(timer)
+      if (refineAbort === controller) refineAbort = null
+    }
+  })()
 }
 
 /** Secili rotanin binis/inis duraklari (aktarma noktalari dahil). */
@@ -255,9 +356,11 @@ export default function MapView({
     const start: LatLng = [plan.start_coord.lat, plan.start_coord.lon]
     const end: LatLng = [plan.end_coord.lat, plan.end_coord.lon]
     const paths = buildPaths(plan, mode, routeIndex)
+    // Iyilestirilebilir cizgilerin katmanlari (basarili OSRM sonrasi degistirilir)
+    const straightLayers: { glow: L.Polyline; solid: L.Polyline; from: LatLng; to: LatLng }[] = []
 
     for (const path of paths) {
-      L.polyline(path.positions, {
+      const glow = L.polyline(path.positions, {
         color: ACCENT,
         weight: 10,
         opacity: 0.18,
@@ -265,7 +368,7 @@ export default function MapView({
         lineJoin: 'round',
       }).addTo(routeLayer)
 
-      L.polyline(path.positions, {
+      const solid = L.polyline(path.positions, {
         color: ACCENT,
         weight: 4,
         opacity: 0.95,
@@ -273,7 +376,20 @@ export default function MapView({
         lineCap: 'round',
         lineJoin: 'round',
       }).addTo(routeLayer)
+
+      // 2 noktali cizgi = backend duz dusmus; istemci OSRM ile iyilestir
+      // (ucak modunda kus ucusu dogru oldugu icin dokunulmaz).
+      if (path.positions.length === 2 && mode !== 'ucak') {
+        straightLayers.push({
+          glow,
+          solid,
+          from: path.positions[0],
+          to: path.positions[1],
+        })
+      }
     }
+
+    refineStraightLayers(routeLayer, straightLayers, mode)
 
     L.marker(start, { icon: startIcon() }).addTo(routeLayer)
     L.marker(end, { icon: endIcon() }).addTo(routeLayer)
