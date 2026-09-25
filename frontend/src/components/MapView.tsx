@@ -16,51 +16,12 @@ export type MapMode = 'tumu' | 'otobus' | 'metro' | 'tramvay' | 'yuruyus' | 'ara
 type Path = {
   positions: LatLng[]
   dashed: boolean
+  /** Su ustu (vapur) cizgisi: 2 nokta bile olsa cizilir, cunku dogru davranis budur. */
+  isWater: boolean
 }
 
-/**
- * Istemci tarafi OSRM iyilestirmesi: backend 2 noktali duz cizgi dondugunde
- * (OSRM erisilemedi / geometri yok) harita bileseni dogrudan OSRM'den yol
- * geometrisini ceker. Backend basariliysa (>2 nokta) hicbir istek atilmaz.
- * Vapur/su ustu cozulemeyince duz cizgi kalir (dogru davranis).
- * Oturum ici onbelleklidir; baska agdan geldigi icin sunucu tarafi
- * basarisizliklari burada duzelebilir.
- */
-const roadCache = new Map<string, LatLng[]>()
-
-async function fetchRoadGeometry(
-  from: LatLng,
-  to: LatLng,
-  profile: 'driving' | 'foot',
-  signal: AbortSignal,
-): Promise<LatLng[] | null> {
-  const key = `${profile}|${from[0].toFixed(5)},${from[1].toFixed(5)}|${to[0].toFixed(5)},${to[1].toFixed(5)}`
-  const cached = roadCache.get(key)
-  if (cached) return cached
-
-  try {
-    const url =
-      `https://router.project-osrm.org/route/v1/${profile}/` +
-      `${from[1]},${from[0]};${to[1]},${to[0]}?overview=full&geometries=geojson`
-    const response = await fetch(url, { signal })
-    const data = (await response.json()) as {
-      routes?: { geometry?: { coordinates?: [number, number][] } }[]
-    }
-    const coords = data.routes?.[0]?.geometry?.coordinates?.map(
-      (coord) => [coord[1], coord[0]] as LatLng,
-    )
-    if (coords && coords.length > 2) {
-      if (roadCache.size > 200) roadCache.clear()
-      roadCache.set(key, coords)
-      return coords
-    }
-    return null
-  } catch (err) {
-    if (err instanceof DOMException && err.name === 'AbortError') return null
-    console.warn('OSRM istemci iyilestirmesi basarisiz:', err)
-    return null
-  }
-}
+// KURAL: Karayolu adimlarinda 2 ve daha az noktali cizgi RENDER EDILMEZ.
+// Geometri yoksa harita bos kalir; duz cizgi fallback YASAKTIR.
 
 function startIcon() {
   return L.divIcon({
@@ -209,23 +170,33 @@ function buildTransferPins(
   return pins
 }
 
+function isWaterLeg(legType: string): boolean {
+  return /FERRY|VAPUR|DENIZ/.test((legType || '').toUpperCase())
+}
+
 function buildPaths(plan: PlanResult, mode: MapMode, routeIndex: number): Path[] {
-  const straight: Path = {
-    positions: [
-      [plan.start_coord.lat, plan.start_coord.lon],
-      [plan.end_coord.lat, plan.end_coord.lon],
-    ],
-    dashed: true,
+  // Ucak: kus ucusu gercektir (hava yolu); kesikli cizgi korunur.
+  if (mode === 'ucak') {
+    return [{
+      positions: [
+        [plan.start_coord.lat, plan.start_coord.lon],
+        [plan.end_coord.lat, plan.end_coord.lon],
+      ],
+      dashed: true,
+      isWater: false,
+    }]
   }
 
   if (mode === 'arac' || mode === 'motosiklet') {
-    return plan.car?.geometry?.length
-      ? [{ positions: plan.car.geometry, dashed: false }]
-      : [straight]
+    const geometry = plan.car?.geometry ?? []
+    // Geometri yoksa veya 2 ve daha az noktaysa HICBIR SEY cizilmez.
+    if (geometry.length <= 2) return []
+    return [{ positions: geometry, dashed: false, isWater: false }]
   }
 
-  if (mode === 'yuruyus' || mode === 'ucak') {
-    return [straight]
+  if (mode === 'yuruyus') {
+    // Saf yuruyus geometrisi planda yok; duz cizgi YASAK oldugu icin bos donulur.
+    return []
   }
 
   const allRoutes = plan.public_transport.routes
@@ -252,23 +223,20 @@ function buildPaths(plan: PlanResult, mode: MapMode, routeIndex: number): Path[]
   const route = routes[routeIndex] ?? routes[0]
 
   if (!route) {
-    return [straight]
+    return []
   }
 
+  // Her adim kendi izolasyonunda; karayolunda 2 ve daha az nokta CIzILMEZ.
+  // Vapur (su ustu) 2 nokta bile olsa cizilir: dogru davranis budur.
   const paths: Path[] = []
-  const legCoords = route.legs
-    .map((leg) => leg.coords ?? [])
-    .filter((coords) => coords.length > 1)
-
-  if (legCoords.length > 0) {
-    for (const coords of legCoords) {
-      paths.push({ positions: coords, dashed: false })
-    }
-
-    return paths
+  for (const leg of route.legs) {
+    const coords = leg.coords ?? []
+    if (coords.length <= 2 && !isWaterLeg(leg.type)) continue
+    if (coords.length < 2) continue
+    paths.push({ positions: coords, dashed: false, isWater: isWaterLeg(leg.type) })
   }
 
-  return [straight]
+  return paths
 }
 
 export default function MapView({
@@ -293,8 +261,6 @@ export default function MapView({
   const stopsLayerRef = useRef<L.LayerGroup | null>(null)
   const highlightLayerRef = useRef<L.LayerGroup | null>(null)
   const boundsRef = useRef<L.LatLngBounds | null>(null)
-  const drawIdRef = useRef(0)
-  const refineControllerRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     const container = containerRef.current
@@ -338,13 +304,6 @@ export default function MapView({
 
     if (!map || !routeLayer) return
 
-    // Bu cizim calismasinin kimligi; eski async sonuclar cope gider
-    const drawId = ++drawIdRef.current
-    refineControllerRef.current?.abort()
-    const controller = new AbortController()
-    refineControllerRef.current = controller
-    const timer = setTimeout(() => controller.abort(), 15000)
-
     // 1) ESKI HER SEYI SIL: rota katmani + onceki secim vurgusu.
     //    Yeni sorguda eski cizgi kalirsa orumcek agi olur.
     routeLayer.clearLayers()
@@ -353,21 +312,12 @@ export default function MapView({
     const start: LatLng = [plan.start_coord.lat, plan.start_coord.lon]
     const end: LatLng = [plan.end_coord.lat, plan.end_coord.lon]
     const paths = buildPaths(plan, mode, routeIndex)
-    // 2 noktali cizgiler (backend duz dusmus) OSRM ile yukseltilecek
-    const pending: { glow: L.Polyline; solid: L.Polyline; from: LatLng; to: LatLng }[] = []
 
-    // 2) HER ADIMI KENDI IZOLASYONUNDA CIZ (tek dizi birlestirme yok)
+    // 2) HER ADIMI KENDI IZOLASYONUNDA CIZ (tek dizi birlestirme yok).
+    //    buildPaths zaten 2 ve daha az noktali karayolu adimini elemistir;
+    //    geometri yoksa cizgi cizilmez (duz fallback YASAK).
     for (const path of paths) {
-      const layers = drawLegSegment(routeLayer, path.positions, { dashed: path.dashed })
-      if (!layers) continue
-      // Ucak modunda kus ucusu dogru oldugu icin dokunulmaz
-      if (path.positions.length === 2 && mode !== 'ucak') {
-        pending.push({
-          ...layers,
-          from: path.positions[0],
-          to: path.positions[1],
-        })
-      }
+      drawLegSegment(routeLayer, path.positions, { dashed: path.dashed })
     }
 
     L.marker(start, { icon: startIcon() }).addTo(routeLayer)
@@ -385,35 +335,6 @@ export default function MapView({
       padding: [70, 70],
     })
     boundsRef.current = L.latLngBounds(paths.flatMap((path) => path.positions).concat([start, end]))
-
-    // 3) 2 noktalilari OSRM yol geometrisiyle DEGISTIR (basarili olursa).
-    //    Yalnizca bu cizim calismasi guncelse uygula (drawId kontrolu).
-    const profile = mode === 'yuruyus' ? 'foot' : 'driving'
-    void (async () => {
-      try {
-        const results = await Promise.all(
-          pending.map((item) =>
-            fetchRoadGeometry(item.from, item.to, profile, controller.signal),
-          ),
-        )
-        if (drawId !== drawIdRef.current || controller.signal.aborted) return
-        for (let i = 0; i < pending.length; i++) {
-          const geometry = results[i]
-          if (!geometry) continue
-          const { glow, solid } = pending[i]
-          routeLayer.removeLayer(glow)
-          routeLayer.removeLayer(solid)
-          drawLegSegment(routeLayer, geometry)
-        }
-      } finally {
-        clearTimeout(timer)
-      }
-    })()
-
-    return () => {
-      clearTimeout(timer)
-      controller.abort()
-    }
   }, [plan, mode, routeIndex])
 
   useEffect(() => {
