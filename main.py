@@ -210,8 +210,8 @@ def _quota_guard(request: Request, user: dict | None, kind: str) -> dict:
     """
     tier = user_store.get_tier(user)
     key = quota_store.identity_key(user, request.client.host if request.client else "unknown")
-    # XP Mağazası "1 Günlük Sınırsız Rota" paketi aktifse kota işlemez.
-    if kind == "routes" and user is not None and _unlimited_routes_active(user["id"]):
+    # XP Mağazası sınırsız/VIP paketi aktifse kota işlemez.
+    if kind == "routes" and user is not None and _priority_routes_active(user["id"]):
         return {"tier": tier, "key": key}
     ok, used, limit = quota_store.check(key, tier, kind)
 
@@ -2206,6 +2206,36 @@ XP_STORE_ITEMS = {
         "desc": "Şehir durak paketlerini telefona indirme hakkı açar. Kalıcı.",
         "cost": 500,
     },
+    "map_theme": {
+        "name": "Kişiselleştirilmiş Harita Teması (Siberpunk / Retro Neon)",
+        "desc": "Harita çizgilerini ve arayüzü özel neon renk temasına dönüştürür. Kalıcı.",
+        "cost": 400,
+    },
+    "silly_guard": {
+        "name": "\"Aptal Hata\" Koruma Paketi (Son Sefer Alarmı)",
+        "desc": "Son seferlere 10 dakika kala bildirimle uyarır. Kalıcı.",
+        "cost": 350,
+    },
+    "vip_engine": {
+        "name": "Öncelikli Rota Motoru (VIP Hesaplama)",
+        "desc": "7 gün boyunca rota kotası işlemez, beklemeden hesaplanır.",
+        "cost": 250,
+    },
+    "cafe_filter": {
+        "name": "Yerel Kafe & Mola Önerileri Filtresi",
+        "desc": "Yakındaki kafe ve mola noktalarını harita verisiyle gösterir. Kalıcı.",
+        "cost": 300,
+    },
+    "offline_map": {
+        "name": "Çevrimdışı Şehir Haritası Paketi",
+        "desc": "Yakın çevre harita karolarını telefona indirir, internetsiz gezinme sağlar. Kalıcı.",
+        "cost": 600,
+    },
+    "legend_badge": {
+        "name": "Gezgin Efsanesi Rozeti + Altın Çerçeve",
+        "desc": "Profilde altın çerçeve ve \"Efsanevi Gezgin\" unvanı kazandırır. Kalıcı.",
+        "cost": 1000,
+    },
 }
 
 
@@ -2216,6 +2246,20 @@ def _unlimited_routes_active(user_id: str) -> bool:
         return bool(until) and until >= date.today().isoformat()
     except Exception:
         return False
+
+
+def _vip_active(user_id: str) -> bool:
+    """VIP motor (7 günlük öncelikli/kotasız rota) bugün geçerli mi?"""
+    try:
+        until = (user_store.get_perks(user_id) or {}).get("vip_until") or ""
+        return bool(until) and until >= date.today().isoformat()
+    except Exception:
+        return False
+
+
+def _priority_routes_active(user_id: str) -> bool:
+    """Kota muafiyeti: sınırsız günlük paket veya VIP haftalık paket."""
+    return _unlimited_routes_active(user_id) or _vip_active(user_id)
 
 
 @app.get("/marketplace")
@@ -2462,9 +2506,15 @@ def xp_store_items(user: dict = Depends(get_current_user)):
     badge_ids = set(profile.get("badge_ids", []))
     owned = {
         "unlimited_day": _unlimited_routes_active(user["id"]),
+        "vip_engine": _vip_active(user["id"]),
         "night_alert": bool(perks.get("night_alert")),
         "badge_pack": {"gezgin", "yerel_rehber"} <= badge_ids,
+        "legend_badge": "efsane_gezgin" in badge_ids,
         "offline_pack": bool(perks.get("offline_pack")),
+        "map_theme": bool(perks.get("map_theme")),
+        "silly_guard": bool(perks.get("silly_guard")),
+        "cafe_filter": bool(perks.get("cafe_filter")),
+        "offline_map": bool(perks.get("offline_map")),
         # Eski urunler katalogdan kalkti; daha once alanlarin hakki korunur.
         "lite_trial": bool(perks.get("lite_until") or ""),
     }
@@ -2490,13 +2540,18 @@ def xp_store_redeem(body: RedeemBody, request: Request,
         return JSONResponse(status_code=400, content={"error": "Geçersiz ürün."})
 
     # Kalıcı ürünlerde mükerrer harcama olmasın: sahiplik kontrolü harcamadan önce.
-    if item_id in ("night_alert", "offline_pack"):
+    if item_id in ("night_alert", "offline_pack", "map_theme", "silly_guard",
+                   "cafe_filter", "offline_map"):
         if (user_store.get_perks(user["id"]) or {}).get(item_id):
             return JSONResponse(status_code=400, content={"error": "Bu ürüne zaten sahipsin."})
     if item_id == "badge_pack":
         badge_ids = set(gamification.profile(user["id"]).get("badge_ids", []))
         if {"gezgin", "yerel_rehber"} <= badge_ids:
             return JSONResponse(status_code=400, content={"error": "Bu rozetlere zaten sahipsin."})
+    if item_id == "legend_badge":
+        badge_ids = set(gamification.profile(user["id"]).get("badge_ids", []))
+        if "efsane_gezgin" in badge_ids:
+            return JSONResponse(status_code=400, content={"error": "Bu rozete zaten sahipsin."})
 
     ok, profile = gamification.spend_xp(user["id"], info["cost"])
     if not ok:
@@ -2529,6 +2584,20 @@ def xp_store_redeem(body: RedeemBody, request: Request,
     elif item_id == "offline_pack":
         user_store.grant_perk(user["id"], "offline_pack", True)
         effect = "Çevrimdışı Durak Rehberi indirme hakkı açıldı."
+    elif item_id in ("map_theme", "silly_guard", "cafe_filter", "offline_map"):
+        user_store.grant_perk(user["id"], item_id, True)
+        effect = f"{info['name']} aktif edildi."
+    elif item_id == "vip_engine":
+        base = max(
+            (user_store.get_perks(user["id"]) or {}).get("vip_until") or "",
+            date.today().isoformat(),
+        )
+        until = (date.fromisoformat(base) + timedelta(days=7)).isoformat()
+        user_store.grant_perk(user["id"], "vip_until", until)
+        effect = f"{until} tarihine kadar öncelikli (kotasız) rota aktif."
+    elif item_id == "legend_badge":
+        granted = gamification.grant_badge(user["id"], "efsane_gezgin")
+        effect = "Efsanevi Gezgin rozeti profiline eklendi: " + ", ".join(g["name"] for g in granted) + "."
     return {"ok": True, "effect": effect, "profile": profile,
             "perks": user_store.get_perks(user["id"])}
 

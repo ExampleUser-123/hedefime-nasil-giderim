@@ -91,6 +91,12 @@ input::placeholder {
   }
 }
 
+/* XP Magazasi neon harita temasi (map_theme urunu) */
+[data-theme='neon'] {
+  --color-accent: #e879f9;
+  --color-accent-ink: #2b0a2e;
+}
+
 /* Rota sonuclari bottom sheet giris animasyonu */
 @keyframes sheet-enter {
   from {

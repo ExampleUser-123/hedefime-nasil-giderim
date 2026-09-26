@@ -3,8 +3,48 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { LatLng, PlanResult } from '@/lib/api'
 import { isFerryRoute, isRailRoute, isTramRoute } from '@/components/RouteResults'
+import { mapAccent } from '@/lib/theme'
+import { getPackMeta, getTileBlob } from '@/lib/offlineTiles'
 
-const ACCENT = '#2dd4bf'
+/** Cevrimdisi-oncelikli karo katmani: yerelde varsa blob, yoksa ag. */
+function createOfflineLayer(): L.GridLayer {
+  const OfflineTiles = L.GridLayer.extend({
+    createTile(coords: L.Coords, done: L.DoneCallback) {
+      const tile = document.createElement('img')
+      tile.alt = ''
+      const fallback = `https://tile.openstreetmap.org/${coords.z}/${coords.x}/${coords.y}.png`
+      void getTileBlob(coords.z, coords.x, coords.y)
+        .then((blob) => {
+          tile.src = blob ? URL.createObjectURL(blob) : fallback
+          done(undefined, tile)
+        })
+        .catch(() => {
+          tile.src = fallback
+          done(undefined, tile)
+        })
+      return tile
+    },
+  })
+  const layer = new (OfflineTiles as unknown as new (opts?: L.GridLayerOptions) => L.GridLayer)({
+    maxZoom: 19,
+    attribution: TILE_ATTRIBUTION,
+  })
+  layer.on('tileunload', (e) => {
+    const src = (e as unknown as { tile?: HTMLImageElement }).tile?.src
+    if (src?.startsWith('blob:')) URL.revokeObjectURL(src)
+  })
+  return layer
+}
+
+function packCovers(meta: { lat: number; lon: number }, lat: number, lon: number): boolean {
+  const r = 6371000
+  const p1 = (meta.lat * Math.PI) / 180
+  const p2 = (lat * Math.PI) / 180
+  const dp = ((lat - meta.lat) * Math.PI) / 180
+  const dl = ((lon - meta.lon) * Math.PI) / 180
+  const a = Math.sin(dp / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) ** 2
+  return 2 * r * Math.asin(Math.sqrt(a)) < 4000
+}
 
 // %100 ucretsiz, anahtarsiz OpenStreetMap standart katmani (sokak etiketli)
 const TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
@@ -25,19 +65,19 @@ type Path = {
 // KURAL: Karayolu adimlarinda 2 ve daha az noktali cizgi RENDER EDILMEZ.
 // Geometri yoksa harita bos kalir; duz cizgi fallback YASAKTIR.
 
-function startIcon() {
+function startIcon(accent: string) {
   return L.divIcon({
     className: '',
-    html: `<span style="display:block;width:16px;height:16px;border-radius:9999px;background:${ACCENT};border:3px solid #e6edf7;box-shadow:0 0 0 2px rgba(45,212,191,.35)"></span>`,
+    html: `<span style="display:block;width:16px;height:16px;border-radius:9999px;background:${accent};border:3px solid #e6edf7;box-shadow:0 0 0 2px rgba(45,212,191,.35)"></span>`,
     iconSize: [16, 16],
     iconAnchor: [8, 8],
   })
 }
 
-function endIcon() {
+function endIcon(accent: string) {
   return L.divIcon({
     className: '',
-    html: `<svg width="30" height="38" viewBox="0 0 30 38" style="display:block;filter:drop-shadow(0 3px 6px rgba(0,0,0,.5))"><path d="M15 1C7.3 1 1 7.3 1 15c0 10.4 14 22 14 22s14-11.6 14-22C29 7.3 22.7 1 15 1Z" fill="${ACCENT}"/><circle cx="15" cy="15" r="6" fill="#0b1220"/></svg>`,
+    html: `<svg width="30" height="38" viewBox="0 0 30 38" style="display:block;filter:drop-shadow(0 3px 6px rgba(0,0,0,.5))"><path d="M15 1C7.3 1 1 7.3 1 15c0 10.4 14 22 14 22s14-11.6 14-22C29 7.3 22.7 1 15 1Z" fill="${accent}"/><circle cx="15" cy="15" r="6" fill="#0b1220"/></svg>`,
     iconSize: [30, 38],
     iconAnchor: [15, 36],
   })
@@ -63,10 +103,10 @@ function stopIcon(lineCount: number) {
   })
 }
 
-function transferIcon() {
+function transferIcon(accent: string) {
   return L.divIcon({
     className: '',
-    html: `<span style="display:block;width:12px;height:12px;border-radius:9999px;background:#e6edf7;border:3px solid ${ACCENT};box-shadow:0 0 0 2px rgba(45,212,191,.3)"></span>`,
+    html: `<span style="display:block;width:12px;height:12px;border-radius:9999px;background:#e6edf7;border:3px solid ${accent};box-shadow:0 0 0 2px rgba(45,212,191,.3)"></span>`,
     iconSize: [12, 12],
     iconAnchor: [6, 6],
   })
@@ -96,19 +136,20 @@ function cleanPositions(positions: LatLng[]): LatLng[] {
 function drawLegSegment(
   routeLayer: L.LayerGroup,
   positions: LatLng[],
-  opts: { dashed?: boolean } = {},
+  opts: { dashed?: boolean; color?: string } = {},
 ): { glow: L.Polyline; solid: L.Polyline } | null {
   const clean = cleanPositions(positions)
   if (clean.length < 2) return null
+  const color = opts.color ?? mapAccent()
   const glow = L.polyline(clean, {
-    color: ACCENT,
+    color,
     weight: 10,
     opacity: 0.18,
     lineCap: 'round',
     lineJoin: 'round',
   }).addTo(routeLayer)
   const solid = L.polyline(clean, {
-    color: ACCENT,
+    color,
     weight: 4,
     opacity: 0.95,
     dashArray: opts.dashed ? '8 10' : undefined,
@@ -277,6 +318,8 @@ export default function MapView({
   const stopsLayerRef = useRef<L.LayerGroup | null>(null)
   const highlightLayerRef = useRef<L.LayerGroup | null>(null)
   const boundsRef = useRef<L.LatLngBounds | null>(null)
+  const osmLayerRef = useRef<L.TileLayer | null>(null)
+  const offLayerRef = useRef<L.GridLayer | null>(null)
 
   useEffect(() => {
     const container = containerRef.current
@@ -294,11 +337,13 @@ export default function MapView({
       attributionControl: true,
     })
 
-    L.tileLayer(TILE_URL, {
+    const osmLayer = L.tileLayer(TILE_URL, {
       attribution: TILE_ATTRIBUTION,
       subdomains: 'abc',
       maxZoom: 19,
     }).addTo(map)
+    osmLayerRef.current = osmLayer
+    offLayerRef.current = createOfflineLayer()
     routeLayerRef.current = L.layerGroup().addTo(map)
     stopsLayerRef.current = L.layerGroup().addTo(map)
     highlightLayerRef.current = L.layerGroup().addTo(map)
@@ -310,6 +355,8 @@ export default function MapView({
       routeLayerRef.current = null
       stopsLayerRef.current = null
       highlightLayerRef.current = null
+      osmLayerRef.current = null
+      offLayerRef.current = null
     }
   }, [])
 
@@ -336,12 +383,14 @@ export default function MapView({
       drawLegSegment(routeLayer, path.positions, { dashed: path.dashed })
     }
 
-    L.marker(start, { icon: startIcon() }).addTo(routeLayer)
-    L.marker(end, { icon: endIcon() }).addTo(routeLayer)
+    const accent = mapAccent()
+
+    L.marker(start, { icon: startIcon(accent) }).addTo(routeLayer)
+    L.marker(end, { icon: endIcon(accent) }).addTo(routeLayer)
 
     // Secili rotanin binis/inis/aktarma pinleri (hat + durak adi; tiklanabilir)
     for (const pin of buildTransferPins(plan, mode, routeIndex)) {
-      L.marker(pin.position, { icon: transferIcon(), keyboard: false })
+      L.marker(pin.position, { icon: transferIcon(accent), keyboard: false })
         .bindTooltip(pin.title, { direction: 'top', offset: [0, -6] })
         .bindPopup(pin.title)
         .addTo(routeLayer)
@@ -351,6 +400,23 @@ export default function MapView({
       padding: [70, 70],
     })
     boundsRef.current = L.latLngBounds(paths.flatMap((path) => path.positions).concat([start, end]))
+
+    // Cevrimdisi paket rota merkezini kapsiyorsa yerelden oku (yoksa ag)
+    try {
+      const meta = getPackMeta()
+      const center = boundsRef.current.getCenter()
+      const osm = osmLayerRef.current
+      const off = offLayerRef.current
+      if (meta && meta.count > 0 && packCovers(meta, center.lat, center.lng)) {
+        if (osm && map.hasLayer(osm)) map.removeLayer(osm)
+        if (off && !map.hasLayer(off)) off.addTo(map)
+      } else {
+        if (off && map.hasLayer(off)) map.removeLayer(off)
+        if (osm && !map.hasLayer(osm)) osm.addTo(map)
+      }
+    } catch {
+      // katman degisimi basarisizsa mevcut katman kalir
+    }
   }, [plan, mode, routeIndex])
 
   useEffect(() => {

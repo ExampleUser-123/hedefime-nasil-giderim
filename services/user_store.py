@@ -445,6 +445,11 @@ def get_perks(user_id: str) -> dict:
         "night_alert": bool(perks.get("night_alert", False)),
         "offline_pack": bool(perks.get("offline_pack", False)),
         "unlimited_routes_until": perks.get("unlimited_routes_until") or "",
+        "vip_until": perks.get("vip_until") or "",
+        "map_theme": bool(perks.get("map_theme", False)),
+        "silly_guard": bool(perks.get("silly_guard", False)),
+        "cafe_filter": bool(perks.get("cafe_filter", False)),
+        "offline_map": bool(perks.get("offline_map", False)),
     }
 
 

@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactElement } from 'react'
 import { fetchXpStore, redeemXpStore, type XpStoreItem } from '@/lib/api'
 import { getStoredUser } from '@/lib/auth'
+import { getMapTheme, setMapTheme } from '@/lib/theme'
 
 /** Profil ici XP Magazasi: bakiye + urunler + tek tikla takas. */
 export default function XpStore(): ReactElement {
@@ -9,6 +10,14 @@ export default function XpStore(): ReactElement {
   const [busyId, setBusyId] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [neon, setNeon] = useState(() => getMapTheme() === 'neon')
+  const themeOwned = items.some((i) => i.id === 'map_theme' && i.owned)
+
+  function toggleTheme() {
+    const next = !neon
+    setNeon(next)
+    setMapTheme(next ? 'neon' : 'default')
+  }
 
   async function refresh() {
     if (!getStoredUser()) return
@@ -55,14 +64,15 @@ export default function XpStore(): ReactElement {
         )}
       </div>
 
-      <div className="mt-2 space-y-2">
+      <div className="mt-2 max-h-80 space-y-2 overflow-y-auto pr-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {items.map((item) => {
-          // unlimited_day yeniden alinabilir (sure uzar); diger sahipli urunler kilitli
-          const repurchasable = item.id === 'unlimited_day' || item.id === 'magic_plus3' || item.id === 'ai_plus5'
+          // unlimited_day / vip_engine yeniden alinabilir (sure uzar); diger sahipli urunler kilitli
+          const repurchasable = item.id === 'unlimited_day' || item.id === 'vip_engine'
+            || item.id === 'magic_plus3' || item.id === 'ai_plus5'
           const locked = item.owned && !repurchasable
           const label = busyId === item.id
             ? '…'
-            : item.owned && item.id === 'unlimited_day'
+            : item.owned && (item.id === 'unlimited_day' || item.id === 'vip_engine')
               ? 'Süreyi Uzat'
               : item.owned && !repurchasable
                 ? 'Aktif ✓'
@@ -86,6 +96,17 @@ export default function XpStore(): ReactElement {
           )
         })}
       </div>
+
+      {themeOwned && (
+        <button
+          type="button"
+          onClick={toggleTheme}
+          aria-pressed={neon}
+          className="mt-2 flex min-h-[40px] w-full items-center justify-center gap-1.5 rounded-xl border border-fuchsia-400/40 bg-fuchsia-400/10 text-xs font-bold text-fuchsia-300 transition-colors hover:bg-fuchsia-400/20"
+        >
+          {neon ? '🌃 Neon tema açık — kapatmak için dokun' : '🌃 Neon temayı aç'}
+        </button>
+      )}
 
       {message && (
         <p role="status" className="mt-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300">

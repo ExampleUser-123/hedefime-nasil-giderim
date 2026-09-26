@@ -38,15 +38,57 @@ export default function NightCard({
   const [goError, setGoError] = useState<string | null>(null)
   // XP Mağazası "Son Sefer Erken Uyarısı": kart 22:00 yerine 20:00'de açılır
   const [earlyAlert, setEarlyAlert] = useState(false)
+  // "Aptal Hata" Koruma Paketi: en yakın kalkışa 10 dk kala bildirim
+  const [guardOwned, setGuardOwned] = useState(false)
+  const [alarmSet, setAlarmSet] = useState(false)
 
   useEffect(() => {
     if (!getStoredUser()) return
     fetchXpStore()
       .then((data) => {
         if (data.items.some((i) => i.id === 'night_alert' && i.owned)) setEarlyAlert(true)
+        if (data.items.some((i) => i.id === 'silly_guard' && i.owned)) setGuardOwned(true)
       })
       .catch(() => {})
   }, [])
+
+  // Koruma paketi varsa: en yakın kalkıştan 10 dk önceye bildirim kur
+  useEffect(() => {
+    if (!guardOwned || !items || items.length === 0 || alarmSet) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const { Capacitor } = await import('@capacitor/core')
+        if (!Capacitor.isNativePlatform()) return
+        const { LocalNotifications } = await import('@capacitor/local-notifications')
+        const perm = await LocalNotifications.checkPermissions()
+        if (perm.display !== 'granted') {
+          const req = await LocalNotifications.requestPermissions()
+          if (req.display !== 'granted') return
+        }
+        const soonest = [...items].sort(
+          (a, b) => liveMinutesAhead(a, Date.now()) - liveMinutesAhead(b, Date.now()),
+        )[0]
+        const leftMin = liveMinutesAhead(soonest, Date.now())
+        if (leftMin <= 0 || leftMin > 120) return
+        const at = new Date(Date.now() + Math.max(0, leftMin - 10) * 60_000)
+        await LocalNotifications.schedule({
+          notifications: [{
+            id: 9001,
+            title: '🚌 Son sefer alarmı',
+            body: `${soonest.line} (${soonest.stopName}) ~10 dk içinde kalkıyor: ${soonest.time}`,
+            schedule: { at },
+          }],
+        })
+        if (!cancelled) setAlarmSet(true)
+      } catch {
+        // bildirim kurulamazsa kart ici geri sayim yine calisir
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [guardOwned, items, alarmSet])
 
   const night = istanbulHour(nowMs) >= (earlyAlert ? 20 : 22)
   const home = getPinnedPlace('home')
@@ -110,6 +152,11 @@ export default function NightCard({
         {earlyAlert && (
           <span className="ml-2 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-bold text-accent">
             Erken uyarı aktif ✓
+          </span>
+        )}
+        {alarmSet && (
+          <span className="ml-2 rounded-full bg-amber-400/15 px-2 py-0.5 text-[10px] font-bold text-amber-300">
+            🔔 Son sefer alarmı kurulu
           </span>
         )}
       </p>

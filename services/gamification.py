@@ -66,6 +66,10 @@ BADGES = {
         "name": "Yerel Rehber", "icon": "📍",
         "desc": "XP Mağazasından özel rozet paketi aldı.",
     },
+    "efsane_gezgin": {
+        "name": "Efsanevi Gezgin", "icon": "🏆",
+        "desc": "XP Mağazasından Gezgin Efsanesi paketini aldı.",
+    },
 }
 
 # Rozet sarti: (sayac_turu, esik). Sayıclar game["counters"] altinda tutulur.

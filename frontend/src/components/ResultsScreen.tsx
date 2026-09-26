@@ -23,6 +23,7 @@ import {
 } from '@/components/RouteResults'
 import LineDetailSheet from '@/components/LineDetailSheet'
 import RouteAiDetails from '@/components/RouteAiDetails'
+import CafeStops from '@/components/CafeStops'
 import { extractCity } from '@/lib/cities'
 import {
   IconBus,
@@ -987,6 +988,8 @@ export default function ResultsScreen({
             />
           </div>
         )}
+
+        <CafeStops lat={plan.start_coord.lat} lon={plan.start_coord.lon} />
 
         {!hasTransitRoutes && (
           <div className="mt-4 rounded-2xl border border-line bg-surface-2 px-4 py-3">

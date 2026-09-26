@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { API_BASE, deleteAccount, fetchUsage, reverseGeocode, type AuthUser, type UsageInfo } from '@/lib/api'
+import { API_BASE, deleteAccount, fetchGameProfile, fetchUsage, reverseGeocode, type AuthUser, type UsageInfo } from '@/lib/api'
 import {
   clearHistory,
   getHistory,
@@ -17,6 +17,7 @@ import { signOut } from '@/lib/auth'
 import { getCurrentLocation } from '@/lib/geolocation'
 import UpgradeSheet from '@/components/UpgradeSheet'
 import OfflineCitiesCard from '@/components/OfflineCitiesCard'
+import OfflineMapCard from '@/components/OfflineMapCard'
 import GameSection from '@/components/GameSection'
 import XpStore from '@/components/XpStore'
 import { APP_VERSION } from '@/lib/version'
@@ -245,6 +246,20 @@ export function ProfileScreen({
   const [deleteBusy, setDeleteBusy] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [deleteDone, setDeleteDone] = useState<string | null>(null)
+  // Gezgin Efsanesi rozeti: altin cerceve + unvan
+  const [legendOwned, setLegendOwned] = useState(false)
+
+  useEffect(() => {
+    if (!user) {
+      setLegendOwned(false)
+      return
+    }
+    fetchGameProfile()
+      .then((p) => {
+        setLegendOwned((p.badge_ids ?? []).includes('efsane_gezgin'))
+      })
+      .catch(() => {})
+  }, [user])
 
   async function handleDeleteAccount() {
     if (deleteBusy) return
@@ -357,16 +372,23 @@ export function ProfileScreen({
               <img
                 src={user.picture}
                 alt=""
-                className="h-12 w-12 rounded-full border border-line"
+                className={`h-12 w-12 rounded-full border ${legendOwned ? 'border-amber-400 ring-2 ring-amber-400/70' : 'border-line'}`}
                 referrerPolicy="no-referrer"
               />
             ) : (
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/15 text-lg font-bold text-accent">
+              <span className={`flex h-12 w-12 items-center justify-center rounded-full text-lg font-bold ${legendOwned ? 'border border-amber-400 bg-amber-400/15 text-amber-300 ring-2 ring-amber-400/70' : 'bg-accent/15 text-accent'}`}>
                 {(user.name ?? 'K').slice(0, 1).toUpperCase()}
               </span>
             )}
             <div className="min-w-0">
-              <p className="truncate text-sm font-bold">{user.name ?? 'Kullanıcı'}</p>
+              <p className="truncate text-sm font-bold">
+                {user.name ?? 'Kullanıcı'}{' '}
+                {legendOwned && (
+                  <span className="rounded-full bg-amber-400/15 px-2 py-0.5 text-[10px] font-bold text-amber-300">
+                    🏆 Efsanevi Gezgin
+                  </span>
+                )}
+              </p>
               <p className="truncate text-xs text-muted">{user.email}</p>
             </div>
           </div>
@@ -461,6 +483,8 @@ export function ProfileScreen({
       </div>
 
       <OfflineCitiesCard />
+
+      <OfflineMapCard />
 
       <div className="mt-3 rounded-2xl border border-line bg-surface-2/90 p-4">
         <p className="text-xs uppercase tracking-wide text-muted">Veri kaynakları</p>

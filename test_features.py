@@ -117,7 +117,7 @@ try:
     check("rozet: yesil dostu", "yesil_dostu" in ids, str(ids))
     check("seviye>1", prof.get("level", 1) > 1 or prof.get("xp", 0) > 0, str(prof.get("level")))
     b = cg.get("/gamification/badges", headers=hg).json()
-    check("rozet listesi", len(b.get("badges", [])) == 8, str(len(b.get("badges", []))))
+    check("rozet listesi", len(b.get("badges", [])) == 9, str(len(b.get("badges", []))))
 
     # hedef CRUD
     r = cg.post("/targets", json={"name": "Galata", "lat": 41, "lon": 29}, headers=hg).json()
