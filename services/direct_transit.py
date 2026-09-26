@@ -14,12 +14,14 @@ import json
 import os
 
 from services.izmir import (
+    BUS_SPEED_M_PER_MIN,
     _bus_leg,
     _estimate_duration,
     _haversine_m,
     _no_route,
     _stops_near_adaptive,
     _walking_leg,
+    WALK_SPEED_M_PER_MIN,
 )
 from services.routing import road_geometry
 
@@ -30,6 +32,144 @@ MAX_SUGGESTIONS = 3
 
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+
+
+TRANSFER_PENALTY_MIN = 10
+MAX_TRANSFER_ROUTES = 2
+MAX_TRANSFER_STOPS_PER_SIDE = 12
+
+
+def _path_meters(coords) -> float:
+    """Polyline gercek uzunlugu (m)."""
+    total = 0.0
+    pts = coords or []
+    for i in range(1, len(pts)):
+        try:
+            total += _haversine_m(pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1])
+        except (TypeError, ValueError, IndexError):
+            continue
+    return total
+
+
+def find_transfer_routes(stops, start_lat, start_lon, end_lat, end_lon,
+                         near_start, near_end, source_label, max_routes=MAX_TRANSFER_ROUTES):
+    """Tek aktarmali zincirler: hatA(bin->aktarma) + hatB(aktarma->in).
+
+    Tum durak/hat/geometri gercek veriden uretilir (durak-hat eslesmesi +
+    OSRM yol geometrisi). Uygun aktarma yoksa [] doner.
+    """
+    if not stops or not near_start or not near_end:
+        return []
+
+    by_line: dict[str, list] = {}
+    for stop in stops:
+        for key in stop.get("line_keys") or set():
+            by_line.setdefault(key, []).append(stop)
+
+    start_lines: dict[str, tuple] = {}
+    for walk_m, stop in near_start[:MAX_TRANSFER_STOPS_PER_SIDE]:
+        for line in stop.get("lines", []):
+            key = line.get("n")
+            if key and key not in start_lines:
+                start_lines[key] = (stop, walk_m, line)
+
+    end_lines: dict[str, tuple] = {}
+    for walk_m, stop in near_end[:MAX_TRANSFER_STOPS_PER_SIDE]:
+        for line in stop.get("lines", []):
+            key = line.get("n")
+            if key and key not in end_lines:
+                end_lines[key] = (stop, walk_m)
+
+    candidates = []
+    for key_a, (board, walk_in, info_a) in start_lines.items():
+        stops_a = {s["id"]: s for s in by_line.get(key_a, [])}
+        if board["id"] not in stops_a:
+            stops_a[board["id"]] = board
+        for key_b, (alight, walk_out) in end_lines.items():
+            if key_a == key_b:
+                continue
+            best_t = None
+            best_detour = None
+            for stop in by_line.get(key_b, []):
+                if stop["id"] not in stops_a:
+                    continue
+                if stop["id"] in (board["id"], alight["id"]):
+                    continue
+                detour = (
+                    _haversine_m(board["lat"], board["lon"], stop["lat"], stop["lon"])
+                    + _haversine_m(stop["lat"], stop["lon"], alight["lat"], alight["lon"])
+                )
+                if best_detour is None or detour < best_detour:
+                    best_detour = detour
+                    best_t = stop
+            if best_t is None:
+                continue
+            candidates.append(
+                (walk_in + walk_out + best_detour, key_a, key_b,
+                 board, best_t, alight, walk_in, walk_out, info_a)
+            )
+
+    candidates.sort(key=lambda c: c[0])
+
+    routes = []
+    for (_, key_a, key_b, board, transfer, alight,
+         walk_in_m, walk_out_m, info_a) in candidates[:max_routes]:
+        leg_a = _bus_leg(key_a, board, transfer)
+        leg_a["type"] = (info_a or {}).get("t", "bus")
+        long_a = (info_a or {}).get("l") or ""
+        leg_a["name"] = f"{key_a}" + (f" ({long_a})" if long_a else "")
+        leg_a["route_id"] = f"{source_label.lower()}:{key_a}"
+        coords_a = road_geometry(
+            [[board["lat"], board["lon"]],
+             [transfer["lat"], transfer["lon"]]],
+            "driving",
+        )
+        leg_a["coords"] = coords_a
+
+        info_b = None
+        for line in transfer.get("lines", []):
+            if line.get("n") == key_b:
+                info_b = line
+                break
+        leg_b = _bus_leg(key_b, transfer, alight)
+        leg_b["type"] = (info_b or {}).get("t", "bus")
+        long_b = (info_b or {}).get("l") or ""
+        leg_b["name"] = f"{key_b}" + (f" ({long_b})" if long_b else "")
+        leg_b["route_id"] = f"{source_label.lower()}:{key_b}"
+        coords_b = road_geometry(
+            [[transfer["lat"], transfer["lon"]],
+             [alight["lat"], alight["lon"]]],
+            "driving",
+        )
+        leg_b["coords"] = coords_b
+
+        walk_in = _walking_leg(walk_in_m, None, board["name"])
+        walk_in["coords"] = road_geometry(
+            [[start_lat, start_lon], [board["lat"], board["lon"]]], "foot")
+        walk_out = _walking_leg(walk_out_m, alight["name"], None)
+        walk_out["coords"] = road_geometry(
+            [[alight["lat"], alight["lon"]], [end_lat, end_lon]], "foot")
+
+        bus_m = _path_meters(coords_a) + _path_meters(coords_b)
+        duration = round(
+            (walk_in_m + walk_out_m) / WALK_SPEED_M_PER_MIN
+            + bus_m / BUS_SPEED_M_PER_MIN
+            + TRANSFER_PENALTY_MIN
+        )
+
+        routes.append({
+            "fee": None,
+            "walking_distance_m": round(walk_in_m + walk_out_m),
+            "calories_burned": None,
+            "co2_emission": None,
+            "departure_time": None,
+            "arrival_time": None,
+            "duration_minutes": duration,
+            "transfer_count": 1,
+            "legs": [walk_in, leg_a, leg_b, walk_out],
+        })
+
+    return routes
 
 
 def load_stop_data(filename):
@@ -144,6 +284,20 @@ def make_finder(
                     })
 
         if not suggestions:
+            # Dogrudan hat yoksa aktarma motoru devreye girer: tek
+            # aktarmali gercek zincirler (durak-hat eslesmesi + OSRM).
+            transfer_routes = find_transfer_routes(
+                stops, start_lat, start_lon, end_lat, end_lon,
+                near_start, near_end, source_label,
+            )
+            if transfer_routes:
+                return {
+                    "transport_type": "public_transport",
+                    "status": "success",
+                    "routes": transfer_routes,
+                    "source": source_label,
+                    "note": "Doğrudan hat yok; aktarmalı rotalar listelendi. Süre ve mesafeler tahminidir.",
+                }
             return _no_route(
                 _no_route_msg(),
                 source=source_label,

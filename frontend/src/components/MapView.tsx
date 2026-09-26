@@ -18,6 +18,8 @@ type Path = {
   dashed: boolean
   /** Su ustu (vapur) cizgisi: 2 nokta bile olsa cizilir, cunku dogru davranis budur. */
   isWater: boolean
+  /** Hava yolu (ucus) cizgisi: kus ucusu gercektir, 2 nokta cizilir. */
+  isAir: boolean
 }
 
 // KURAL: Karayolu adimlarinda 2 ve daha az noktali cizgi RENDER EDILMEZ.
@@ -175,8 +177,21 @@ function isWaterLeg(legType: string): boolean {
 }
 
 function buildPaths(plan: PlanResult, mode: MapMode, routeIndex: number): Path[] {
-  // Ucak: kus ucusu gercektir (hava yolu); kesikli cizgi korunur.
+  // Ucak: bacaklar varsa parcali ciz (transferler kara yolu, ucus kesikli);
+  // yoksa kus ucusu cizgisi (hava yolu gercektir).
   if (mode === 'ucak') {
+    const legs = plan.flight?.legs ?? []
+    if (legs.length > 0) {
+      const paths: Path[] = []
+      for (const leg of legs) {
+        const coords = leg.coords ?? []
+        const air = leg.type === 'flight'
+        if (coords.length <= 2 && !air) continue
+        if (coords.length < 2) continue
+        paths.push({ positions: coords, dashed: air, isWater: false, isAir: air })
+      }
+      return paths
+    }
     return [{
       positions: [
         [plan.start_coord.lat, plan.start_coord.lon],
@@ -184,6 +199,7 @@ function buildPaths(plan: PlanResult, mode: MapMode, routeIndex: number): Path[]
       ],
       dashed: true,
       isWater: false,
+      isAir: true,
     }]
   }
 
@@ -191,7 +207,7 @@ function buildPaths(plan: PlanResult, mode: MapMode, routeIndex: number): Path[]
     const geometry = plan.car?.geometry ?? []
     // Geometri yoksa veya 2 ve daha az noktaysa HICBIR SEY cizilmez.
     if (geometry.length <= 2) return []
-    return [{ positions: geometry, dashed: false, isWater: false }]
+    return [{ positions: geometry, dashed: false, isWater: false, isAir: false }]
   }
 
   if (mode === 'yuruyus') {
@@ -233,7 +249,7 @@ function buildPaths(plan: PlanResult, mode: MapMode, routeIndex: number): Path[]
     const coords = leg.coords ?? []
     if (coords.length <= 2 && !isWaterLeg(leg.type)) continue
     if (coords.length < 2) continue
-    paths.push({ positions: coords, dashed: false, isWater: isWaterLeg(leg.type) })
+    paths.push({ positions: coords, dashed: false, isWater: isWaterLeg(leg.type), isAir: false })
   }
 
   return paths

@@ -396,6 +396,20 @@ def find_izmir_route(start_lat, start_lon, end_lat, end_lon, max_walk=None):
                 })
 
     if not suggestions:
+        # Dogrudan hat yoksa aktarma motoru: tek aktarmali gercek ESHOT zinciri.
+        from services.direct_transit import find_transfer_routes
+        transfer_routes = find_transfer_routes(
+            eshot_stops, start_lat, start_lon, end_lat, end_lon,
+            near_start, near_end, "ESHOT",
+        )
+        if transfer_routes:
+            return {
+                "transport_type": "public_transport",
+                "status": "success",
+                "routes": transfer_routes,
+                "source": "ESHOT",
+                "note": "Doğrudan hat yok; aktarmalı rotalar listelendi. Süre ve mesafeler tahminidir.",
+            }
         return _no_route(
             "Bu iki nokta arasında doğrudan bir hat bulunamadı "
             "(ESHOT otobüsü veya İZDENİZ vapuru). "

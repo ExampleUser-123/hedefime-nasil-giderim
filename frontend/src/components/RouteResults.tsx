@@ -56,6 +56,10 @@ function legIcon(leg: TransitLeg) {
 
   if (/FERRY|VAPUR|TURYOL|SHAT|SEHIR_HATLARI/.test(type)) return IconFerry
 
+  if (/FLIGHT|UCAK|UCUS/.test(type)) return IconPlane
+
+  if (/SHUTTLE|TRANSFER/.test(type)) return IconCar
+
   return IconBus
 }
 
@@ -866,6 +870,19 @@ export function FlightDetails({ flight, from, to }: { flight: FlightEstimate; fr
       </div>
 
       <p className="mt-3 text-xs text-muted">{flight.note}</p>
+
+      {flight.legs && flight.legs.length > 0 && (
+        <ol className="mt-3 divide-y divide-line/60 rounded-2xl border border-line bg-bg/50 px-4 py-1.5">
+          {flight.legs.map((leg, index) => (
+            <LegRow
+              key={index}
+              leg={leg}
+              step={index + 1}
+              isLast={index === flight.legs!.length - 1}
+            />
+          ))}
+        </ol>
+      )}
 
       <button
         type="button"

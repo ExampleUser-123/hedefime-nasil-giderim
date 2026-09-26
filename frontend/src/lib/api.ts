@@ -87,6 +87,8 @@ export type FlightEstimate = {
   total_price?: number
   people?: number
   note?: string
+  /** Havalimani transfer bacaklari (gercek geometrili; yoksa tahmin karti) */
+  legs?: TransitLeg[]
 }
 
 export type TrainEstimate = FlightEstimate

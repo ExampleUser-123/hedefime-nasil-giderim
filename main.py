@@ -1467,6 +1467,21 @@ def plan(
         flight_result = estimate_flight(straight_km, people)
         train_result = estimate_train(route_result["distance_km"], people)
 
+        # Uçuş bacakları: havalimanı transferleri (kara yolu) + uçuş.
+        # Başarısızlıkta tahmin kartı aynen kalır (legs eksik olur).
+        if flight_result and flight_result.get("available"):
+            try:
+                from services.airports import build_flight_legs
+                flight_legs = build_flight_legs(
+                    start_place["lat"], start_place["lon"],
+                    end_place["lat"], end_place["lon"],
+                    start_place["display_name"], end_place["display_name"],
+                )
+                if flight_legs:
+                    flight_result["legs"] = flight_legs
+            except Exception:
+                logger.warning("ucus bacaklari kurulamadi", exc_info=True)
+
     # -----------------------------------------------------
     # SONUÇ
     # -----------------------------------------------------
