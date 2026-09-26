@@ -11,7 +11,6 @@ import LoginSheet from '@/components/LoginSheet'
 import MapView from '@/components/MapView'
 import BottomNav, { type Tab } from '@/components/BottomNav'
 import NearbyStops from '@/components/NearbyStops'
-import VibeCard from '@/components/VibeCard'
 import MagicShare from '@/components/MagicShare'
 import NightCard from '@/components/NightCard'
 import TargetsSection from '@/components/TargetsSection'
@@ -299,7 +298,6 @@ export default function App() {
               {/* Rota acikken sonuclar bottom sheet'tedir; alt kartlar gizlenir, harita tam gorunur */}
               {!plan && (
               <>
-              <VibeCard plan={plan} city={weatherCity} />
               <MagicShare onOpenRoute={openRoute} />
               <NightCard onOpenRoute={openRoute} />
               </>

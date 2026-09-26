@@ -429,7 +429,7 @@ export function fetchUsage(): Promise<UsageInfo> {
   return request<UsageInfo>('/usage', undefined, 30000)
 }
 
-// --- Magic Share + Vibe + Gamification ---------------------------------------
+// --- Magic Share + Gamification ---------------------------------------
 
 export type MagicResult = {
   name: string
@@ -452,29 +452,6 @@ export function resolveMagicShare(text: string): Promise<MagicResult> {
 
 export function fetchMagicUsage(): Promise<{ tier: Tier; used: number; limit: number }> {
   return request('/magic-share/usage', undefined, 15000)
-}
-
-export type VibeMood = 'sakin' | 'ekonomik' | 'manzarali' | 'kahve'
-
-export type VibeResponse = {
-  mood: VibeMood
-  order: string[]
-  notes: string[]
-  highlights: Record<string, string>
-  pois: { name: string; detail: string; lat: number; lon: number }[]
-  transit_routes: unknown[]
-  car: unknown
-}
-
-export function fetchVibeRoutes(args: {
-  start_lat: number; start_lon: number; end_lat: number; end_lon: number
-  city?: string; people?: number; vehicle?: string; mood: VibeMood
-}): Promise<VibeResponse> {
-  return request<VibeResponse>('/vibe-routes', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(args),
-  }, 45000)
 }
 
 export type GameProfile = {

@@ -2,7 +2,7 @@
 
 Kapsar: yayin/liste/sil (sahiplik), +30 XP, davet kodu +50 XP (tek seferlik,
 kendine davet yok), magaza katalogu, takaslar (4 urun), yetersiz XP,
-bonus kota etkisi, vibe_unlock etkisi, lite deneme katmani.
+bonus kota etkisi, lite deneme katmani.
 data dosyalari yedeklenir ve geri yuklenir.
 Kullanim: .venv/Scripts/python test_marketplace.py
 """
@@ -150,21 +150,6 @@ try:
     from main import _unlimited_routes_active
     check("unlimited rota aktif", _unlimited_routes_active(_uid) is True)
     check("toplam harcama tutarli", xp_before - xp_spent >= 150, f"{xp_before}->{xp_spent}")
-    # eski vibe_unlock kaldirildi ama onceki sahiplerin hakki korunur
-    _us.grant_perk(_uid, "vibe_unlock", True)
-    with patch("services.routing.calculate_route",
-               return_value={"duration_minutes": 30, "distance_km": 25}), \
-         patch("services.public_transport.find_transit_routes",
-               return_value={"status": "ok", "routes": []}), \
-         patch("services.vehicles.get_vehicle",
-               return_value={"name": "T", "fuel_type": "Benzin", "consumption": 7.0}), \
-         patch("services.fuel.calculate_fuel_cost",
-               return_value={"total_cost": 200, "cost_per_person": 100}), \
-         patch("services.location.find_province", return_value={"name": "Istanbul"}):
-        body = {"start_lat": 41, "start_lon": 29, "end_lat": 41.1, "end_lon": 29.1,
-                "city": "Istanbul", "mood": "manzarali"}
-        check("eski vibe_unlock hakki korunur",
-              c.post("/vibe-routes", json=body, headers=h).status_code == 200)
     # magic bonus etkisi
     from services import quota_store
     u = user_store.find_user_by_email("pazaryeri@example.com")

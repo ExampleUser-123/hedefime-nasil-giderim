@@ -1,6 +1,6 @@
-"""Magic Share + Vibe + Gamification testleri (28 maddelik listedeki backend kismi).
+"""Magic Share + Gamification testleri (backend kismi).
 
-Kapsar: magic parse, kota matrisi (2/10/sinirsiz), vibe yetki matrisi,
+Kapsar: magic parse, kota matrisi (2/10/sinirsiz),
 XP/rozet/seviye, hedef CRUD, kalicilik (logout/login + restart simulasyonu).
 data dosyalari yedeklenir ve geri yuklenir.
 Kullanim: .venv/Scripts/python test_features.py
@@ -102,42 +102,6 @@ try:
         check("14. premium sinirsiz", all(s == 200 for s in codes))
         r = c.get("/magic-share/usage", headers=h).json()
         check("magic usage", r.get("used") == 12 and r.get("limit") == -1, str(r))
-
-    # --- 15-20. vibe yetki matrisi (ag bagimliligi mocklandi) ---
-    fake_transit = {"status": "ok", "routes": [
-        {"fee": 30, "duration_minutes": 40, "walking_distance_m": 500, "legs": []},
-        {"fee": 20, "duration_minutes": 55, "walking_distance_m": 200, "legs": []},
-    ]}
-    with patch("services.routing.calculate_route",
-               return_value={"duration_minutes": 30, "distance_km": 25}), \
-         patch("services.public_transport.find_transit_routes", return_value=dict(fake_transit)), \
-         patch("services.vehicles.get_vehicle",
-               return_value={"name": "T", "fuel_type": "Benzin", "consumption": 7.0}), \
-         patch("services.fuel.calculate_fuel_cost",
-               return_value={"total_cost": 200, "cost_per_person": 100}), \
-         patch("services.location.find_province", return_value={"name": "Istanbul"}):
-        cf, hf, _ = new_user("vfree@example.com", "free")
-        body = {"start_lat": 41, "start_lon": 29, "end_lat": 41.1, "end_lon": 29.1,
-                "city": "Istanbul", "mood": "sakin"}
-        check("15. free sakin", cf.post("/vibe-routes", json=body, headers=hf).status_code == 200)
-        body["mood"] = "ekonomik"
-        check("16. free ekonomik", cf.post("/vibe-routes", json=body, headers=hf).status_code == 200)
-        body["mood"] = "manzarali"
-        r = cf.post("/vibe-routes", json=body, headers=hf)
-        check("17. free manzarali 403+kilit", r.status_code == 403 and r.json().get("upgrade_required") is True,
-              str(r.status_code))
-        body["mood"] = "kahve"
-        r = cf.post("/vibe-routes", json=body, headers=hf)
-        check("18. free kahve 403+kilit", r.status_code == 403, str(r.status_code))
-        cl, hl, _ = new_user("vlite@example.com", "lite")
-        for m, label in (("manzarali", "19. lite manzarali"), ("kahve", "19b. lite kahve")):
-            body["mood"] = m
-            check(label, cl.post("/vibe-routes", json=body, headers=hl).status_code == 200)
-        cp, hp, _ = new_user("vprem@example.com", "premium")
-        body["mood"] = "kahve"
-        check("20. premium kahve", cp.post("/vibe-routes", json=body, headers=hp).status_code == 200)
-        body["mood"] = "uzay"
-        check("vibe gecersiz mod 400", cp.post("/vibe-routes", json=body, headers=hp).status_code == 400)
 
     # --- 21-23. gamification ---
     cg, hg, gid = new_user("game@example.com", "free")

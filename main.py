@@ -1988,15 +1988,6 @@ class MagicShareBody(BaseModel):
     text: str
 
 
-class VibeRoutesBody(BaseModel):
-    start_lat: float
-    start_lon: float
-    end_lat: float
-    end_lon: float
-    city: str = ""
-    people: int = 1
-    vehicle: str = "toyota_corolla"
-    mood: str = "sakin"
 
 
 class GameEventBody(BaseModel):
@@ -2052,91 +2043,6 @@ def magic_share_usage(request: Request, user: dict = Depends(get_current_user)):
         "tier": tier,
         "used": u["magic"],
         "limit": limits["magic"] if limits["magic"] is not None else -1,
-    }
-
-
-@app.post("/vibe-routes")
-def vibe_routes(body: VibeRoutesBody, request: Request,
-                user: dict | None = Depends(_optional_user)):
-    """Moda gore rota onerisi (koordinat tabanli, cizelge kopyasi yok)."""
-    from services import vibe_routing as vibe
-    from services.routing import calculate_route
-    from services.vehicles import get_vehicle
-    from services.fuel import calculate_fuel_cost
-    from services.public_transport import find_transit_routes
-    from services.location import find_province
-
-    mood = (body.mood or "").strip().lower()
-    if mood not in vibe.MOODS:
-        return JSONResponse(
-            status_code=400,
-            content={"error": "Geçersiz mod. Sakin, ekonomik, manzaralı veya kahve seçin."},
-        )
-    tier = user_store.get_tier(user)
-    vibe_open = vibe.mood_allowed(mood, tier)
-    if not vibe_open and user is not None:
-        # Eski XP Store urunu "vibe_unlock" katalogdan kalkti ama
-        # daha once alanlarin hakki korunur.
-        vibe_open = bool(user_store.get_perks(user["id"]).get("vibe_unlock"))
-    if not vibe_open:
-        return _upgrade_required(
-            "Bu mod Lite ve Premium üyelikte açık. "
-            "Bu özelliği sınırsız kullanmak için Lite veya Premium'a geç."
-        )
-
-    people = max(1, min(8, int(body.people or 1)))
-    city = (body.city or "").strip()
-    province = find_province(city) if city else None
-
-    transit_result: dict = {"status": "no_route", "routes": []}
-    try:
-        transit_result = find_transit_routes(
-            body.start_lat, body.start_lon, body.end_lat, body.end_lon,
-            province, province,
-        ) or transit_result
-    except Exception:
-        logger.warning("vibe transit hesaplanamadi", exc_info=True)
-
-    car_result: dict | None = None
-    try:
-        route = calculate_route(
-            body.start_lat, body.start_lon, body.end_lat, body.end_lon)
-        vehicle = get_vehicle(body.vehicle) or get_vehicle("toyota_corolla")
-        fuel = None
-        if route and vehicle:
-            fuel = calculate_fuel_cost(
-                distance_km=route.get("distance_km", 0),
-                fuel_type=vehicle.get("fuel_type", "Benzin"),
-                fuel_consumption=vehicle.get("consumption", 7.0),
-                people=people)
-        car_result = {
-            "duration_minutes": (route or {}).get("duration_minutes"),
-            "distance_km": (route or {}).get("distance_km"),
-            "total_cost": (fuel or {}).get("total_cost"),
-            "cost_per_person": (fuel or {}).get("cost_per_person"),
-            "vehicle": (vehicle or {}).get("name") if isinstance(vehicle, dict) else vehicle,
-        }
-    except Exception:
-        logger.warning("vibe arac hesaplanamadi", exc_info=True)
-
-    plan = {"car": car_result, "public_transport": transit_result}
-    ranked = vibe.rank_for_mood(plan, mood)
-
-    pois: list[dict] = []
-    if mood in ("kahve", "manzarali"):
-        mid_lat = (body.start_lat + body.end_lat) / 2
-        mid_lon = (body.start_lon + body.end_lon) / 2
-        pois = vibe.suggest_pois(mid_lat, mid_lon, city, mood)
-
-    transit_routes = (transit_result.get("routes") or [])[:3]
-    return {
-        "mood": mood,
-        "order": ranked["order"],
-        "notes": ranked["notes"],
-        "highlights": ranked["highlights"],
-        "pois": pois,
-        "transit_routes": transit_routes,
-        "car": car_result,
     }
 
 
@@ -2560,7 +2466,6 @@ def xp_store_items(user: dict = Depends(get_current_user)):
         "badge_pack": {"gezgin", "yerel_rehber"} <= badge_ids,
         "offline_pack": bool(perks.get("offline_pack")),
         # Eski urunler katalogdan kalkti; daha once alanlarin hakki korunur.
-        "vibe_unlock": bool(perks.get("vibe_unlock")),
         "lite_trial": bool(perks.get("lite_until") or ""),
     }
     return {
