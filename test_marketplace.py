@@ -105,9 +105,9 @@ try:
     xp_after2 = c.get("/gamification/profile", headers=h).json()["xp"]
     check("ikinci davetli +50 daha", xp_after2 == xp_after + 50, f"{xp_after}->{xp_after2}")
 
-    # --- XP store (12 dijital urun) ---
+    # --- XP store (13 dijital urun: cyberpunk tema eklendi) ---
     r = c.get("/xp-store/items", headers=h).json()
-    check("katalog 12 urun", len(r.get("items", [])) == 12, str(len(r.get("items", []))))
+    check("katalog 13 urun", len(r.get("items", [])) == 13, str(len(r.get("items", []))))
     check("bakiye gorunur", r.get("xp", 0) >= 130, str(r.get("xp")))
     # bakiye biriktir (HTTP rate limitine takilmamak icin dogrudan servis)
     from services import gamification as _g, user_store as _us
@@ -169,6 +169,13 @@ try:
     check("efsane rozeti", "efsane_gezgin" in c.get("/gamification/profile", headers=h).json().get("badge_ids", []))
     r = c.post("/xp-store/redeem", json={"item": "legend_badge"}, headers=h)
     check("mukerrer legend 400", r.status_code == 400, str(r.status_code))
+    # --- cyberpunk tema (500 XP kalici urun) ---
+    for _ in range(15):
+        _g.award(_uid, "referral")
+    r = c.post("/xp-store/redeem", json={"item": "cyberpunk_theme"}, headers=h)
+    check("cyberpunk_theme takas", r.status_code == 200, str(r.status_code))
+    r = c.post("/xp-store/redeem", json={"item": "cyberpunk_theme"}, headers=h)
+    check("mukerrer cyberpunk 400", r.status_code == 400, str(r.status_code))
     owned_all = {i["id"]: i["owned"] for i in c.get("/xp-store/items", headers=h).json()["items"]}
     check("yeni sahiplikler", all(owned_all.get(k) for k in
           ("vip_engine", "map_theme", "silly_guard", "cafe_filter", "offline_map", "legend_badge")),

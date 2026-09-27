@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactElement } from 'react'
 import { fetchXpStore, redeemXpStore, type XpStoreItem } from '@/lib/api'
 import { getStoredUser } from '@/lib/auth'
-import { getMapTheme, setMapTheme } from '@/lib/theme'
+import { getMapTheme, setMapTheme, getUiTheme, setUiTheme, unlockTheme } from '@/lib/theme'
 
 /** Profil ici XP Magazasi: bakiye + urunler + tek tikla takas. */
 export default function XpStore(): ReactElement {
@@ -11,6 +11,7 @@ export default function XpStore(): ReactElement {
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [neon, setNeon] = useState(() => getMapTheme() === 'neon')
+  const [cyber, setCyber] = useState(() => getUiTheme() === 'cyberpunk')
   const themeOwned = items.some((i) => i.id === 'map_theme' && i.owned)
 
   function toggleTheme() {
@@ -19,12 +20,24 @@ export default function XpStore(): ReactElement {
     setMapTheme(next ? 'neon' : 'default')
   }
 
+  function toggleCyberpunk() {
+    const next = !cyber
+    setCyber(next)
+    setUiTheme(next ? 'cyberpunk' : 'default')
+  }
+
   async function refresh() {
     if (!getStoredUser()) return
     try {
       const data = await fetchXpStore()
       setXp(data.xp)
       setItems(data.items)
+      // Sunucu sahipligini yerel kilit-acma listesine aynala
+      for (const it of data.items) {
+        if ((it.id === 'cyberpunk_theme' || it.id === 'map_theme') && it.owned) {
+          unlockTheme(it.id === 'cyberpunk_theme' ? 'cyberpunk' : 'neon')
+        }
+      }
     } catch {
       // sessizce gec
     }
@@ -43,6 +56,12 @@ export default function XpStore(): ReactElement {
       const res = await redeemXpStore(id)
       if (!res) throw new Error('İşlem başarısız oldu. Lütfen tekrar deneyin.')
       setMessage(res.effect)
+      if (id === 'cyberpunk_theme') {
+        // Satin alma tamamlandi: kilidi ac ve temayi aninda uygula
+        unlockTheme('cyberpunk')
+        setCyber(true)
+        setUiTheme('cyberpunk')
+      }
       await refresh()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'İşlem başarısız oldu.')
@@ -66,6 +85,27 @@ export default function XpStore(): ReactElement {
 
       <div className="mt-2 max-h-80 space-y-2 overflow-y-auto pr-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {items.map((item) => {
+          // Cyberpunk tema sahiplenildiyse Takas yerine Kullan / Aktif dugmesi
+          if (item.id === 'cyberpunk_theme' && item.owned) {
+            return (
+            <div key={item.id} className="flex items-center gap-2 rounded-xl border border-line/60 bg-bg/40 px-3 py-2">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold">{item.name}</p>
+                <p className="text-[11px] text-muted">{item.desc}</p>
+                <p className="mt-0.5 text-[11px] font-bold text-accent tabular-nums">Satın Alındı ✓</p>
+              </div>
+              <button
+                type="button"
+                onClick={toggleCyberpunk}
+                disabled={busyId !== null}
+                aria-pressed={cyber}
+                className="shrink-0 rounded-lg bg-accent px-3 py-1.5 text-xs font-bold text-accent-ink disabled:opacity-40"
+              >
+                {busyId === item.id ? '…' : cyber ? 'Aktif ✓' : 'Kullan'}
+              </button>
+            </div>
+            )
+          }
           // unlimited_day / vip_engine yeniden alinabilir (sure uzar); diger sahipli urunler kilitli
           const repurchasable = item.id === 'unlimited_day' || item.id === 'vip_engine'
             || item.id === 'magic_plus3' || item.id === 'ai_plus5'

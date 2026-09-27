@@ -2211,6 +2211,11 @@ XP_STORE_ITEMS = {
         "desc": "Harita çizgilerini ve arayüzü özel neon renk temasına dönüştürür. Kalıcı.",
         "cost": 400,
     },
+    "cyberpunk_theme": {
+        "name": "Cyberpunk Tema (Neon Arayüz)",
+        "desc": "Tüm arayüzü neon pembe + cyan Cyberpunk paletine büründürür. Mağazadan Kullan ile anında açılır. Kalıcı.",
+        "cost": 500,
+    },
     "silly_guard": {
         "name": "\"Aptal Hata\" Koruma Paketi (Son Sefer Alarmı)",
         "desc": "Son seferlere 10 dakika kala bildirimle uyarır. Kalıcı.",
@@ -2512,6 +2517,7 @@ def xp_store_items(user: dict = Depends(get_current_user)):
         "legend_badge": "efsane_gezgin" in badge_ids,
         "offline_pack": bool(perks.get("offline_pack")),
         "map_theme": bool(perks.get("map_theme")),
+        "cyberpunk_theme": bool(perks.get("cyberpunk_theme")),
         "silly_guard": bool(perks.get("silly_guard")),
         "cafe_filter": bool(perks.get("cafe_filter")),
         "offline_map": bool(perks.get("offline_map")),
@@ -2540,8 +2546,8 @@ def xp_store_redeem(body: RedeemBody, request: Request,
         return JSONResponse(status_code=400, content={"error": "Geçersiz ürün."})
 
     # Kalıcı ürünlerde mükerrer harcama olmasın: sahiplik kontrolü harcamadan önce.
-    if item_id in ("night_alert", "offline_pack", "map_theme", "silly_guard",
-                   "cafe_filter", "offline_map"):
+    if item_id in ("night_alert", "offline_pack", "map_theme", "cyberpunk_theme",
+                   "silly_guard", "cafe_filter", "offline_map"):
         if (user_store.get_perks(user["id"]) or {}).get(item_id):
             return JSONResponse(status_code=400, content={"error": "Bu ürüne zaten sahipsin."})
     if item_id == "badge_pack":
@@ -2584,6 +2590,9 @@ def xp_store_redeem(body: RedeemBody, request: Request,
     elif item_id == "offline_pack":
         user_store.grant_perk(user["id"], "offline_pack", True)
         effect = "Çevrimdışı Durak Rehberi indirme hakkı açıldı."
+    elif item_id == "cyberpunk_theme":
+        user_store.grant_perk(user["id"], "cyberpunk_theme", True)
+        effect = "Cyberpunk tema açıldı: mağazadaki Kullan düğmesiyle anında etkinleştir."
     elif item_id in ("map_theme", "silly_guard", "cafe_filter", "offline_map"):
         user_store.grant_perk(user["id"], item_id, True)
         effect = f"{info['name']} aktif edildi."

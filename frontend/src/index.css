@@ -97,6 +97,34 @@ input::placeholder {
   --color-accent-ink: #2b0a2e;
 }
 
+/* XP Magazasi Cyberpunk arayuz temasi (cyberpunk_theme urunu) */
+[data-theme='cyberpunk'] {
+  --color-bg: #0d0814;
+  --color-surface: #150a24;
+  --color-surface-2: #1d0f31;
+  --color-line: #00f3ff33;
+  --color-fg: #f6ecff;
+  --color-muted: #a78fc9;
+  --color-accent: #ff007f;
+  --color-accent-ink: #20000f;
+  --color-water: #120826;
+}
+
+/* Cyberpunk: birincil butonlarda neon parlama (glow) */
+[data-theme='cyberpunk'] .bg-accent {
+  box-shadow: 0 0 10px #ff007f99, 0 0 28px #ff007f40;
+}
+
+/* Cyberpunk: vurgu metinlerinde hafif neon isima */
+[data-theme='cyberpunk'] .text-accent {
+  text-shadow: 0 0 10px #ff007f66;
+}
+
+/* Cyberpunk: odak cercevesi neon sari */
+[data-theme='cyberpunk'] :focus-visible {
+  outline-color: #ffe600;
+}
+
 /* Rota sonuclari bottom sheet giris animasyonu */
 @keyframes sheet-enter {
   from {
