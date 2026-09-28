@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactElement } from 'react'
+import { useEffect, useRef, useState, type ReactElement } from 'react'
 import { fetchXpStore, redeemXpStore, type XpStoreItem } from '@/lib/api'
 import { getStoredUser } from '@/lib/auth'
 import { getMapTheme, setMapTheme, getUiTheme, setUiTheme, unlockTheme } from '@/lib/theme'
@@ -12,6 +12,8 @@ export default function XpStore(): ReactElement {
   const [error, setError] = useState<string | null>(null)
   const [neon, setNeon] = useState(() => getMapTheme() === 'neon')
   const [cyber, setCyber] = useState(() => getUiTheme() === 'cyberpunk')
+  const listRef = useRef<HTMLDivElement>(null)
+  const [canScrollDown, setCanScrollDown] = useState(false)
   const themeOwned = items.some((i) => i.id === 'map_theme' && i.owned)
 
   function toggleTheme() {
@@ -46,6 +48,22 @@ export default function XpStore(): ReactElement {
   useEffect(() => {
     void refresh()
   }, [])
+
+  // Liste tasiyorsa ve en altta degilsek kaydirma ipucunu goster
+  useEffect(() => {
+    const el = listRef.current
+    if (!el) return
+    const update = () => {
+      setCanScrollDown(el.scrollHeight - el.scrollTop - el.clientHeight > 8)
+    }
+    update()
+    el.addEventListener('scroll', update, { passive: true })
+    window.addEventListener('resize', update)
+    return () => {
+      el.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
+    }
+  }, [items])
 
   async function redeem(id: string) {
     if (busyId) return
@@ -83,7 +101,10 @@ export default function XpStore(): ReactElement {
         )}
       </div>
 
-      <div className="mt-2 max-h-80 space-y-2 overflow-y-auto pr-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div
+        ref={listRef}
+        className="mt-2 max-h-80 space-y-2 overflow-y-auto pr-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
         {items.map((item) => {
           // Cyberpunk tema sahiplenildiyse Takas yerine Kullan / Aktif dugmesi
           if (item.id === 'cyberpunk_theme' && item.owned) {
@@ -136,6 +157,13 @@ export default function XpStore(): ReactElement {
           )
         })}
       </div>
+
+      {canScrollDown && (
+        <p className="mt-1.5 flex items-center justify-center gap-1 text-[11px] font-bold text-accent">
+          Daha fazla ödül için aşağı kaydır
+          <span aria-hidden className="inline-block animate-bounce">↓</span>
+        </p>
+      )}
 
       {themeOwned && (
         <button
