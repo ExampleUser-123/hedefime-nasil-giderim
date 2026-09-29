@@ -76,6 +76,9 @@ export type CarResult = {
   total_cost: number
   cost_per_person: number
   geometry?: LatLng[]
+  /** Ucretli yol/kopru gecisi (OSRM adim adlarindan gercek tespit) */
+  has_toll?: boolean
+  toll_roads?: string[]
 }
 
 export type FlightEstimate = {

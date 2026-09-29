@@ -1,6 +1,44 @@
+import re
+
 import requests
 
 from services.cache import cached
+
+
+# Ucretli gecis gostergeleri (yalnizca OSRM adim adlarinda gercekten
+# geciyorsa isaretlenir; ucret tutari tahmini YOKTUR, isim listelenir).
+_TOLL_MOTORWAY_RE = re.compile(r"\bO-?\d{1,2}\b", re.IGNORECASE)
+_TOLL_CROSSINGS = (
+    "şehitler köprüsü", "boğaziçi", "bosphorus",
+    "fatih sultan", "yavuz sultan",
+    "osmangazi", "osman gazi",
+    "1915", "çanakkale köprüsü",
+    "avrasya", "eurasia",
+)
+
+
+def detect_toll_roads(names) -> list:
+    """OSRM adim adlarindan ucretli yol/kopru gecislerini cikarir.
+
+    names: adimlardaki yol adlari listesi. Donus: tespit edilen adlar
+    (sirali, tekrarsiz). Hicbiri yoksa bos liste.
+    """
+    found: list = []
+    for raw in names or []:
+        name = str(raw or "").strip()
+        if not name:
+            continue
+        hit = None
+        motorway = _TOLL_MOTORWAY_RE.search(name)
+        if motorway:
+            hit = motorway.group(0).upper()
+        else:
+            lowered = name.casefold()
+            if any(key in lowered for key in _TOLL_CROSSINGS):
+                hit = name
+        if hit and hit not in found:
+            found.append(hit)
+    return found
 
 
 @cached(ttl_seconds=3600)
@@ -16,20 +54,30 @@ def calculate_route(
         f"{start_lon},{start_lat};{end_lon},{end_lat}"
     )
 
-    response = requests.get(
-        route_url,
-        params={
-            "overview": "simplified",
-            "geometries": "geojson"
-        },
-        timeout=10
-    )
+    # Public OSRM zaman zaman 429/500 doner; tek seferlik hata tum /plan
+    # istehini dusurmesin diye iki deneme yapilir. Basarisizlikta None doner
+    # (cagiran hata karti gosterir; istisna firlatilmaz).
+    data = None
+    for _ in range(2):
+        try:
+            response = requests.get(
+                route_url,
+                params={
+                    "overview": "simplified",
+                    "geometries": "geojson",
+                    "steps": "true",
+                },
+                timeout=10,
+            )
+            response.raise_for_status()
+            data = response.json()
+            break
+        except Exception:
+            data = None
+    if not data:
+        return None
 
-    response.raise_for_status()
-
-    data = response.json()
-
-    if data["code"] != "Ok":
+    if data.get("code") != "Ok" or not data.get("routes"):
         return None
 
     route = data["routes"][0]
@@ -42,10 +90,21 @@ def calculate_route(
         for coord in route["geometry"]["coordinates"]
     ]
 
+    step_names: list = []
+    for leg in route.get("legs", []):
+        for step in leg.get("steps", []):
+            for key in ("ref", "name"):
+                value = (step.get(key) or "").strip()
+                if value and (not step_names or step_names[-1] != value):
+                    step_names.append(value)
+    toll_roads = detect_toll_roads(step_names)
+
     return {
         "distance_km": round(distance_km, 2),
         "duration_minutes": round(duration_minutes, 0),
-        "geometry": geometry
+        "geometry": geometry,
+        "has_toll": bool(toll_roads),
+        "toll_roads": toll_roads,
     }
 
 

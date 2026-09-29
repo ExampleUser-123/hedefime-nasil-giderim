@@ -115,6 +115,14 @@ export function CarDetails({ car, people }: { car: CarResult; people: number }) 
           <dd className="mt-0.5 font-semibold tabular-nums text-accent">{car.cost_per_person} TL</dd>
         </div>
       </dl>
+
+      {car.has_toll && (
+        <p role="note" className="mt-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3.5 py-2.5 text-xs font-semibold text-amber-300">
+          ⚠️ Bu rota ücretli yol / köprü geçişi içerir
+          {car.toll_roads && car.toll_roads.length > 0 && `: ${car.toll_roads.join(', ')}`}
+          . Yakıt maliyetine geçiş ücreti dahil değildir.
+        </p>
+      )}
     </div>
   )
 }
