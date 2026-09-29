@@ -319,7 +319,13 @@ export default function App() {
           </>
         )}
         {tab === 'history' && <HistoryScreen onOpenRoute={openRoute} />}
-        {tab === 'alerts' && <NotificationsScreen />}
+        {tab === 'alerts' && (
+          <NotificationsScreen
+            onGoTab={setTab}
+            onOpenAi={() => setChatOpen(true)}
+            onOpenRoute={openRoute}
+          />
+        )}
         {tab === 'profile' && (
           <ProfileScreen
             defaultVehicle={defaultVehicleName()}

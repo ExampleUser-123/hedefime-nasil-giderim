@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { API_BASE, deleteAccount, fetchGameProfile, fetchUsage, reverseGeocode, type AuthUser, type UsageInfo } from '@/lib/api'
+import { deleteAccount, fetchGameProfile, fetchUsage, reverseGeocode, type AuthUser, type UsageInfo } from '@/lib/api'
 import {
   clearHistory,
   getHistory,
+  getSaved,
   getPinnedPlace,
   setPinnedPlace,
   clearPinnedPlace,
@@ -166,60 +167,150 @@ export function HistoryScreen({ onOpenRoute }: { onOpenRoute: (entry: SavedRoute
   )
 }
 
-export function NotificationsScreen() {
-  const [serverUp, setServerUp] = useState<boolean | null>(null)
+export function NotificationsScreen({
+  onGoTab,
+  onOpenAi,
+  onOpenRoute,
+}: {
+  onGoTab: (tab: 'home' | 'saved' | 'history' | 'stops' | 'alerts' | 'profile' | 'explore') => void
+  onOpenAi: () => void
+  onOpenRoute: (entry: { from: string; to: string; people: number; mode: string }) => void
+}) {
+  const [offline, setOffline] = useState(
+    () => typeof navigator !== 'undefined' && navigator.onLine === false,
+  )
+  const [quickRoute, setQuickRoute] = useState<{
+    from: string
+    to: string
+    people: number
+    mode: string
+  } | null>(null)
 
   useEffect(() => {
-    let cancelled = false
-
-    fetch(`${API_BASE}/`)
-      .then((res) => {
-        if (!cancelled) setServerUp(res.ok)
-      })
-      .catch(() => {
-        if (!cancelled) setServerUp(false)
-      })
-
+    const goOffline = () => setOffline(true)
+    const goOnline = () => setOffline(false)
+    window.addEventListener('offline', goOffline)
+    window.addEventListener('online', goOnline)
+    // Son aranan veya favori rota (yerel kayit, tek tikla tekrar arar)
+    try {
+      const last = getHistory()[0]
+      if (last) {
+        setQuickRoute({
+          from: last.from,
+          to: last.to,
+          people: last.people ?? 1,
+          mode: last.mode ?? 'tumu',
+        })
+      } else {
+        const fav = getSaved()[0]
+        if (fav) {
+          setQuickRoute({
+            from: fav.from,
+            to: fav.to,
+            people: fav.people ?? 1,
+            mode: fav.mode ?? 'tumu',
+          })
+        }
+      }
+    } catch {
+      setQuickRoute(null)
+    }
     return () => {
-      cancelled = true
+      window.removeEventListener('offline', goOffline)
+      window.removeEventListener('online', goOnline)
     }
   }, [])
 
+  // Istanbul saatine gore gece servisi notu (gercek saat sinyali)
+  let nightNotice: string | null = null
+  try {
+    const hour = Number(
+      new Intl.DateTimeFormat('tr-TR', {
+        timeZone: 'Europe/Istanbul',
+        hour: '2-digit',
+        hourCycle: 'h23',
+      })
+        .formatToParts(new Date())
+        .find((p) => p.type === 'hour')?.value ?? '0',
+    )
+    if (hour >= 22 || hour < 5) {
+      nightNotice =
+        'Gece saatlerinde seferler seyrekleşir — son sefer saatlerini durak kartından kontrol edin.'
+    }
+  } catch {
+    nightNotice = null
+  }
+
   return (
     <ScreenShell title="Bildirimler" icon={<IconBell className="h-5 w-5" />}>
+      {/* Canli ulasim duyurusu: baglanti + saat sinyallerinden dinamik */}
       <div className="rounded-2xl border border-line bg-surface-2/90 p-4">
-        <p className="text-xs uppercase tracking-wide text-muted">Sunucu durumu</p>
-        <div className="mt-2 flex items-center gap-2">
-          <span
-            className={`h-2.5 w-2.5 rounded-full ${
-              serverUp === null
-                ? 'bg-amber-400 animate-pulse'
-                : serverUp
-                  ? 'bg-emerald-400'
-                  : 'bg-red-400'
-            }`}
-          />
-          <p className="text-sm font-bold">
-            {serverUp === null
-              ? 'Kontrol ediliyor…'
-              : serverUp
-                ? 'Sunucu çalışıyor, rota araması hazır'
-                : 'Sunucuya ulaşılamıyor — internet bağlantını kontrol et'}
+        <p className="text-xs uppercase tracking-wide text-muted">Canlı ulaşım duyurusu</p>
+        {offline ? (
+          <p className="mt-2 text-sm font-bold text-amber-300">
+            📡 Bağlantı yok — çevrimdışı moddasınız. Kayıtlı rotalarınız Geçmiş sekmesinde duruyor.
           </p>
-        </div>
+        ) : nightNotice ? (
+          <p className="mt-2 text-sm font-bold text-fg">🌙 {nightNotice}</p>
+        ) : (
+          <p className="mt-2 text-sm font-bold text-emerald-300">
+            ✅ Şu an aktif bir ulaşım duyurusu yok — iyi yolculuklar.
+          </p>
+        )}
       </div>
 
+      {/* Hizli rota: son aranan / favori, tek tikla tekrar arar */}
       <div className="mt-3 rounded-2xl border border-line bg-surface-2/90 p-4">
-        <p className="text-xs uppercase tracking-wide text-muted">İpuçları</p>
-        <ul className="mt-2 space-y-2 text-xs text-muted">
-          <li>· Rota sonuçlarındaki yıldıza dokunarak rotanı kaydedebilirsin.</li>
-          <li>· Araba/Motosiklet modunda "Hatırla" işaretlersen aracın her seferinde seçilir.</li>
-          <li>· Metro, Tramvay ve Deniz modlarında sadece o türde rotalar listelenir; "Tümünü göster" ile hepsini görebilirsin.</li>
-          <li>· 38 ilde şehir içi toplu taşıma, tüm Türkiye'de araç/uçak/tren hesaplaması mevcut.</li>
-          <li>· AI asistanına "Yarın 4 kişi İzmit'ten İzmir'e en ucuz nasıl gideriz?" gibi doğal sorular sorabilirsin.</li>
-          <li>· Sesli rehberlik ve yolculuk raporu</li>
-          <li>· Yürüyüş toleransı seçimi</li>
-        </ul>
+        <p className="text-xs uppercase tracking-wide text-muted">Hızlı rota</p>
+        {quickRoute ? (
+          <button
+            type="button"
+            onClick={() => onOpenRoute(quickRoute)}
+            className="mt-2 flex w-full items-center gap-2.5 rounded-xl border border-accent/30 bg-accent/10 px-3.5 py-3 text-left transition-colors hover:bg-accent/20"
+          >
+            <span aria-hidden className="text-lg">
+              ⚡
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm font-bold text-fg">
+                {quickRoute.from} → {quickRoute.to}
+              </span>
+              <span className="mt-0.5 block text-xs text-muted">
+                Tek dokunuşla tekrar ara
+              </span>
+            </span>
+          </button>
+        ) : (
+          <p className="mt-2 text-xs text-muted">
+            Henüz aranan rota yok. Ana ekrandan ilk rotanı arat, burada tek tıkla tekrar arayabilirsin.
+          </p>
+        )}
+      </div>
+
+      {/* Aksiyon kartlari */}
+      <div className="mt-3 grid grid-cols-2 gap-2.5">
+        <button
+          type="button"
+          onClick={() => onGoTab('stops')}
+          className="rounded-2xl border border-line bg-surface-2/90 p-4 text-left transition-colors hover:border-accent"
+        >
+          <p aria-hidden className="text-2xl">
+            📍
+          </p>
+          <p className="mt-1.5 text-sm font-bold text-fg">En yakın durağı gör</p>
+          <p className="mt-0.5 text-xs text-muted">Duraklar sekmesine git</p>
+        </button>
+        <button
+          type="button"
+          onClick={onOpenAi}
+          className="rounded-2xl border border-line bg-surface-2/90 p-4 text-left transition-colors hover:border-accent"
+        >
+          <p aria-hidden className="text-2xl">
+            🤖
+          </p>
+          <p className="mt-1.5 text-sm font-bold text-fg">AI Asistana Rota Sor</p>
+          <p className="mt-0.5 text-xs text-muted">Asistanı aç</p>
+        </button>
       </div>
     </ScreenShell>
   )
