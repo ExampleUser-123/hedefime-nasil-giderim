@@ -77,7 +77,7 @@ export async function getAccuratePosition(options?: {
   /** Her ornek arasi minimum bekleme (ms). Varsayilan 600. */
   sampleIntervalMs?: number
 }): Promise<GeoResult> {
-  const timeoutMs = options?.timeoutMs ?? 6000
+  const timeoutMs = options?.timeoutMs ?? 5000
   const desiredAccuracy = options?.desiredAccuracy ?? 50
   const sampleIntervalMs = options?.sampleIntervalMs ?? 600
   const native = Capacitor.isNativePlatform()
@@ -195,7 +195,7 @@ export function useCurrentPosition(): CurrentPositionState {
     setLoading(true)
     setError(null)
 
-    getAccuratePosition({ timeoutMs: 7000, desiredAccuracy: 60 })
+    getAccuratePosition({ timeoutMs: 5000, desiredAccuracy: 60 })
       .then((res) => {
         if (requestRef.current !== generation) return
         if (res.ok) {
@@ -223,5 +223,5 @@ export function useCurrentPosition(): CurrentPositionState {
  * navigator.geolocation.getCurrentPosition cagrilarinin yerine gecer.
  */
 export async function getCurrentLocation(): Promise<GeoResult> {
-  return getAccuratePosition({ timeoutMs: 7000, desiredAccuracy: 60 })
+  return getAccuratePosition({ timeoutMs: 5000, desiredAccuracy: 60 })
 }

@@ -13,6 +13,7 @@ import BottomNav, { type Tab } from '@/components/BottomNav'
 import NearbyStops from '@/components/NearbyStops'
 import MagicShare from '@/components/MagicShare'
 import NightCard from '@/components/NightCard'
+import OfflineBanner from '@/components/OfflineBanner'
 import TargetsSection from '@/components/TargetsSection'
 import MarketplaceScreen from '@/components/MarketplaceScreen'
 import {
@@ -257,6 +258,9 @@ export default function App() {
         )}
 
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-bg/30 via-transparent to-bg/70" aria-hidden="true" />
+
+        {/* Cevrimdisi: baglanti yoksa son rotalar + favoriler karti */}
+        <OfflineBanner onOpenRoute={openRoute} />
 
         {isHome && (
           <>

@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App'
+import ErrorBoundary from './components/ErrorBoundary'
 import './index.css'
 import { handleGoogleRedirect, hydrateAuthSession } from './lib/auth'
 
@@ -11,7 +12,9 @@ async function boot() {
   await handleGoogleRedirect()
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
-      <App />
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
     </React.StrictMode>,
   )
 }

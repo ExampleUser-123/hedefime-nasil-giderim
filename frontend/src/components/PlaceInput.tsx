@@ -98,7 +98,7 @@ export default function PlaceInput({
         .catch(() => {
           setItems([]) // öneri servisi kritik degil
         })
-    }, 250)
+    }, 300)
   }
 
   function pick(suggestion: PlaceSuggestion) {
