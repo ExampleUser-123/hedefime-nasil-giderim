@@ -13,9 +13,36 @@ fakultesi avm alisveris merkezi belediyesi mudurlugu ve veya bir
 """.split())
 
 
+_TR_FOLD = str.maketrans({
+    "ç": "c", "Ç": "c", "ğ": "g", "Ğ": "g", "ı": "i", "I": "i",
+    "İ": "i", "ö": "o", "Ö": "o", "ş": "s", "Ş": "s",
+    "ü": "u", "Ü": "u",
+})
+
+
+def fold_tr(text: str) -> str:
+    """Turkce karakterleri ASCII karsiligina indirir (fuzzy eslesme icin)."""
+    return (text or "").translate(_TR_FOLD)
+
+
+# Bilinen istasyon takma adlari -> gercek (veride dogrulanmis) istasyon adi.
+# Karsilastirma fold_tr ile katlanmis haliyle yapilir.
+STATION_ALIASES = {
+    "sogutlucesme yht": "Söğütlüçeşme",
+    "sogutlucesme marmaray": "Söğütlüçeşme",
+    "sogutlucesme tren gari": "Söğütlüçeşme",
+}
+
+
+def resolve_station_alias(query: str) -> str | None:
+    """Takma adsa gercek istasyon adini, degilse None doner."""
+    key = fold_tr((query or "").strip().lower())
+    return STATION_ALIASES.get(key)
+
+
 def _core_tokens(query: str) -> list[str]:
     """Jenerik kelimeleri eleyip anlamli jetonlari dondurur."""
-    words = [w for w in query.lower().split() if len(w) >= 3]
+    words = [w for w in fold_tr(query).lower().split() if len(w) >= 3]
     core = [w for w in words if w not in _GENERIC_TOKENS]
     return core or words
 
@@ -26,6 +53,14 @@ def _query_variants(query: str, city: str | None = None) -> list[str]:
     out: list[str] = []
     if q:
         out.append(q)
+        # Takma adsa gercek istasyon adini da dene ("Söğütlüçeşme YHT" gibi)
+        canonical = resolve_station_alias(q)
+        if canonical and canonical not in out:
+            out.append(canonical)
+        # ASCII klavyeyle yazim icin katlanmis varyant
+        folded = fold_tr(q)
+        if folded != q and folded not in out:
+            out.append(folded)
     if city and city.strip():
         c = city.strip()
         if c.lower() not in q.lower():

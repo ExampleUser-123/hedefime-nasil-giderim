@@ -38,6 +38,10 @@ TRANSFER_PENALTY_MIN = 10
 MAX_TRANSFER_ROUTES = 2
 MAX_TRANSFER_STOPS_PER_SIDE = 12
 
+# 500 m alti otobus binisi gereksiz aktarmadir: binis/inis overhead'i
+# yurumekten uzun surer. Bu mesafenin altindaki surus ayaklari onerilmez.
+MIN_BUS_HOP_M = 500
+
 
 def _path_meters(coords) -> float:
     """Polyline gercek uzunlugu (m)."""
@@ -103,6 +107,16 @@ def find_transfer_routes(stops, start_lat, start_lon, end_lat, end_lon,
                     best_detour = detour
                     best_t = stop
             if best_t is None:
+                continue
+            # Tek duraklik mini binisleri ele: 500 m alti surus ayagi
+            # yurumekten yavas oldugu icin gereksiz aktarma olur.
+            hop_a_m = _haversine_m(
+                board["lat"], board["lon"],
+                best_t["lat"], best_t["lon"])
+            hop_b_m = _haversine_m(
+                best_t["lat"], best_t["lon"],
+                alight["lat"], alight["lon"])
+            if hop_a_m < MIN_BUS_HOP_M or hop_b_m < MIN_BUS_HOP_M:
                 continue
             candidates.append(
                 (walk_in + walk_out + best_detour, key_a, key_b,
@@ -265,7 +279,9 @@ def make_finder(
                     alight_stop["lon"],
                 )
 
-                if straight_m < 200:
+                # Yurunecek mesafedeki (500 m alti) surus onerme:
+                # binis/inis beklemesi yurumekten uzun surer.
+                if straight_m < MIN_BUS_HOP_M:
                     continue
 
                 duration = _estimate_duration(

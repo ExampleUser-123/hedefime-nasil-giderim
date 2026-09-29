@@ -28,6 +28,8 @@ function createOfflineLayer(): L.GridLayer {
   const layer = new (OfflineTiles as unknown as new (opts?: L.GridLayerOptions) => L.GridLayer)({
     maxZoom: 19,
     attribution: TILE_ATTRIBUTION,
+    keepBuffer: 4,
+    updateWhenIdle: true,
   })
   layer.on('tileunload', (e) => {
     const src = (e as unknown as { tile?: HTMLImageElement }).tile?.src
@@ -341,6 +343,9 @@ export default function MapView({
       attribution: TILE_ATTRIBUTION,
       subdomains: 'abc',
       maxZoom: 19,
+      // Performans: kaydirirken karo yeniden yuklemeyi azalt
+      keepBuffer: 4,
+      updateWhenIdle: true,
     }).addTo(map)
     osmLayerRef.current = osmLayer
     offLayerRef.current = createOfflineLayer()
