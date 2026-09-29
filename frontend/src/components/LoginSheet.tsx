@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { signInWithEmail, signInWithGoogle, signUpWithEmail, confirmEmailCode, resendCode, requestPasswordReset, confirmPasswordReset } from '@/lib/auth'
+import { isAbortError } from '@/lib/api'
 import { migrateLocalFavorites } from '@/lib/favorites'
 import { IconClose, IconLogo } from '@/icons'
 
@@ -24,6 +25,18 @@ export default function LoginSheet({
   const [code, setCode] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [countdown, setCountdown] = useState(0)
+  const abortRef = useRef<AbortController | null>(null)
+
+  // Suren auth isteğini iptal edip taze sinyal uretir
+  function freshSignal(): AbortSignal {
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
+    return controller.signal
+  }
+
+  // Sayfa kapaninca suren istegi dusur (geciken cevabin ekrana dusmesini onler)
+  useEffect(() => () => abortRef.current?.abort(), [])
 
   useEffect(() => {
     if (countdown <= 0) return
@@ -127,9 +140,10 @@ export default function LoginSheet({
     setBusy(true)
 
     try {
-      await confirmEmailCode(email.trim(), codeTrim)
+      await confirmEmailCode(email.trim(), codeTrim, freshSignal())
       await finish()
     } catch (err) {
+      if (isAbortError(err)) return
       setError(err instanceof Error ? err.message : 'Doğrulama başarısız oldu.')
     } finally {
       setBusy(false)
@@ -143,10 +157,11 @@ export default function LoginSheet({
     setBusy(true)
 
     try {
-      const msg = await resendCode(email.trim())
+      const msg = await resendCode(email.trim(), freshSignal())
       setCountdown(60)
       setInfoMessage(msg)
     } catch (err) {
+      if (isAbortError(err)) return
       setError(err instanceof Error ? err.message : 'Kod tekrar gönderilemedi.')
     } finally {
       setBusy(false)
@@ -169,11 +184,12 @@ export default function LoginSheet({
     setBusy(true)
 
     try {
-      const msg = await requestPasswordReset(emailTrim)
+      const msg = await requestPasswordReset(emailTrim, freshSignal())
       setMode('forgot-verify')
       setCountdown(60)
       setInfoMessage(msg)
     } catch (err) {
+      if (isAbortError(err)) return
       setError(err instanceof Error ? err.message : 'Kod gönderilemedi.')
     } finally {
       setBusy(false)
@@ -199,9 +215,10 @@ export default function LoginSheet({
     setBusy(true)
 
     try {
-      await confirmPasswordReset(email.trim(), codeTrim, newPassword)
+      await confirmPasswordReset(email.trim(), codeTrim, newPassword, freshSignal())
       await finish()
     } catch (err) {
+      if (isAbortError(err)) return
       setError(err instanceof Error ? err.message : 'Şifre güncellenemedi.')
     } finally {
       setBusy(false)

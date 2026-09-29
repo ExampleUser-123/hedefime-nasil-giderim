@@ -202,8 +202,8 @@ export async function signUpWithEmail(
   return res
 }
 
-export async function confirmEmailCode(email: string, code: string): Promise<AuthUser> {
-  const { token, user } = await verifyEmail(email.trim(), code.trim())
+export async function confirmEmailCode(email: string, code: string, signal?: AbortSignal): Promise<AuthUser> {
+  const { token, user } = await verifyEmail(email.trim(), code.trim(), signal)
 
   setAuthToken(token)
   storeUser(user)
@@ -211,13 +211,13 @@ export async function confirmEmailCode(email: string, code: string): Promise<Aut
   return user
 }
 
-export async function resendCode(email: string): Promise<string> {
-  const res = await resendVerificationCode(email.trim())
+export async function resendCode(email: string, signal?: AbortSignal): Promise<string> {
+  const res = await resendVerificationCode(email.trim(), signal)
   return res.message || 'Yeni doğrulama kodu gönderildi.'
 }
 
-export async function requestPasswordReset(email: string): Promise<string> {
-  const res = await forgotPassword(email.trim())
+export async function requestPasswordReset(email: string, signal?: AbortSignal): Promise<string> {
+  const res = await forgotPassword(email.trim(), signal)
   return res.message || 'Kayıtlıysa e-posta adresinize kod gönderildi.'
 }
 
@@ -225,8 +225,9 @@ export async function confirmPasswordReset(
   email: string,
   code: string,
   newPassword: string,
+  signal?: AbortSignal,
 ): Promise<AuthUser> {
-  const { token, user } = await resetPassword(email.trim(), code.trim(), newPassword)
+  const { token, user } = await resetPassword(email.trim(), code.trim(), newPassword, signal)
 
   setAuthToken(token)
   storeUser(user)

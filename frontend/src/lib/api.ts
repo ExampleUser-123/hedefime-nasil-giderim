@@ -391,36 +391,36 @@ export function registerWithEmail(email: string, password: string, name: string,
   }, 75000)
 }
 
-export function verifyEmail(email: string, code: string) {
+export function verifyEmail(email: string, code: string, signal?: AbortSignal) {
   return request<{ token: string; user: AuthUser; message: string }>('/auth/verify-email', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, code }),
-  }, 75000)
+  }, 75000, signal)
 }
 
-export function resendVerificationCode(email: string) {
+export function resendVerificationCode(email: string, signal?: AbortSignal) {
   return request<{ ok: boolean; message: string }>('/auth/resend-code', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
-  }, 75000)
+  }, 75000, signal)
 }
 
-export function forgotPassword(email: string) {
+export function forgotPassword(email: string, signal?: AbortSignal) {
   return request<{ ok: boolean; message: string }>('/auth/forgot-password', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
-  }, 75000)
+  }, 75000, signal)
 }
 
-export function resetPassword(email: string, code: string, newPassword: string) {
+export function resetPassword(email: string, code: string, newPassword: string, signal?: AbortSignal) {
   return request<{ token: string; user: AuthUser; message: string }>('/auth/reset-password', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, code, new_password: newPassword }),
-  }, 75000)
+  }, 75000, signal)
 }
 
 export function loginWithEmail(email: string, password: string) {
