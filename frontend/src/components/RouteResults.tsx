@@ -621,8 +621,28 @@ export function TransitList({
 
   if (status !== 'success' || routes.length === 0) {
     return (
-      <div className="rounded-2xl border border-line bg-bg/50 px-4 py-5 text-center text-sm text-muted">
-        {error ?? 'Bu iki nokta arasında toplu taşıma rotası bulunamadı.'}
+      <div className="rounded-2xl border border-line bg-bg/50 px-4 py-5 text-center">
+        <p className="text-2xl" aria-hidden>
+          🧭
+        </p>
+        <p className="mt-1.5 text-sm font-bold text-fg">Sonuç bulunamadı</p>
+        <p className="mt-1 text-xs text-muted">
+          {error ?? 'Bu iki nokta arasında toplu taşıma rotası bulunamadı.'}
+        </p>
+        <ul className="mx-auto mt-3 max-w-xs space-y-1.5 text-left text-xs text-muted">
+          <li className="flex gap-1.5">
+            <span aria-hidden>🚶</span>
+            <span>En yakın ana durağa yürümeyi deneyin — başlangıcı durak adıyla yazın.</span>
+          </li>
+          <li className="flex gap-1.5">
+            <span aria-hidden>📏</span>
+            <span>Arama yarıçapını genişletin: yürüme toleransını artırıp tekrar arayın.</span>
+          </li>
+          <li className="flex gap-1.5">
+            <span aria-hidden>✏️</span>
+            <span>Durak adını kısaltıp yazın (örn. tam adres yerine durak + semt).</span>
+          </li>
+        </ul>
       </div>
     )
   }

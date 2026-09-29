@@ -164,15 +164,31 @@ export function hydrateAuthToken(token: string | null) {
   authToken = token
 }
 
-async function request<T>(path: string, init?: RequestInit, timeoutMs = 30000): Promise<T> {
+/** Kullanicinin iptal ettigi istekleri sessizce ayirt etmek icin isaret. */
+export function isAbortError(err: unknown): boolean {
+  if (err instanceof DOMException && err.name === 'AbortError') return true
+  return (err as { aborted?: boolean } | null)?.aborted === true
+}
+
+function userAbortError(): Error {
+  const err = new Error('İstek iptal edildi.') as Error & { aborted: boolean }
+  err.aborted = true
+  return err
+}
+
+async function request<T>(path: string, init?: RequestInit, timeoutMs = 30000, externalSignal?: AbortSignal): Promise<T> {
   const isGet = (init?.method ?? 'GET') === 'GET'
   let lastError: unknown
   // Geçici bağlantı kopmalarında GET isteklerinde bir kez daha dene
   for (let attempt = 0; attempt < (isGet ? 2 : 1); attempt++) {
+    if (externalSignal?.aborted) throw userAbortError()
     if (attempt > 0) await new Promise((r) => setTimeout(r, 900))
     try {
-      return await requestOnce<T>(path, init, timeoutMs)
+      return await requestOnce<T>(path, init, timeoutMs, externalSignal)
     } catch (err) {
+      // Kullanici iptalinde asla tekrar deneme, sessizce cik
+      if (externalSignal?.aborted) throw userAbortError()
+      if (isAbortError(err)) throw err
       lastError = err
       const msg = err instanceof Error ? err.message : ''
       // Ag hatasiysa tekrar dene; HTTP/timeout hatalarinda tekrarlama
@@ -182,9 +198,15 @@ async function request<T>(path: string, init?: RequestInit, timeoutMs = 30000): 
   throw lastError
 }
 
-async function requestOnce<T>(path: string, init?: RequestInit, timeoutMs = 30000): Promise<T> {
+async function requestOnce<T>(path: string, init?: RequestInit, timeoutMs = 30000, externalSignal?: AbortSignal): Promise<T> {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
+  const onExternalAbort = () => controller.abort()
+  if (externalSignal?.aborted) {
+    clearTimeout(timer)
+    throw userAbortError()
+  }
+  externalSignal?.addEventListener('abort', onExternalAbort, { once: true })
 
   const headers = new Headers(init?.headers)
   const token = getAuthToken()
@@ -198,6 +220,10 @@ async function requestOnce<T>(path: string, init?: RequestInit, timeoutMs = 3000
   try {
     response = await fetch(`${API_BASE}${path}`, { ...init, headers, signal: controller.signal })
   } catch (error) {
+    // Kullanici iptali sessiz gecer; ic zaman asimi ayri mesaj alir
+    if (externalSignal?.aborted) {
+      throw userAbortError()
+    }
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw new Error('İstek çok uzun sürdü. İnternet bağlantını kontrol edip tekrar dene.')
     }
@@ -205,6 +231,7 @@ async function requestOnce<T>(path: string, init?: RequestInit, timeoutMs = 3000
     throw new Error('Sunucuya ulaşılamadı. Backend çalışıyor mu?')
   } finally {
     clearTimeout(timer)
+    externalSignal?.removeEventListener('abort', onExternalAbort)
   }
 
   const data = await response.json().catch(() => null)
@@ -254,7 +281,7 @@ export function fetchSuggestions(q: string, coords?: { lat: number; lon: number 
   ).then((data) => data.suggestions ?? [])
 }
 
-export function fetchPlan(start: string, end: string, people = 1, vehicleId?: string, maxWalk?: number) {
+export function fetchPlan(start: string, end: string, people = 1, vehicleId?: string, maxWalk?: number, signal?: AbortSignal) {
   const params = new URLSearchParams({
     start,
     end,
@@ -269,7 +296,7 @@ export function fetchPlan(start: string, end: string, people = 1, vehicleId?: st
     params.set('max_walk', String(maxWalk))
   }
 
-  return request<PlanResult>(`/plan?${params.toString()}`, undefined, 45000)
+  return request<PlanResult>(`/plan?${params.toString()}`, undefined, 45000, signal)
 }
 
 export function fetchVehicles() {

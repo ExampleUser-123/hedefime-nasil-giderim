@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { fetchPlan, claimAdReward, reverseGeocode, type LatLng, type Mode, type PlanResult, type Vehicle } from '@/lib/api'
+import { fetchPlan, claimAdReward, reverseGeocode, isAbortError, type LatLng, type Mode, type PlanResult, type Vehicle } from '@/lib/api'
 import { extractCity } from '@/lib/cities'
 import { award } from '@/lib/game'
 import { getCurrentLocation } from '@/lib/geolocation'
@@ -138,7 +138,13 @@ export default function RouteSearch({
     const start = (fromOverride ?? from).trim()
     const end = (toOverride ?? to).trim()
 
-    if (!start || !end || loading) return
+    if (!start || !end) return
+
+    // Eski suren istek varsa iptal et: hizli art arda aramalarda
+    // eski sonucun ekrana dusmesi (cakisma) boyle onlenir.
+    abortRef.current?.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
 
     setLoading(true)
     setError(null)
@@ -151,6 +157,7 @@ export default function RouteSearch({
         people,
         effectiveVehicleId,
         maxWalk ?? undefined,
+        controller.signal,
       )
       onPlanChange(nextPlan)
       addHistory({ from: start, to: end, people, mode })
@@ -168,15 +175,30 @@ export default function RouteSearch({
       // Araya giren reklam rota ekrani hazirlanirken arkada yuklenir
       maybeShowInterstitial(getTier()).catch(() => {})
     } catch (e) {
+      // Iptal edilen eski istek sessizce gecer (hata mesaji yok)
+      if (isAbortError(e)) {
+        if (abortRef.current === controller) {
+          abortRef.current = null
+          setLoading(false)
+        }
+        return
+      }
       const err = e as Error & { quota?: boolean }
       setError(err.message || 'Rota alınamadı.')
       if (err.quota) setQuotaHit(true)
     } finally {
-      setLoading(false)
+      if (abortRef.current === controller) {
+        abortRef.current = null
+        setLoading(false)
+      }
     }
   }
 
   const lastPresetKey = useRef<number | null>(null)
+  const abortRef = useRef<AbortController | null>(null)
+
+  // Kapanirken suren istegi iptal et
+  useEffect(() => () => abortRef.current?.abort(), [])
 
   useEffect(() => {
     if (!preset || preset.key === lastPresetKey.current) return

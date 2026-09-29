@@ -136,7 +136,21 @@ export default function PlaceInput({
         <input
           value={text}
           onChange={(e) => handleChange(e.target.value)}
-          onFocus={() => setOpen(true)}
+          onFocus={() => {
+            setOpen(true)
+            // Mobil klavye acilinca input + oneriler klavye altinda kalmasin:
+            // klavye animasyonu bitince gorunur alana kaydir.
+            const box = boxRef.current
+            if (box) {
+              setTimeout(() => {
+                try {
+                  box.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+                } catch {
+                  // kaydirma desteklenmiyorsa sessiz gec
+                }
+              }, 350)
+            }
+          }}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               setOpen(false)
