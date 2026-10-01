@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 from datetime import date, datetime
 
 from services.geocoding import search_place, reverse_geocode, suggest_places
-from services.routing import calculate_route
+from services.routing import calculate_route, walking_guidance
 from services.fuel import get_fuel_prices, calculate_fuel_cost
 from services.vehicles import get_vehicles, get_vehicle
 from services.public_transport import find_transit_routes
@@ -1287,7 +1287,7 @@ def plan(
     # ARAÇ ROTASI + TOPLU TAŞIMA (PARALEL)
     # -----------------------------------------------------
 
-    with ThreadPoolExecutor(max_workers=2) as pool:
+    with ThreadPoolExecutor(max_workers=3) as pool:
         route_future = pool.submit(
             calculate_route,
             start_place["lat"],
@@ -1306,8 +1306,22 @@ def plan(
             end_province
         )
 
+        # Yurume geometrisi: yuruyus modu haritada gercek cizgi cizebilsin.
+        # Basarisizlikta None kalir; yuruyus tahmini karti aynen durur.
+        walk_future = pool.submit(
+            walking_guidance,
+            start_place["lat"],
+            start_place["lon"],
+            end_place["lat"],
+            end_place["lon"]
+        )
+
         route_result = route_future.result()
         public_result = public_future.result()
+        try:
+            walk_result = walk_future.result()
+        except Exception:
+            walk_result = None
 
     # Başlangıç ve hedef isimlerini düzelt
     public_result = clean_public_transport_result(
@@ -1521,6 +1535,8 @@ def plan(
         "train": train_result,
 
         "public_transport": public_result,
+
+        "walk": walk_result,
 
         "recommendations": public_result.get(
             "recommendations",

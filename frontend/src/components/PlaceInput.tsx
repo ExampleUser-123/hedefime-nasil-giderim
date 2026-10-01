@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { fetchSuggestions, type PlaceSuggestion } from '@/lib/api'
+import { fetchSuggestions, isAbortError, type PlaceSuggestion } from '@/lib/api'
 import { getPinnedPlace, getLastCoords, saveLastCoords, type PinnedPlace } from '@/lib/storage'
 import { IconPin } from '@/icons'
 
@@ -34,6 +34,7 @@ export default function PlaceInput({
   const [open, setOpen] = useState(false)
   const boxRef = useRef<HTMLDivElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null)
+  const suggestAbortRef = useRef<AbortController | null>(null)
   const lastSyncedRef = useRef(value)
   const locationTriedRef = useRef(false)
 
@@ -56,6 +57,15 @@ export default function PlaceInput({
     document.addEventListener('pointerdown', onPointerDown)
     return () => document.removeEventListener('pointerdown', onPointerDown)
   }, [])
+
+  // Kapanista bekleyen oneri zamanlayicisi + istegi dusur (sızıntı yok)
+  useEffect(
+    () => () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      suggestAbortRef.current?.abort()
+    },
+    [],
+  )
 
   function handleChange(next: string) {
     setText(next)
@@ -88,15 +98,21 @@ export default function PlaceInput({
     }
 
     debounceRef.current = setTimeout(() => {
+      // Onceki oneri istegi suruyorsa iptal et: eski sonucun yeni
+      // yazinin ustune dusmesi (cakisma) boyle onlenir.
+      suggestAbortRef.current?.abort()
+      const controller = new AbortController()
+      suggestAbortRef.current = controller
       // Kayitli cihaz konumu varsa onerileri o bolgeye bicimlendir
       // ("fatih mahallesi" -> kullaniciya en yakin Fatih Mahallesi).
       // Sehir baglami varsa (örn. "Kocaeli") kurum/okul adlarinda isabeti artirir.
-      fetchSuggestions(trimmed, getLastCoords() ?? undefined, 6000, city)
+      fetchSuggestions(trimmed, getLastCoords() ?? undefined, 6000, city, controller.signal)
         .then((suggestions) => {
-          setItems(suggestions)
+          if (suggestAbortRef.current === controller) setItems(suggestions)
         })
-        .catch(() => {
-          setItems([]) // öneri servisi kritik degil
+        .catch((err: unknown) => {
+          // Iptal sessiz gecer; gercek hatada liste bosalir
+          if (!isAbortError(err) && suggestAbortRef.current === controller) setItems([])
         })
     }, 300)
   }

@@ -254,8 +254,11 @@ function buildPaths(plan: PlanResult, mode: MapMode, routeIndex: number): Path[]
   }
 
   if (mode === 'yuruyus') {
-    // Saf yuruyus geometrisi planda yok; duz cizgi YASAK oldugu icin bos donulur.
-    return []
+    // Sunucu OSRM foot geometrisi dondururse gercek yurume cizgisi;
+    // yoksa (ceza sahasi) bos donulur, duz cizgi YASAK.
+    const geometry = plan.walk?.geometry ?? []
+    if (geometry.length <= 2) return []
+    return [{ positions: geometry, dashed: true, isWater: false, isAir: false }]
   }
 
   const allRoutes = plan.public_transport.routes

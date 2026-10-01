@@ -81,6 +81,12 @@ export type CarResult = {
   toll_roads?: string[]
 }
 
+export type WalkResult = {
+  geometry: LatLng[]
+  streets?: string[]
+  duration_min?: number
+}
+
 export type FlightEstimate = {
   available: boolean
   reason?: string
@@ -107,6 +113,7 @@ export type PlanResult = {
   vehicle_selected: string
   flight: FlightEstimate | null
   train: TrainEstimate | null
+  walk?: WalkResult | null
   public_transport: {
     status: string
     error?: string | null
@@ -262,7 +269,7 @@ export type PlaceSuggestion = {
   lon: number
 }
 
-export function fetchSuggestions(q: string, coords?: { lat: number; lon: number }, timeoutMs = 6000, city?: string): Promise<PlaceSuggestion[]> {
+export function fetchSuggestions(q: string, coords?: { lat: number; lon: number }, timeoutMs = 6000, city?: string, signal?: AbortSignal): Promise<PlaceSuggestion[]> {
   const params = new URLSearchParams({ q })
 
   if (coords) {
@@ -278,6 +285,7 @@ export function fetchSuggestions(q: string, coords?: { lat: number; lon: number 
     `/suggest-places?${params}`,
     { method: 'GET' },
     timeoutMs,
+    signal,
   ).then((data) => data.suggestions ?? [])
 }
 
