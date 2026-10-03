@@ -1,8 +1,9 @@
 // Varsayilan: canli Render API'si. Lokal gelistirmede .env ile override edilir.
 // NOT: Varsayilan localhost OLMAMALI — .env'siz derlenen web/APK aksi halde
 // kendi makinesine istek atip "Sunucuya ulasilamadi" verir.
-const API_BASE =
-  import.meta.env.VITE_API_BASE ?? 'https://hedefime-nasil-giderim.vercel.app'
+// Bos string de gecersiz sayilir (annotate-safe fallback).
+const _envBase = (import.meta.env.VITE_API_BASE ?? '').trim()
+const API_BASE = _envBase ? _envBase : 'https://hedefime-nasil-giderim.vercel.app'
 
 export { API_BASE }
 
@@ -252,6 +253,12 @@ async function requestOnce<T>(path: string, init?: RequestInit, timeoutMs = 3000
       ;(err as Error & { quota?: boolean }).quota = true
     }
     throw err
+  }
+
+  // 200 ama govdesi bos/JSON-disi: cagiranin null destructuring ile
+  // cryptic TypeError almasi yerine anlasilir hata firlat.
+  if (data === null || typeof data !== 'object') {
+    throw new Error('Sunucudan boş yanıt alındı. Lütfen tekrar dene.')
   }
 
   if (data?.error) {
