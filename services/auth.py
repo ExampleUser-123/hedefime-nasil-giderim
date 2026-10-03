@@ -57,10 +57,21 @@ def _jwt_secret() -> str:
         import logging
         import secrets as _secrets
 
-        logging.getLogger("hng").warning(
-            "JWT_SECRET tanimli degil! Gecici anahtar uretildi (surec boyunca "
-            "sabit); deploy/restart sonrasi oturumlar sifirlanir."
-        )
+        # Uretimde (Vercel/Render) JWT_SECRET yoksa her soguk baslatma tum
+        # JWT'leri gecersiz kilar -> kullanicilar durduk yere cikis yapmis
+        # gorunur. Bu, mobil "oturum kapaniyor" sikayetinin bir numarali
+        # suphelisidir; panelde JWT_SECRET tanimlanarak cozulur.
+        if os.getenv("VERCEL") or os.getenv("RENDER") or os.getenv("RENDER_SERVICE_NAME"):
+            logging.getLogger("hng").error(
+                "KRITIK: JWT_SECRET uretimde tanimli degil! Her deploy/soguk "
+                "baslatmada tum oturumlar duser. Vercel/Render panelinde "
+                "JWT_SECRET ortam degiskenini tanimlayin."
+            )
+        else:
+            logging.getLogger("hng").warning(
+                "JWT_SECRET tanimli degil! Gecici anahtar uretildi (surec boyunca "
+                "sabit); deploy/restart sonrasi oturumlar sifirlanir."
+            )
         _EPHEMERAL_SECRET = _secrets.token_hex(32)
 
     return _EPHEMERAL_SECRET
