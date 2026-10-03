@@ -160,7 +160,7 @@ export async function signInWithGoogle(): Promise<AuthUser> {
 }
 
 export async function signInWithEmail(email: string, password: string): Promise<AuthUser> {
-  const { token, user } = await loginWithEmail(email.trim(), password)
+  const { token, user } = await loginWithEmail(email.trim().toLowerCase(), password)
 
   setAuthToken(token)
   storeUser(user)
@@ -191,7 +191,7 @@ export async function signUpWithEmail(
   password: string,
   name: string,
 ): Promise<RegisterResponse> {
-  const res = await registerWithEmail(email.trim(), password, name.trim(), getInviteCode() ?? undefined)
+  const res = await registerWithEmail(email.trim().toLowerCase(), password, name.trim(), getInviteCode() ?? undefined)
   clearInviteCode()
 
   if (res.token && res.user) {
@@ -203,7 +203,7 @@ export async function signUpWithEmail(
 }
 
 export async function confirmEmailCode(email: string, code: string, signal?: AbortSignal): Promise<AuthUser> {
-  const { token, user } = await verifyEmail(email.trim(), code.trim(), signal)
+  const { token, user } = await verifyEmail(email.trim().toLowerCase(), code.trim(), signal)
 
   setAuthToken(token)
   storeUser(user)
@@ -212,12 +212,12 @@ export async function confirmEmailCode(email: string, code: string, signal?: Abo
 }
 
 export async function resendCode(email: string, signal?: AbortSignal): Promise<string> {
-  const res = await resendVerificationCode(email.trim(), signal)
+  const res = await resendVerificationCode(email.trim().toLowerCase(), signal)
   return res.message || 'Yeni doğrulama kodu gönderildi.'
 }
 
 export async function requestPasswordReset(email: string, signal?: AbortSignal): Promise<string> {
-  const res = await forgotPassword(email.trim(), signal)
+  const res = await forgotPassword(email.trim().toLowerCase(), signal)
   return res.message || 'Kayıtlıysa e-posta adresinize kod gönderildi.'
 }
 
@@ -227,7 +227,7 @@ export async function confirmPasswordReset(
   newPassword: string,
   signal?: AbortSignal,
 ): Promise<AuthUser> {
-  const { token, user } = await resetPassword(email.trim(), code.trim(), newPassword, signal)
+  const { token, user } = await resetPassword(email.trim().toLowerCase(), code.trim(), newPassword, signal)
 
   setAuthToken(token)
   storeUser(user)

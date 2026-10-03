@@ -260,6 +260,9 @@ export default function LoginSheet({
             <p className="mt-1 text-sm leading-relaxed text-muted">
               <strong className="text-fg">{email}</strong> adresinize 6 haneli güvenlik kodu gönderdik. Hesabınızı aktifleştirmek için kodu girin:
             </p>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted">
+              📩 Kodu bulamıyorsanız Spam / Gereksiz kutusunu da kontrol edin.
+            </p>
 
             <form onSubmit={handleVerifySubmit} className="mt-4 space-y-4">
               <div>
@@ -352,6 +355,9 @@ export default function LoginSheet({
             <h2 className="text-lg font-bold">Yeni şifreni belirle</h2>
             <p className="mt-1 text-sm leading-relaxed text-muted">
               <strong className="text-fg">{email}</strong> adresine gelen 6 haneli kodu ve yeni şifreni gir:
+            </p>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted">
+              📩 Kodu bulamıyorsanız Spam / Gereksiz kutusunu da kontrol edin.
             </p>
 
             <form onSubmit={handleResetSubmit} className="mt-4 space-y-3">
