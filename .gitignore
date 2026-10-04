@@ -26,4 +26,9 @@ data/research_*
 mdb_gtfs.csv
 search_tmp.html
 hedefime nasıl giderim uygulaması için/
+# Agir mobil dagitim dosyalari - web/deploy klasorlerinde tutulmaz.
+# APK/AAB dagitimi GitHub Releases uzerinden yapilir; release/ yedegi
+# .vercelignore ile Vercel dagitimindan cikarilmistir.
+*.apk
+*.aab
 node_modules
