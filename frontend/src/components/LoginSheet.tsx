@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { signInWithEmail, signInWithGoogle, signUpWithEmail, confirmEmailCode, resendCode, requestPasswordReset, confirmPasswordReset } from '@/lib/auth'
+import { signInWithEmail, signInWithGoogle, signUpWithEmail, confirmEmailCode, resendCode, requestPasswordReset, confirmPasswordReset, SESSION_EXPIRED_KEY } from '@/lib/auth'
 import { isAbortError } from '@/lib/api'
 import { migrateLocalFavorites } from '@/lib/favorites'
 import { IconClose, IconLogo } from '@/icons'
@@ -37,6 +37,19 @@ export default function LoginSheet({
 
   // Sayfa kapaninca suren istegi dusur (geciken cevabin ekrana dusmesini onler)
   useEffect(() => () => abortRef.current?.abort(), [])
+
+  // Suresi dolup dusen oturumda giris ekraninda bir kez uyari goster
+  useEffect(() => {
+    if (!open) return
+    try {
+      if (localStorage.getItem(SESSION_EXPIRED_KEY) === '1') {
+        localStorage.removeItem(SESSION_EXPIRED_KEY)
+        setInfoMessage('Oturum süreniz doldu, lütfen tekrar giriş yapın.')
+      }
+    } catch {
+      // depolama kapaliysa sessiz gec
+    }
+  }, [open])
 
   useEffect(() => {
     if (countdown <= 0) return

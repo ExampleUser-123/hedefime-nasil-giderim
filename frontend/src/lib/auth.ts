@@ -254,6 +254,9 @@ export async function signOut(): Promise<void> {
  * temizler. Ag hatasi / sunucu uyudu / 5xx durumlarinda oturum korunur —
  * Render uykudan uyanirken kullaniciyi haksiz yere attirmasin.
  */
+/** 401 ile dusen oturumlarda bir kez gosterilecek uyari bayragi. */
+export const SESSION_EXPIRED_KEY = 'hng-session-expired'
+
 export async function refreshAuthState(): Promise<void> {
   if (!getStoredUser()) return
 
@@ -266,6 +269,12 @@ export async function refreshAuthState(): Promise<void> {
 
     if (status === 401) {
       await signOut()
+      // Giris ekrani bir sonraki acilista "sure doldu" uyarisi gosterir
+      try {
+        localStorage.setItem(SESSION_EXPIRED_KEY, '1')
+      } catch {
+        // depolama kapaliysa sessiz gec
+      }
     }
     // Diger hatalar (ag, timeout, 502...) sessizce yutulur; oturum kalir
   }
