@@ -25,7 +25,7 @@ import {
 import { IconLogo } from '@/icons'
 import type { AuthUser, LatLng, PlanResult, RouteIntent } from '@/lib/api'
 import { fetchShareRoute } from '@/lib/api'
-import { AUTH_CHANGED_EVENT, getStoredUser, refreshAuthState, signOut } from '@/lib/auth'
+import { AUTH_CHANGED_EVENT, getStoredUser, hydrateAuthSession, refreshAuthState, signOut } from '@/lib/auth'
 import { INVITE_CODE_KEY } from '@/lib/auth'
 import { getPinnedPlace } from '@/lib/storage'
 import { goToPlace } from '@/lib/navigate'
@@ -50,6 +50,8 @@ export default function App() {
   const [routeIndex, setRouteIndex] = useState(0)
   const [preset, setPreset] = useState<SearchPreset | null>(null)
   const [bootSplash, setBootSplash] = useState(true)
+  // Depolama okunmadan auth karari VERILMEZ: hazir olana kadar splash durur.
+  const [authReady, setAuthReady] = useState(false)
   const [weatherCity, setWeatherCity] = useState('İstanbul')
   const [authUser, setAuthUser] = useState<AuthUser | null>(() => getStoredUser())
   const [loginOpen, setLoginOpen] = useState(false)
@@ -67,7 +69,18 @@ export default function App() {
     }, 1800)
     let resumeHandler: PluginListenerHandle | null = null
     CapacitorApp.addListener('appStateChange', ({ isActive }) => {
-      if (isActive) showAppOpenAd().catch(() => {})
+      if (isActive) {
+        showAppOpenAd().catch(() => {})
+        // Arka plandan donuste bellek bossa depodan geri yukle
+        // (doluysa dokunma: yeni giris ezilmesin). Token silinmez.
+        if (!getStoredUser()) {
+          hydrateAuthSession()
+            .catch(() => {})
+            .then(() => refreshAuthState())
+            .catch(() => {})
+            .then(() => setAuthUser(getStoredUser()))
+        }
+      }
     }).then((h) => {
       resumeHandler = h
     })
@@ -77,9 +90,23 @@ export default function App() {
     }
   }, [])
 
-  // Suresi dolmus oturum varsa temizle
+  // Acilis: once kalici depodan oturumu coz, sonra gecerliligi dogrula.
+  // Okuma bitene kadar arayuz misafir sayilmaz (erken "cikis yapildi" yok).
   useEffect(() => {
-    refreshAuthState().then(() => setAuthUser(getStoredUser())).catch(() => {})
+    let cancelled = false
+    hydrateAuthSession()
+      .catch(() => {})
+      .then(() => refreshAuthState())
+      .catch(() => {})
+      .then(() => {
+        if (!cancelled) {
+          setAuthUser(getStoredUser())
+          setAuthReady(true)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   // Web'de Google redirect akisiyla giris: oturum acilinca arayuz guncellensin
@@ -356,7 +383,7 @@ export default function App() {
         />
 
         <AnimatePresence>
-          {bootSplash && (
+          {(bootSplash || !authReady) && (
             <motion.div
               key="boot-splash"
               className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#00091B]"

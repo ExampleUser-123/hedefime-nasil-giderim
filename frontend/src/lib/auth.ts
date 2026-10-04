@@ -92,7 +92,11 @@ export const AUTH_CHANGED_EVENT = 'hng-auth-changed'
  * (depolanan veri silinmez, sonraki acilista tekrar denenir).
  */
 export async function hydrateAuthSession(): Promise<void> {
-  const attempts = Capacitor.isNativePlatform() ? 3 : 1
+  // Native koprude acilis yarisina dayaniklilik: kisa denemeler yetmezse
+  // uygulama "oturum yok" sanip misafire dusuyordu. Deneme sayisi ve
+  // bekleme artirildi; basarisizlikta veri silinmez (sonraki acilista
+  // veya resume'da tekrar denenir).
+  const attempts = Capacitor.isNativePlatform() ? 5 : 2
   for (let i = 0; i < attempts; i++) {
     try {
       const [token, rawUser] = await Promise.all([
@@ -106,7 +110,7 @@ export async function hydrateAuthSession(): Promise<void> {
       return
     } catch {
       if (i < attempts - 1) {
-        await new Promise((r) => setTimeout(r, 400))
+        await new Promise((r) => setTimeout(r, 600))
         continue
       }
       hydrateAuthToken(null)
@@ -263,7 +267,8 @@ export async function refreshAuthState(): Promise<void> {
   const { fetchAuthMe } = await import('./api')
 
   try {
-    await fetchAuthMe()
+    // Acilis dogrulamasi kisa tutulur: splash/karar kilitlenmesin
+    await fetchAuthMe(8000)
   } catch (e) {
     const status = (e as Error & { status?: number }).status
 

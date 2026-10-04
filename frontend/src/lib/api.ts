@@ -446,8 +446,8 @@ export function loginWithEmail(email: string, password: string) {
   }, 75000)
 }
 
-export function fetchAuthMe() {
-  return request<{ user: AuthUser }>('/auth/me', undefined, 75000)
+export function fetchAuthMe(timeoutMs = 75000) {
+  return request<{ user: AuthUser }>('/auth/me', undefined, timeoutMs)
 }
 
 export function deleteAccount() {
