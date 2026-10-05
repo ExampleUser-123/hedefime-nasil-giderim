@@ -1838,6 +1838,14 @@ def auth_forgot_password(body: ForgotPasswordBody):
         if user is None or not user.get("password_hash"):
             masked = email_norm[:2] + "***@" + email_norm.split("@")[-1] if "@" in email_norm else "***"
             print(f"--- FORGOT BILGI: kayit bulunamadi/sifresiz, genel yanit ({masked}) ---")
+            # TEST MODU (varsayilan KAPALI): HNG_DEV_VERBOSE=1 iken genel
+            # yanit yerine acik 404 doner; uretimde asla acilmaz.
+            import os as _os
+            if _os.getenv("HNG_DEV_VERBOSE") == "1":
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "Böyle bir kullanıcı bulunamadı, lütfen önce kayıt olun."},
+                )
             return generic_ok
 
         if not mailer.is_configured():

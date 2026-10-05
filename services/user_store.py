@@ -38,7 +38,25 @@ def _ensure_dir():
     os.makedirs(_data_dir(), exist_ok=True)
 
 
+def _pg_enabled() -> bool:
+    """Postgres deposu aktif mi? Aktifse dosya hic okunmaz/yazilmaz."""
+    try:
+        from services.pg_store import pg_enabled
+        return pg_enabled()
+    except Exception:
+        return False
+
+
 def _load() -> dict:
+    if _pg_enabled():
+        try:
+            from services.pg_store import pg_load_all
+            return pg_load_all()
+        except Exception as exc:
+            import logging as _logging
+            _logging.getLogger("user_store").error(
+                "Postgres deposu okunamadi (%s); bos depoyla devam ediliyor.", exc)
+            return {}
     if os.path.exists(ENC_USERS_FILE):
         try:
             with open(ENC_USERS_FILE, "rb") as f:
@@ -81,6 +99,16 @@ def _load() -> dict:
 
 
 def _save(users: dict):
+    if _pg_enabled():
+        try:
+            from services.pg_store import pg_save_all
+            pg_save_all(users)
+            return
+        except Exception as exc:
+            import logging as _logging
+            _logging.getLogger("user_store").error(
+                "Postgres deposu yazilamadi (%s).", exc)
+            raise
     _ensure_dir()
 
     serialized = json.dumps(users, ensure_ascii=False)

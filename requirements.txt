@@ -9,3 +9,5 @@ resend>=2.40.0
 ddgs>=9.0.0
 pyjwt[crypto]>=2.10.0
 cryptography>=44.0.0
+
+psycopg[binary]>=3.1.0  # Postgres user deposu (DATABASE_URL tanimliysa)
