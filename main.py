@@ -1833,7 +1833,11 @@ def auth_forgot_password(body: ForgotPasswordBody):
         user = user_store.find_user_by_email(email_norm)
         # Sifresiz (Google) hesaplarda sifirlama anlamsiz; hesap sayimini
         # engellemek icin ayni genel yanit doner, kod uretilmez.
+        # Teshis icin sunucu loguna maskeli e-posta ile not dusulur
+        # (istemciye asla hangi adresin kayitli oldugu soylenmez).
         if user is None or not user.get("password_hash"):
+            masked = email_norm[:2] + "***@" + email_norm.split("@")[-1] if "@" in email_norm else "***"
+            print(f"--- FORGOT BILGI: kayit bulunamadi/sifresiz, genel yanit ({masked}) ---")
             return generic_ok
 
         if not mailer.is_configured():
