@@ -2,8 +2,8 @@
 """SEO sehir sayfalari uretici: hedef klasore sehir-ulasim.html sayfalari yazar."""
 import io, os
 
-# SITE_BASE: sitemap URL'leri icin kok adres (kok site: exampleuser-123.github.io)
-SITE_BASE = os.environ.get("SITE_BASE", "https://exampleuser-123.github.io/").rstrip("/") + "/"
+# SITE_BASE: sitemap URL'leri icin kok adres (kok site: hedefimenasilgiderim.github.io)
+SITE_BASE = os.environ.get("SITE_BASE", "https://hedefimenasilgiderim.github.io/").rstrip("/") + "/"
 DOCS = os.environ.get("SITE_DOCS", os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs"))
 
 TPL = """<!DOCTYPE html>

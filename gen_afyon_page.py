@@ -22,7 +22,7 @@ for folder in ('rootsite', 'docs'):
     sm_path = os.path.join(BASE, folder, 'sitemap.xml')
     with io.open(sm_path, encoding='utf-8') as f:
         sm = f.read()
-    url = 'https://exampleuser-123.github.io/' + info['slug']
+    url = 'https://hedefimenasilgiderim.github.io/' + info['slug']
     if url not in sm:
         sm = sm.replace('</urlset>',
                         '  <url><loc>{0}</loc><lastmod>2026-09-12</lastmod></url>\n</urlset>'.format(url))

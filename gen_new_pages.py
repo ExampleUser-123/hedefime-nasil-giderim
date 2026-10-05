@@ -23,7 +23,7 @@ for slug in ("sanliurfa", "kahramanmaras", "kastamonu"):
         sm_path = os.path.join(BASE, folder, "sitemap.xml")
         with io.open(sm_path, encoding="utf-8") as f:
             sm = f.read()
-        url = "https://exampleuser-123.github.io/" + info["slug"]
+        url = "https://hedefimenasilgiderim.github.io/" + info["slug"]
         if url not in sm:
             sm = sm.replace(
                 "</urlset>",

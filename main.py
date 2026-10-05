@@ -1609,7 +1609,7 @@ class ShareRouteBody(BaseModel):
 @app.post("/share-route")
 def share_route_create(body: ShareRouteBody):
     rid = share_store.save_share_route(body.start, body.destination, body.people, body.mode)
-    return {"id": rid, "url": f"https://exampleuser-123.github.io/app/?share={rid}"}
+    return {"id": rid, "url": f"https://hedefimenasilgiderim.github.io/app/?share={rid}"}
 
 
 @app.get("/share-route/{rid}")
