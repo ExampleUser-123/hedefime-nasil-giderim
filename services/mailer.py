@@ -235,7 +235,9 @@ def send_verification_email(to_email: str, code: str,
     """
     print(f"--- RESEND MAIL GONDERILIYOR: {to_email} ---")
     if _resend_api_key():
+        print("--- MAIL KANALI: Resend ---")
         return _send_via_resend(to_email, code, name)
+    print("--- MAIL KANALI: SMTP (Resend anahtari yok) ---")
     return _send_via_smtp(to_email, code, name)
 
 
