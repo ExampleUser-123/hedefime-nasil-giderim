@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
+<script>
+  window.deferredPwaPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    window.deferredPwaPrompt = e;
+  });
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#090d16">
@@ -194,34 +201,6 @@
   }
   .btn-secondary:hover { border-color: #10b981; transform: translateY(-2px); }
   .hero-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
-
-  /* PWA kurulum bilgi penceresi */
-  .install-modal-backdrop {
-    position: fixed; inset: 0; z-index: 100;
-    display: none;
-    align-items: center; justify-content: center;
-    padding: 20px;
-    background: rgba(0,0,0,.65);
-  }
-  .install-modal-backdrop.open { display: flex; }
-  .install-modal {
-    max-width: 420px; width: 100%;
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: 20px;
-    padding: 24px;
-    text-align: center;
-    box-shadow: 0 24px 64px rgba(0,0,0,.6);
-  }
-  .install-modal h3 { margin: 0 0 8px; font-size: 1.05rem; }
-  .install-modal p { color: var(--muted); font-size: .9rem; }
-  .install-modal button {
-    margin-top: 16px;
-    min-height: 44px; width: 100%;
-    border: 0; border-radius: 999px;
-    background: linear-gradient(135deg, #10b981, #06b6d4);
-    color: #022c22; font-weight: 800; font-size: .95rem;
-  }
 
   /* 3D telefon */
   .phone-stage { perspective: 1400px; display: flex; justify-content: center; }
@@ -508,13 +487,6 @@
     <p><a href="hakkinda.html">Hakkımızda</a> · <a href="privacy.html">Gizlilik Politikası</a></p>
     <p style="margin-top:8px">© 2026 Hedefime Nasıl Giderim</p>
   </footer>
-  <div class="install-modal-backdrop" id="installModal" role="dialog" aria-modal="true" aria-labelledby="installModalTitle">
-    <div class="install-modal">
-      <h3 id="installModalTitle">💻 Masaüstü Kurulumu</h3>
-      <p>Masaüstü uygulaması kuruluma hazırlandığında pencere açılacaktır. Dilerseniz tarayıcınızın adres çubuğundaki (sağ üst) '+' veya 'Uygulamayı Yükle' simgesine tıklayabilirsiniz.</p>
-      <button type="button" id="installModalClose">Anladım</button>
-    </div>
-  </div>
   <script>
   // PWA: Service Worker kaydi (cevrimdisi + hizli acilis)
   (function () {
@@ -528,63 +500,33 @@
       });
     }
   })();
-  // PWA: "Masaustune Indir" — prompt hazirsa acar; degilse ASLA
-  // baska sayfaya yonlendirmez, bilgi penceresi gosterir. Kurulu
-  // uygulamada (standalone) ise dogrudan uygulamaya girer.
-  // NOT: beforeinstallprompt yalnizca sayfa kurulabilirse ateslenir
-  // (manifest + sw.js + 512 ikon erisilebilir olmali). Aksi halde modal
-  // cikar; bu kod hatasi degil, dagitim/kriter eksikligidir.
+  // PWA: "Masaustune Indir" — head icindeki global dinleyici olayi
+  // window.deferredPwaPrompt icinde tutar; buton yalnizca onu kullanir.
+  // Yonlendirme YOK: prompt varsa yerel pencere, yoksa alert.
   (function () {
     var btn = document.getElementById('installBtn');
     if (!btn) return;
-    // Global yakalama: sayfa parse edilirken en ust seviyede kayitli oldugu
-    // icin olay kacirilmaz; debug icin window uzerinden de erisilir.
-    function getDeferred() {
-      return window.deferredPwaPrompt || null;
-    }
-    var modal = document.getElementById('installModal');
-    var closeBtn = document.getElementById('installModalClose');
-    function isStandalone() {
-      return window.matchMedia('(display-mode: standalone)').matches
-        || (window.navigator && window.navigator.standalone === true);
-    }
     function markInstalled() {
       btn.textContent = 'Uygulamayı Aç';
     }
-    function openModal() {
-      if (modal) modal.classList.add('open');
-    }
-    function closeModal() {
-      if (modal) modal.classList.remove('open');
-    }
-    if (isStandalone()) markInstalled();
-    // Mount aninda global dinleyici kaydi (en ust seviye, parse sirasinda)
-    window.addEventListener('beforeinstallprompt', function (e) {
-      e.preventDefault();
-      window.deferredPwaPrompt = e;
-      try {
-        console.info('[PWA] beforeinstallprompt yakalandi, kurulum hazir.');
-      } catch (err) {}
-    });
+    if (window.matchMedia('(display-mode: standalone)').matches) markInstalled();
     window.addEventListener('appinstalled', function () {
       window.deferredPwaPrompt = null;
       markInstalled();
-      closeModal();
-    });
-    if (closeBtn) closeBtn.addEventListener('click', closeModal);
-    if (modal) modal.addEventListener('click', function (e) {
-      if (e.target === modal) closeModal();
     });
     btn.addEventListener('click', function (e) {
       e.preventDefault();
-      // Yonlendirme YOK: ya yerel kurulum penceresi, ya bilgi modali.
-      var promptEvent = getDeferred();
+      var promptEvent = window.deferredPwaPrompt || null;
       if (promptEvent) {
         promptEvent.prompt();
-        promptEvent.userChoice.then(function () { window.deferredPwaPrompt = null; }).catch(function () {});
+        promptEvent.userChoice.then(function (choiceResult) {
+          if (choiceResult && choiceResult.outcome === 'accepted') {
+            window.deferredPwaPrompt = null;
+          }
+        }).catch(function () {});
         return;
       }
-      openModal();
+      alert("PWA kurulumu şu an tarayıcınız tarafından tetiklenemedi. Lütfen tarayıcı adres çubuğundaki (sağ üst) 'Uygulamayı Yükle' veya '+' simgesine tıklayın.");
     });
   })();
   </script>
