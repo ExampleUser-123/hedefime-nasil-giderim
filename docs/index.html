@@ -166,6 +166,9 @@
   .hero-cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 26px; }
   .btn-primary {
     display: inline-block;
+    border: 0;
+    font: inherit;
+    cursor: pointer;
     background: linear-gradient(135deg, #10b981, #06b6d4);
     color: #022c22;
     font-weight: 800;
@@ -343,7 +346,7 @@
         <h1 class="hero-title">Nereye gideceğini düşünme, nasıl gideceğini bil.</h1>
         <p class="hero-sub">Otobüs, metro, tramvay, vapur, tren, uçak — A'dan B'ye en uygun yolu saniyeler içinde bul. Ücretsiz, üyeliksiz, kurulum yok.</p>
         <div class="hero-cta">
-          <a class="btn-primary" id="installBtn" href="app/">💻 Masaüstüne İndir</a>
+          <button type="button" class="btn-primary" id="installBtn">💻 Masaüstüne İndir</button>
           <a class="btn-secondary" href="#ozellikler">Rotayı İncele</a>
         </div>
         <div class="hero-badges">
@@ -508,7 +511,7 @@
   <div class="install-modal-backdrop" id="installModal" role="dialog" aria-modal="true" aria-labelledby="installModalTitle">
     <div class="install-modal">
       <h3 id="installModalTitle">💻 Masaüstü Kurulumu</h3>
-      <p>Masaüstü uygulaması hazırlanıyor veya tarayıcınız PWA kurulumunu desteklemiyor. Lütfen tarayıcı adres çubuğundaki (Chrome/Edge) 'Uygulamayı Yükle' simgesine tıklayın.</p>
+      <p>Masaüstü uygulaması kuruluma hazırlandığında pencere açılacaktır. Dilerseniz tarayıcınızın adres çubuğundaki (sağ üst) '+' veya 'Uygulamayı Yükle' simgesine tıklayabilirsiniz.</p>
       <button type="button" id="installModalClose">Anladım</button>
     </div>
   </div>
@@ -560,10 +563,7 @@
     });
     btn.addEventListener('click', function (e) {
       e.preventDefault();
-      if (isStandalone()) {
-        window.location.href = 'app/';
-        return;
-      }
+      // Yonlendirme YOK: ya yerel kurulum penceresi, ya bilgi modali.
       if (deferred) {
         deferred.prompt();
         deferred.userChoice.then(function () { deferred = null; }).catch(function () {});
