@@ -500,22 +500,28 @@
       });
     }
   })();
-  // PWA: "Masaustune Indir" — head icindeki global dinleyici olayi
-  // window.deferredPwaPrompt icinde tutar; buton yalnizca onu kullanir.
-  // Yonlendirme YOK: prompt varsa yerel pencere, yoksa alert.
+  // PWA durum kontrolu: kurulu uygulamada "Uygulamaya Git", normal
+  // sekmede prompt/alert. Yonlendirme YALNIZCA kurulu PWA icinden olur.
   (function () {
     var btn = document.getElementById('installBtn');
     if (!btn) return;
+    var isStandalone = window.matchMedia('(display-mode: standalone)').matches
+      || (window.navigator && window.navigator.standalone === true);
     function markInstalled() {
-      btn.textContent = 'Uygulamayı Aç';
+      btn.textContent = 'Uygulamaya Git';
     }
-    if (window.matchMedia('(display-mode: standalone)').matches) markInstalled();
+    if (isStandalone) markInstalled();
     window.addEventListener('appinstalled', function () {
       window.deferredPwaPrompt = null;
       markInstalled();
     });
     btn.addEventListener('click', function (e) {
       e.preventDefault();
+      // Kurulu PWA icinde: dogrudan ana arayuze gir (tek yonlendirme noktasi)
+      if (isStandalone) {
+        window.location.href = 'app/';
+        return;
+      }
       var promptEvent = window.deferredPwaPrompt || null;
       if (promptEvent) {
         promptEvent.prompt();
@@ -526,7 +532,8 @@
         }).catch(function () {});
         return;
       }
-      alert("PWA kurulumu şu an tarayıcınız tarafından tetiklenemedi. Lütfen tarayıcı adres çubuğundaki (sağ üst) 'Uygulamayı Yükle' veya '+' simgesine tıklayın.");
+      // Normal sekme + prompt yoksa: buyuk olasilikla zaten kurulu
+      alert("Uygulama zaten cihazınızda yüklü. Masaüstündeki 'Hedefime Nasıl Giderim' kısayolundan açabilirsiniz.");
     });
   })();
   </script>
