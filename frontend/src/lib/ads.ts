@@ -200,6 +200,31 @@ function lsSet(key: string, value: number): void {
  * Rota aramasi basariyla bitince cagrilir. Uyelik katmanina gore sira
  * geldiyse araya giren reklami gosterir. Hata olursa sessizce gecer.
  */
+const WEB_INTERSTITIAL_MIN_GAP_MS = 5 * 60 * 1000
+const WEB_INTERSTITIAL_TS_KEY = 'hng-web-interstitial-ts'
+
+/**
+ * Web (PWA/tarayici) AdSense gecis reklami HAZIRLIGI.
+ * Su an yalnizca altyapi: AdSense Auto Ads interstitial scripti sayfada
+ * hazirsa ve siklik esigi asilmamissa tetiklemeyi dener; API yoksa ya da
+ * native platformdaysa sessizce gecilir. Rota aramayi ASLA engellemez.
+ */
+export function maybeShowWebInterstitial(): void {
+  try {
+    if (Capacitor.isNativePlatform()) return
+    if (typeof document === 'undefined' || typeof window === 'undefined') return
+    const last = Number(localStorage.getItem(WEB_INTERSTITIAL_TS_KEY) ?? '0') || 0
+    if (Date.now() - last < WEB_INTERSTITIAL_MIN_GAP_MS) return
+    const w = window as unknown as {
+      adsbygoogle?: { push: (opts: Record<string, unknown>) => void }
+    }
+    if (!w.adsbygoogle || typeof w.adsbygoogle.push !== 'function') return
+    localStorage.setItem(WEB_INTERSTITIAL_TS_KEY, String(Date.now()))
+    w.adsbygoogle.push({ google_ad_client: 'ca-pub-4008793570253978', enable_page_level_ads: true })
+  } catch {
+    // reklam altyapisi kritik degil; sessiz gec
+  }
+}
 export async function maybeShowInterstitial(tier: 'free' | 'lite' | 'premium' = 'free'): Promise<void> {
   if (!adsAvailable() || !AD_IDS.interstitial) return
   if (tier === 'premium') return

@@ -3,13 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#090d16">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Hedefime Nasıl Giderim — A'dan B'ye Otobüs, Metro, Tramvay Rota Planlayıcı - Web Uygulaması</title>
 <meta name="description" content="Türkiye'de A'dan B'ye en uygun ulaşım rotasını bul: otobüs, metro, tramvay, vapur, tren, uçak, araba ve motosiklet. Yakıt maliyeti, sefer saatleri, AI seyahat asistanı. Web uygulaması.">
 <meta name="google-site-verification" content="Dk1qahocyNu7RKI5qyxQ7ogQQT-PdiemvOp5w4OCHgk">
 <meta property="og:title" content="Hedefime Nasıl Giderim — A'dan B'ye Otobüs, Metro, Tramvay Rota Planlayıcı">
 <meta property="og:description" content="Otobüs, metro, tramvay, vapur, tren, uçak... Türkiye'de A'dan B'ye en uygun yolu saniyeler içinde bul. Web uygulaması.">
 <meta property="og:image" content="icon.png">
-<meta property="og:url" content="https://hedefimenasilgiderim.github.io/hedefime-nasil-giderim/">
+<meta property="og:url" content="https://exampleuser-123.github.io/hedefime-nasil-giderim/">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary">
 <style>
@@ -309,7 +315,7 @@
         <h1 class="hero-title">Nereye gideceğini düşünme, nasıl gideceğini bil.</h1>
         <p class="hero-sub">Otobüs, metro, tramvay, vapur, tren, uçak — A'dan B'ye en uygun yolu saniyeler içinde bul. Ücretsiz, üyeliksiz, kurulum yok.</p>
         <div class="hero-cta">
-          <a class="btn-primary" href="app/">Uygulamayı Aç</a>
+          <a class="btn-primary" id="installBtn" href="app/">💻 Masaüstüne İndir</a>
           <a class="btn-secondary" href="#ozellikler">Rotayı İncele</a>
         </div>
         <div class="hero-badges">
@@ -471,6 +477,41 @@
     <p><a href="hakkinda.html">Hakkımızda</a> · <a href="privacy.html">Gizlilik Politikası</a></p>
     <p style="margin-top:8px">© 2026 Hedefime Nasıl Giderim</p>
   </footer>
+  <script>
+  // PWA: Service Worker kaydi (cevrimdisi + hizli acilis)
+  (function () {
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('./sw.js').catch(function () {});
+      });
+    }
+  })();
+  // PWA: "Masaustune Indir" — tarayici kurulum penceresi hazirsa acar,
+  // yoksa (veya kuruluysa) dogrudan uygulamaya gider.
+  (function () {
+    var btn = document.getElementById('installBtn');
+    if (!btn) return;
+    var deferred = null;
+    function markInstalled() {
+      btn.textContent = 'Uygulamayı Aç';
+    }
+    if (window.matchMedia('(display-mode: standalone)').matches) markInstalled();
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      deferred = e;
+    });
+    window.addEventListener('appinstalled', function () {
+      deferred = null;
+      markInstalled();
+    });
+    btn.addEventListener('click', function (e) {
+      if (!deferred) return; // normal baglanti: app/ sayfasina git
+      e.preventDefault();
+      deferred.prompt();
+      deferred.userChoice.then(function () { deferred = null; }).catch(function () {});
+    });
+  })();
+  </script>
   <script>
   // Hero telefon tilt: yalnizca hassas isaretcide, hareket azaltilmamissa
   (function () {

@@ -4,7 +4,7 @@ import { extractCity } from '@/lib/cities'
 import { award } from '@/lib/game'
 import { getCurrentLocation } from '@/lib/geolocation'
 import { addHistory, getFrequentRoutes, getRouteShortcuts, getWalkTolerance, saveLastCoords, setWalkTolerance, type FrequentRoute, type SavedRoute } from '@/lib/storage'
-import { maybeShowInterstitial, showRewardInterstitialAd } from '@/lib/ads'
+import { maybeShowInterstitial, maybeShowWebInterstitial, showRewardInterstitialAd } from '@/lib/ads'
 import { getStoredUser, getTier } from '@/lib/auth'
 import ResultsScreen from '@/components/ResultsScreen'
 import VehiclePicker, { loadRememberedVehicle, loadRememberedVehicleName } from '@/components/VehiclePicker'
@@ -149,6 +149,8 @@ export default function RouteSearch({
     setLoading(true)
     setError(null)
     setQuotaHit(false)
+    // PWA/tarayici AdSense gecis reklami hazirligi (sessiz, engellemez)
+    maybeShowWebInterstitial()
 
     try {
       const nextPlan = await fetchPlan(
