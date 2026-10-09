@@ -192,6 +192,34 @@
   .btn-secondary:hover { border-color: #10b981; transform: translateY(-2px); }
   .hero-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
 
+  /* PWA kurulum bilgi penceresi */
+  .install-modal-backdrop {
+    position: fixed; inset: 0; z-index: 100;
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 20px;
+    background: rgba(0,0,0,.65);
+  }
+  .install-modal-backdrop.open { display: flex; }
+  .install-modal {
+    max-width: 420px; width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 24px;
+    text-align: center;
+    box-shadow: 0 24px 64px rgba(0,0,0,.6);
+  }
+  .install-modal h3 { margin: 0 0 8px; font-size: 1.05rem; }
+  .install-modal p { color: var(--muted); font-size: .9rem; }
+  .install-modal button {
+    margin-top: 16px;
+    min-height: 44px; width: 100%;
+    border: 0; border-radius: 999px;
+    background: linear-gradient(135deg, #10b981, #06b6d4);
+    color: #022c22; font-weight: 800; font-size: .95rem;
+  }
+
   /* 3D telefon */
   .phone-stage { perspective: 1400px; display: flex; justify-content: center; }
   .phone-tilt { transform-style: preserve-3d; will-change: transform; }
@@ -477,6 +505,13 @@
     <p><a href="hakkinda.html">Hakkımızda</a> · <a href="privacy.html">Gizlilik Politikası</a></p>
     <p style="margin-top:8px">© 2026 Hedefime Nasıl Giderim</p>
   </footer>
+  <div class="install-modal-backdrop" id="installModal" role="dialog" aria-modal="true" aria-labelledby="installModalTitle">
+    <div class="install-modal">
+      <h3 id="installModalTitle">💻 Masaüstü Kurulumu</h3>
+      <p>Masaüstü uygulaması hazırlanıyor veya tarayıcınız PWA kurulumunu desteklemiyor. Lütfen tarayıcı adres çubuğundaki (Chrome/Edge) 'Uygulamayı Yükle' simgesine tıklayın.</p>
+      <button type="button" id="installModalClose">Anladım</button>
+    </div>
+  </div>
   <script>
   // PWA: Service Worker kaydi (cevrimdisi + hizli acilis)
   (function () {
@@ -486,16 +521,30 @@
       });
     }
   })();
-  // PWA: "Masaustune Indir" — tarayici kurulum penceresi hazirsa acar,
-  // yoksa (veya kuruluysa) dogrudan uygulamaya gider.
+  // PWA: "Masaustune Indir" — prompt hazirsa acar; degilse ASLA
+  // baska sayfaya yonlendirmez, bilgi penceresi gosterir. Kurulu
+  // uygulamada (standalone) ise dogrudan uygulamaya girer.
   (function () {
     var btn = document.getElementById('installBtn');
     if (!btn) return;
     var deferred = null;
+    var modal = document.getElementById('installModal');
+    var closeBtn = document.getElementById('installModalClose');
+    function isStandalone() {
+      return window.matchMedia('(display-mode: standalone)').matches
+        || (window.navigator && window.navigator.standalone === true);
+    }
     function markInstalled() {
       btn.textContent = 'Uygulamayı Aç';
     }
-    if (window.matchMedia('(display-mode: standalone)').matches) markInstalled();
+    function openModal() {
+      if (modal) modal.classList.add('open');
+    }
+    function closeModal() {
+      if (modal) modal.classList.remove('open');
+    }
+    if (isStandalone()) markInstalled();
+    // Mount aninda global dinleyici kaydi
     window.addEventListener('beforeinstallprompt', function (e) {
       e.preventDefault();
       deferred = e;
@@ -503,12 +552,24 @@
     window.addEventListener('appinstalled', function () {
       deferred = null;
       markInstalled();
+      closeModal();
+    });
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (modal) modal.addEventListener('click', function (e) {
+      if (e.target === modal) closeModal();
     });
     btn.addEventListener('click', function (e) {
-      if (!deferred) return; // normal baglanti: app/ sayfasina git
       e.preventDefault();
-      deferred.prompt();
-      deferred.userChoice.then(function () { deferred = null; }).catch(function () {});
+      if (isStandalone()) {
+        window.location.href = 'app/';
+        return;
+      }
+      if (deferred) {
+        deferred.prompt();
+        deferred.userChoice.then(function () { deferred = null; }).catch(function () {});
+        return;
+      }
+      openModal();
     });
   })();
   </script>
