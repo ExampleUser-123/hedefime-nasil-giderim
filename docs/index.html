@@ -520,17 +520,28 @@
   (function () {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function () {
-        navigator.serviceWorker.register('./sw.js').catch(function () {});
+        navigator.serviceWorker.register('./sw.js').then(function () {
+          try {
+            console.info('[PWA] Service Worker kayitli.');
+          } catch (err) {}
+        }).catch(function () {});
       });
     }
   })();
   // PWA: "Masaustune Indir" — prompt hazirsa acar; degilse ASLA
   // baska sayfaya yonlendirmez, bilgi penceresi gosterir. Kurulu
   // uygulamada (standalone) ise dogrudan uygulamaya girer.
+  // NOT: beforeinstallprompt yalnizca sayfa kurulabilirse ateslenir
+  // (manifest + sw.js + 512 ikon erisilebilir olmali). Aksi halde modal
+  // cikar; bu kod hatasi degil, dagitim/kriter eksikligidir.
   (function () {
     var btn = document.getElementById('installBtn');
     if (!btn) return;
-    var deferred = null;
+    // Global yakalama: sayfa parse edilirken en ust seviyede kayitli oldugu
+    // icin olay kacirilmaz; debug icin window uzerinden de erisilir.
+    function getDeferred() {
+      return window.deferredPwaPrompt || null;
+    }
     var modal = document.getElementById('installModal');
     var closeBtn = document.getElementById('installModalClose');
     function isStandalone() {
@@ -547,13 +558,16 @@
       if (modal) modal.classList.remove('open');
     }
     if (isStandalone()) markInstalled();
-    // Mount aninda global dinleyici kaydi
+    // Mount aninda global dinleyici kaydi (en ust seviye, parse sirasinda)
     window.addEventListener('beforeinstallprompt', function (e) {
       e.preventDefault();
-      deferred = e;
+      window.deferredPwaPrompt = e;
+      try {
+        console.info('[PWA] beforeinstallprompt yakalandi, kurulum hazir.');
+      } catch (err) {}
     });
     window.addEventListener('appinstalled', function () {
-      deferred = null;
+      window.deferredPwaPrompt = null;
       markInstalled();
       closeModal();
     });
@@ -564,9 +578,10 @@
     btn.addEventListener('click', function (e) {
       e.preventDefault();
       // Yonlendirme YOK: ya yerel kurulum penceresi, ya bilgi modali.
-      if (deferred) {
-        deferred.prompt();
-        deferred.userChoice.then(function () { deferred = null; }).catch(function () {});
+      var promptEvent = getDeferred();
+      if (promptEvent) {
+        promptEvent.prompt();
+        promptEvent.userChoice.then(function () { window.deferredPwaPrompt = null; }).catch(function () {});
         return;
       }
       openModal();
