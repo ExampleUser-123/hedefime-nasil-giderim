@@ -15,7 +15,7 @@ from services.location import find_province
 from services.weather import get_weather
 
 
-MODEL_NAME = "gemini-3.6-flash"
+MODEL_NAME = "gemini-1.5-flash"
 
 SYSTEM_INSTRUCTION = """
 Sen "Hedefime Nasıl Giderim" uygulamasının AI asistanısın.

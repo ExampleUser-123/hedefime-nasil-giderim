@@ -202,6 +202,38 @@
   .btn-secondary:hover { border-color: #10b981; transform: translateY(-2px); }
   .hero-badges { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
 
+  /* PWA kurulum rehberi penceresi */
+  .guide-backdrop {
+    position: fixed; inset: 0; z-index: 100;
+    display: none;
+    align-items: center; justify-content: center;
+    padding: 20px;
+    background: rgba(0,0,0,.65);
+  }
+  .guide-backdrop.open { display: flex; }
+  .guide-modal {
+    max-width: 430px; width: 100%;
+    background: linear-gradient(165deg, #101827, #0b1220);
+    border: 1px solid rgba(16,185,129,.4);
+    border-radius: 22px;
+    padding: 26px;
+    box-shadow: 0 0 40px rgba(16,185,129,.25), 0 24px 64px rgba(0,0,0,.6);
+  }
+  .guide-modal h3 { margin: 0; font-size: 1.1rem; }
+  .guide-modal ol {
+    margin: 12px 0 0 20px; padding: 0;
+    color: var(--muted); font-size: .9rem; line-height: 1.7;
+  }
+  .guide-modal ol b { color: var(--text); }
+  .guide-modal button {
+    margin-top: 18px;
+    min-height: 46px; width: 100%;
+    border: 0; border-radius: 999px;
+    background: linear-gradient(135deg, #10b981, #06b6d4);
+    color: #022c22; font-weight: 800; font-size: .95rem; font-family: inherit;
+    cursor: pointer;
+  }
+
   /* 3D telefon */
   .phone-stage { perspective: 1400px; display: flex; justify-content: center; }
   .phone-tilt { transform-style: preserve-3d; will-change: transform; }
@@ -487,6 +519,17 @@
     <p><a href="hakkinda.html">Hakkımızda</a> · <a href="privacy.html">Gizlilik Politikası</a></p>
     <p style="margin-top:8px">© 2026 Hedefime Nasıl Giderim</p>
   </footer>
+  <div class="guide-backdrop" id="installGuide" role="dialog" aria-modal="true" aria-labelledby="installGuideTitle">
+    <div class="guide-modal">
+      <h3 id="installGuideTitle">💻 Masaüstüne Kurulum</h3>
+      <ol>
+        <li>Tarayıcı adres çubuğunun sağındaki <b>yükle simgesine</b> (Chrome'da ⤓ / Edge'de ⋯ → <b>Uygulamayı yükle</b>) tıklayın.</li>
+        <li>Açılan pencerede <b>Yükle / Kur</b> düğmesine basın.</li>
+        <li>Masaüstündeki <b>Hedefime Nasıl Giderim</b> simgesinden uygulamayı bağımsız pencerede açın.</li>
+      </ol>
+      <button type="button" id="installGuideClose">Anladım</button>
+    </div>
+  </div>
   <script>
   // PWA: Service Worker kaydi (cevrimdisi + hizli acilis)
   (function () {
@@ -507,6 +550,19 @@
     if (!btn) return;
     var isStandalone = window.matchMedia('(display-mode: standalone)').matches
       || (window.navigator && window.navigator.standalone === true);
+    var guide = document.getElementById('installGuide');
+    var guideClose = document.getElementById('installGuideClose');
+    function openGuide() {
+      if (guide) guide.classList.add('open');
+    }
+    function closeGuide() {
+      if (guide) guide.classList.remove('open');
+    }
+    if (isStandalone) markInstalled();
+    if (guideClose) guideClose.addEventListener('click', closeGuide);
+    if (guide) guide.addEventListener('click', function (e) {
+      if (e.target === guide) closeGuide();
+    });
     function markInstalled() {
       btn.textContent = 'Uygulamaya Git';
     }
@@ -532,8 +588,8 @@
         }).catch(function () {});
         return;
       }
-      // Normal sekme + prompt yoksa: buyuk olasilikla zaten kurulu
-      alert("Uygulama zaten cihazınızda yüklü. Masaüstündeki 'Hedefime Nasıl Giderim' kısayolundan açabilirsiniz.");
+      // Normal sekme + prompt yoksa: korkutmayan rehber penceresi
+      openGuide();
     });
   })();
   </script>
